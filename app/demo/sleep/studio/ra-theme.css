@@ -501,6 +501,11 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   .ra-scope .resize-handle{display:none;}
   .ra-scope .topbar-mobile{display:flex;}
   .ra-scope .topbar-right .brand-chip{display:none;}
+  /* desktop profile avatar is hidden on mobile — the mobile navbar avatar
+     (topbar-mobile) opens the bottom drawer instead */
+  .ra-scope .topbar-right .topbar-profile{display:none;}
+  /* on mobile the logo already navigates back — drop the redundant Back link */
+  .ra-scope .topbar-back{display:none;}
 
   /* let headings wrap instead of forcing width */
   .ra-scope .empty-title{white-space:normal;text-align:center;font-size:23px;line-height:1.25;}

@@ -197,7 +197,7 @@ export function RightDrawer({
           </div>
         ))}
       </div>
-        {onDismiss && (
+        {onDismiss && !isMobile && (
           <button
             type="button"
             className="drawer-collapse"

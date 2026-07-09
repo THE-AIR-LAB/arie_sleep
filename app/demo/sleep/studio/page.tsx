@@ -479,21 +479,11 @@ function AccountPane({
 }
 
 /* ---------------- compact (collapsed) sidebar rail ---------------- */
-function SidebarRail({ onExpand, onNew, userImage }: { onExpand: () => void; onNew: () => void; userImage?: string }) {
+function SidebarRail({ onExpand }: { onExpand: () => void }) {
   return (
     <aside className="sidebar rail">
       <button className="rail-btn rail-flip" title="Expand sidebar" onClick={onExpand}>
         <Ic.Panel size={18} />
-      </button>
-      <button className="rail-btn accent" title="New conversation" onClick={onNew}>
-        <Ic.Plus size={18} />
-      </button>
-      <button className="rail-btn" title="Search conversations" onClick={onExpand}>
-        <Ic.Search size={17} />
-      </button>
-      <div className="rail-spacer" />
-      <button className="rail-btn" title="Account" onClick={onExpand}>
-        <Avatar kind="user" size={32} src={userImage} mono="O" />
       </button>
     </aside>
   );
@@ -505,12 +495,6 @@ function RightRail({ onOpen }: { onOpen: (id: DrawerId) => void }) {
     <aside className="right-rail">
       <button className="rail-btn" title="Model Setup" onClick={() => onOpen("modelsetup")}>
         <Ic.Panel size={18} />
-      </button>
-      <button className="rail-btn" title="Chat with the expert" onClick={() => onOpen("expert")}>
-        <Ic.User size={18} />
-      </button>
-      <button className="rail-btn" title="Upload sleep data" onClick={() => onOpen("upload")}>
-        <Ic.Upload size={17} />
       </button>
     </aside>
   );
@@ -1062,60 +1046,44 @@ function SleepStudioChat() {
       <div className="app-frame">
         <div className="topbar">
           <div className="topbar-left">
-            <Link href="/demo" aria-label="Back to Models" title="Back to Models" style={{ display: "inline-flex", textDecoration: "none" }}>
+            <span style={{ display: "inline-flex" }}>
               <BrandMark />
-            </Link>
-            <Link className="topbar-back" href="/demo">
-              <Ic.Back size={17} /> Back
-            </Link>
+            </span>
           </div>
           <div className="topbar-right">
             <div className="topbar-mobile">
-              <button className="icon-btn" title="Observability" onClick={() => openDrawer("observability")}>
-                <Ic.Panel size={18} />
-              </button>
-              <button className="icon-btn" title="Model Setup" onClick={() => openDrawer("modelsetup")}>
-                <Ic.Sliders size={18} />
-              </button>
-              <button className="icon-btn" title="Chat with the expert" onClick={() => openDrawer("expert")}>
-                <Ic.User size={18} />
-              </button>
-              <button className="icon-btn" title="Upload sleep data" onClick={() => openDrawer("upload")}>
-                <Ic.Upload size={17} />
-              </button>
-              <button className="icon-btn" title="Conversations" onClick={() => openDrawer("chats")}>
-                <Ic.Clock size={17} />
-              </button>
-              <button className="icon-btn" title="Account" onClick={() => openDrawer("account")}>
+              <button className="icon-btn" title="Open panels" onClick={() => openDrawer("observability")}>
                 <Avatar kind="user" size={26} src={user?.imageUrl} mono="O" />
               </button>
             </div>
-            <div className="brand-chip" style={{ position: "relative" }}>
+            <div className="topbar-profile" style={{ position: "relative" }}>
               <button
                 type="button"
+                className="icon-btn"
                 onClick={(e) => { e.stopPropagation(); setDemoMenuOpen((o) => !o); }}
                 aria-haspopup="menu"
                 aria-expanded={demoMenuOpen}
-                style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", color: "inherit", font: "inherit", cursor: "pointer", padding: 0 }}
+                title="Account"
               >
-                <span className="online-dot" /> Sleep Assistant
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: demoMenuOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                <Avatar kind="user" size={30} src={user?.imageUrl} mono={(user?.email || "?").charAt(0).toUpperCase()} />
               </button>
               {demoMenuOpen && (
                 <>
                   <div onClick={() => setDemoMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} aria-hidden="true" />
-                  <div role="menu" style={{ position: "absolute", right: 0, top: "100%", marginTop: 8, width: 240, zIndex: 50, background: "var(--frame)", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", boxShadow: "0 18px 50px rgba(20,18,12,.25)", padding: "4px 0" }}>
+                  <div role="menu" style={{ position: "absolute", right: 0, top: "100%", marginTop: 8, minWidth: 220, zIndex: 50, background: "var(--frame)", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", boxShadow: "0 18px 50px rgba(20,18,12,.25)", padding: "4px 0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", color: "var(--text)", fontSize: 13 }}>
-                      <span className="online-dot" /> Sleep Assistant
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto", color: "var(--accent)" }} aria-hidden="true">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
+                      <Ic.User size={14} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || "Account"}</span>
+                      {isAdmin && <span className="role-pill" style={{ marginLeft: "auto" }}>ADMIN</span>}
                     </div>
-                    <Link href="/demo/general-orchestration-daemon" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", color: "var(--text-2)", textDecoration: "none", fontSize: 13 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#8da692", flex: "0 0 auto" }} /> Orchestration Daemon
-                    </Link>
+                    <div className="pop-div" />
+                    <button
+                      className="pop-row danger"
+                      style={{ width: "100%" }}
+                      onClick={() => { setDemoMenuOpen(false); signOut(); }}
+                    >
+                      <span className="ic"><Ic.SignOut size={17} /></span>Sign out
+                    </button>
                   </div>
                 </>
               )}
@@ -1157,7 +1125,7 @@ function SleepStudioChat() {
               />
             </>
           ) : (
-            <SidebarRail onExpand={() => setSidebarOpen(true)} onNew={onNew} userImage={user?.imageUrl} />
+            <SidebarRail onExpand={() => setSidebarOpen(true)} />
           )}
           <main className="main">
             {feedbackMode && (activeId || messages.length > 0) ? (
