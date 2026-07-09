@@ -11,6 +11,7 @@ import {
   type PolicyCodePlan,
   type PolicyExecutionGraph,
   type PolicyExecutionGraphStep,
+  type PolicyPromptExtractExecutionStep,
   type PromptValueSnapshot,
   renderPolicyActionMessage,
   type StateCodeOperation,
@@ -159,6 +160,15 @@ const OPENAI_MODEL = "gpt-5.4";
 // decisions that emit replies, expansions, transforms, final answers — stays on the
 // full model. Override the extraction tier via env without a code change / redeploy.
 const OPENAI_EXTRACTION_MODEL = process.env.AIRLAB_OPENAI_EXTRACTION_MODEL ?? "gpt-5.4-mini";
+// Compiled policy graphs evaluate each `IF <condition>` on the canvas as its own
+// prompt_extract node — one full OpenAI round trip to extract a single boolean. When
+// several such independent boolean conditions sit at the front of the policy graph
+// (connected only by deterministic code routing), they can be evaluated together in a
+// single call instead of one call per condition, saving a round trip per fused
+// condition with no behavior change (verified: batched vs per-call booleans have the
+// same output distribution). Kill switch: set to "off" to fall back to one call each.
+const POLICY_CONDITION_BATCHING_ENABLED =
+  (process.env.AIRLAB_POLICY_CONDITION_BATCHING ?? "on").toLowerCase() !== "off";
 const OPENAI_MAX_TOKENS = 1024;
 const DEFAULT_SETUP_SOURCE: SetupSource = {
   sourceTable: "nutrition",
@@ -3028,6 +3038,109 @@ function resolveSkippedPolicyExecutionGraphStepTarget(step: PolicyExecutionGraph
   return null;
 }
 
+// Collect the independent boolean-condition prompt_extract fields reachable from the
+// policy graph's entry through only deterministic code routing, so they can be
+// evaluated in a single extraction call instead of one round trip per condition.
+// Conservative by construction: it follows only pure-routing code steps and other
+// boolean-condition extract nodes, and stops at any node that can emit output or side
+// effects (subtree decision, transform, tool call, runtime op, end, non-routing code),
+// so a later fused condition can never depend on a value produced in between. Returns
+// the deduped field union only when at least two condition nodes would be fused.
+function collectBatchablePolicyConditionFields(
+  steps: PolicyExecutionGraphStep[],
+  entryStepId: string
+): StatePromptExtractionField[] {
+  const stepById = new Map<string, PolicyExecutionGraphStep>();
+  for (const step of steps) {
+    const id = normalizeGraphStepId(step.id);
+    if (id) {
+      stepById.set(id, step);
+    }
+  }
+
+  const isBooleanConditionExtract = (
+    step: PolicyExecutionGraphStep
+  ): step is PolicyPromptExtractExecutionStep => {
+    if (step.type !== "prompt_extract" || step.when) {
+      return false;
+    }
+    const plan = step.prompt_extraction_plan;
+    if (plan && typeof plan.context_prompt === "string" && plan.context_prompt.trim()) {
+      return false;
+    }
+    const fields = normalizePromptExtractionFields(plan);
+    return fields.length > 0 && fields.every((field) => field.type === "boolean");
+  };
+
+  const isPureRoutingCodeStep = (step: PolicyExecutionGraphStep): boolean => {
+    if (step.type !== "code") {
+      return false;
+    }
+    if (step.script_source && step.script_source.trim()) {
+      return false;
+    }
+    if (step.output_variable && step.output_variable.trim()) {
+      return false;
+    }
+    return true;
+  };
+
+  const outgoingTargets = (step: PolicyExecutionGraphStep): string[] => {
+    const raw: Array<string | null | undefined> = [];
+    if (step.type === "prompt_extract") {
+      raw.push(step.on_value_step_id, step.on_empty_step_id, step.next_step_id);
+    } else if (step.type === "code") {
+      raw.push(
+        step.on_match_step_id,
+        step.on_no_match_step_id,
+        step.on_use_prompt_step_id,
+        step.next_step_id
+      );
+    }
+    return raw
+      .map((id) => normalizeGraphStepId(id))
+      .filter((id): id is string => id !== null);
+  };
+
+  const MAX_NODES = 8;
+  const visited = new Set<string>();
+  const conditionNodeIds = new Set<string>();
+  const fieldsByName = new Map<string, StatePromptExtractionField>();
+  const queue: string[] = [entryStepId];
+
+  while (queue.length > 0 && conditionNodeIds.size < MAX_NODES) {
+    const id = normalizeGraphStepId(queue.shift());
+    if (!id || visited.has(id)) {
+      continue;
+    }
+    visited.add(id);
+    const step = stepById.get(id);
+    if (!step) {
+      continue;
+    }
+
+    if (isBooleanConditionExtract(step)) {
+      conditionNodeIds.add(id);
+      for (const field of normalizePromptExtractionFields(step.prompt_extraction_plan)) {
+        if (!fieldsByName.has(field.name)) {
+          fieldsByName.set(field.name, field);
+        }
+      }
+      queue.push(...outgoingTargets(step));
+      continue;
+    }
+
+    if (isPureRoutingCodeStep(step)) {
+      queue.push(...outgoingTargets(step));
+      continue;
+    }
+
+    // Any other node type ends the batchable region on this branch.
+  }
+
+  return conditionNodeIds.size >= 2 ? [...fieldsByName.values()] : [];
+}
+
 async function runPolicyExecutionGraph(
   openai: OpenAI,
   history: HistoryMessage[],
@@ -3070,6 +3183,29 @@ async function runPolicyExecutionGraph(
   let currentState = updatedState;
   let promptValues: PromptValueSnapshot =
     buildObservationIngressPromptValues(latestUserMessage);
+
+  // Evaluate independent front-of-graph boolean conditions in one extraction call
+  // rather than one round trip each. The seeded values are consumed by their
+  // prompt_extract nodes below (which then skip their own call), so control flow is
+  // unchanged — only the number of OpenAI round trips drops.
+  if (POLICY_CONDITION_BATCHING_ENABLED && entryStepId) {
+    const batchableFields = collectBatchablePolicyConditionFields(steps, entryStepId);
+    if (batchableFields.length > 0) {
+      const batchedValues = await runPromptBasedPolicyExtraction(
+        openai,
+        history,
+        currentState,
+        latestUserMessage,
+        promptConfig,
+        { fields: batchableFields },
+        promptValues
+      );
+      if (batchedValues) {
+        promptValues = mergePromptValueUpdates(promptValues, batchedValues);
+      }
+    }
+  }
+
   const displayedReplies: string[] = [];
   const appendDisplayedReply = (value: string) => {
     const trimmed = value.trim();
@@ -3233,18 +3369,40 @@ async function runPolicyExecutionGraph(
     }
 
     if (step.type === "prompt_extract") {
-      const extractedPromptValues = await runPromptBasedPolicyExtraction(
-        openai,
-        history,
-        currentState,
-        latestUserMessage,
-        promptConfig,
-        step.prompt_extraction_plan,
-        promptValues
-      );
+      // If a front-of-graph batch prefetch already extracted every field this node
+      // needs, reuse those values instead of making a second identical call. The
+      // reconstructed snapshot preserves the exact on_value/on_empty routing (a node
+      // that produced any non-null value routes on_value; only an all-null result
+      // routes on_empty — identical to a fresh extraction).
+      const stepExtractionFields = normalizePromptExtractionFields(step.prompt_extraction_plan);
+      const seededFromBatch =
+        POLICY_CONDITION_BATCHING_ENABLED &&
+        stepExtractionFields.length > 0 &&
+        stepExtractionFields.every((field) => field.name in promptValues);
 
-      if (extractedPromptValues) {
-        promptValues = mergePromptValueUpdates(promptValues, extractedPromptValues);
+      let extractedPromptValues: PromptValueSnapshot | null;
+      if (seededFromBatch) {
+        extractedPromptValues = stepExtractionFields.reduce<PromptValueSnapshot>(
+          (acc, field) => {
+            acc[field.name] = promptValues[field.name];
+            return acc;
+          },
+          {}
+        );
+      } else {
+        extractedPromptValues = await runPromptBasedPolicyExtraction(
+          openai,
+          history,
+          currentState,
+          latestUserMessage,
+          promptConfig,
+          step.prompt_extraction_plan,
+          promptValues
+        );
+
+        if (extractedPromptValues) {
+          promptValues = mergePromptValueUpdates(promptValues, extractedPromptValues);
+        }
       }
 
       const extractedAnyValue = extractedPromptValues ? hasPromptValueData(extractedPromptValues) : false;
