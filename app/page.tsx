@@ -11,6 +11,20 @@ import SiteLogo from "./components/SiteLogo";
 // landing page doubles as the login screen (see HomeContent).
 const STUDIO_PATH = "/demo/sleep/studio";
 
+// Shared width so the intro copy and the Clerk sign-in card line up exactly.
+const CONTENT_WIDTH = "25rem";
+
+// Clerk's card defaults to its own width; pin it to CONTENT_WIDTH so it matches
+// the description container above it.
+const homeAppearance = {
+  ...clerkAppearance,
+  elements: {
+    ...clerkAppearance.elements,
+    rootBox: { width: CONTENT_WIDTH, maxWidth: "100%" },
+    card: { ...clerkAppearance.elements.card, width: CONTENT_WIDTH, maxWidth: "100%" },
+  },
+};
+
 // Full-screen logo splash shown on first load: holds for 3s, then fades out
 // over 700ms and unmounts. Non-interactive so it never blocks the page beneath.
 function Splash() {
@@ -59,7 +73,10 @@ function HomeContent() {
       <div className="text-center">
         <p className="text-xs uppercase tracking-[0.28em] text-black/50">The AI Research Lab</p>
         <h1 className="mt-3 text-3xl font-bold text-black sm:text-4xl">Sleep Assistant</h1>
-        <p className="mx-auto mt-4 max-w-[25rem] text-sm leading-relaxed text-black/60">
+        <p
+          className="mx-auto mt-4 text-sm leading-relaxed text-black/60"
+          style={{ maxWidth: CONTENT_WIDTH }}
+        >
           An AI sleep coach that reviews sleep logs, screens for red flags, and helps build a
           routine that sticks. Educational coaching only, not a diagnosis or medical treatment.
         </p>
@@ -84,14 +101,14 @@ function HomeContent() {
               routing="hash"
               forceRedirectUrl={STUDIO_PATH}
               fallbackRedirectUrl={STUDIO_PATH}
-              appearance={clerkAppearance}
+              appearance={homeAppearance}
             />
           ) : (
             <SignUp
               routing="hash"
               forceRedirectUrl={STUDIO_PATH}
               fallbackRedirectUrl={STUDIO_PATH}
-              appearance={clerkAppearance}
+              appearance={homeAppearance}
             />
           )}
           <p className="text-sm font-serif text-gray-600">
