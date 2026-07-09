@@ -87,7 +87,12 @@ function HomeContent() {
       <Splash />
       <div className="text-center">
         <p className="text-xs uppercase tracking-[0.28em] text-black/50">The AI Research Lab</p>
-        <h1 className="mt-3 text-3xl font-normal text-black sm:text-4xl">Sleep Assistant</h1>
+        <h1
+          className="mt-3 text-3xl font-normal text-black sm:text-4xl"
+          style={{ fontFamily: "var(--font-sans)" }}
+        >
+          Sleep Assistant
+        </h1>
         <p
           className="mx-auto mt-4 text-sm leading-relaxed text-black/60"
           style={{ maxWidth: CONTENT_WIDTH }}
