@@ -89,6 +89,8 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 /* ---------- sidebar ---------- */
 .ra-scope .sidebar{width:var(--side-w,300px);flex:0 0 var(--side-w,300px);background:var(--panel);border-right:none;
   display:flex;flex-direction:column;padding:16px 14px 14px;min-height:0;}
+/* when the menu is open (expanded, not the collapsed rail) show a border on its edge */
+.ra-scope .sidebar:not(.rail){border-right:1px solid var(--line);}
 .ra-scope .side-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;}
 /* size the collapse button to the title line height and top-align it,
    so its icon centers on the "Sleep Assistant" title line */
@@ -197,7 +199,8 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
    title + monospace-uppercase subtitle) so the drawer reads as the same family
    as the left rail. Docks as a flex sibling of .main on desktop; full-screen
    overlay on mobile. */
-.ra-scope .obs-panel{width:var(--obs-w,400px);flex:0 0 var(--obs-w,400px);background:var(--panel);border-left:none;
+.ra-scope .obs-panel{width:var(--obs-w,400px);flex:0 0 var(--obs-w,400px);background:var(--panel);
+  border-left:1px solid var(--line);
   display:flex;flex-direction:column;min-height:0;}
 .ra-scope .obs-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line-soft);}
 .ra-scope .obs-meta{flex:1;min-width:0;}
@@ -325,7 +328,9 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .upload-item-x:hover{background:var(--surface-2);color:var(--text);}
 /* Shared right drawer — tab strip when multiple panels are open */
 /* Tab bar: the scrollable tab row plus a pinned "close panel" button. */
-.ra-scope .drawer-tabbar{flex:0 0 auto;display:flex;align-items:stretch;border-bottom:1px solid var(--line-soft);}
+/* pinned to the same height as .thread-head so the header divider line sits at
+   the same level on the left (main) and in the side drawer */
+.ra-scope .drawer-tabbar{flex:0 0 auto;height:76px;display:flex;align-items:stretch;border-bottom:1px solid var(--line-soft);}
 /* Tabs stay on ONE line and scroll horizontally (never vertically). The
    scrollbar is hidden — scroll with trackpad / shift-wheel. */
 .ra-scope .drawer-tabs{flex:1 1 auto;min-width:0;display:flex;flex-wrap:nowrap;align-items:stretch;gap:2px;padding:0 8px;
@@ -389,7 +394,7 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 
 /* ---------- main ---------- */
 .ra-scope .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
-.ra-scope .thread-head{display:flex;align-items:center;gap:13px;padding:14px 22px;border-bottom:1px solid var(--line-soft);}
+.ra-scope .thread-head{display:flex;align-items:center;gap:13px;padding:14px 22px;border-bottom:none;}
 .ra-scope .th-meta{flex:1;min-width:0;overflow:hidden;}
 .ra-scope .th-name{font-family:var(--serif);font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px;white-space:nowrap;}
 .ra-scope .th-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;color:var(--text-3);font-style:italic;font-family:var(--serif);}

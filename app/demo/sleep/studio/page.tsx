@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import "./ra-theme.css";
 import { Ic } from "./ra-icons";
-import { Avatar, BrandMark } from "./ra-shared";
+import { Avatar } from "./ra-shared";
 import {
   ACTION_CHIPS,
   SUGGESTIONS,
@@ -504,7 +504,7 @@ function RightRail({ onOpen }: { onOpen: (id: DrawerId) => void }) {
 function ThreadHeader() {
   return (
     <div className="thread-head">
-      <Avatar kind="assistant" size={40} ring mono="SA" />
+      <Avatar kind="assistant" size={18} ring mono="SA" />
       <div className="th-meta">
         <div className="th-name">Sleep Assistant <span className="online-dot" /></div>
         <div className="th-sub">Here to help you rest</div>
@@ -734,7 +734,6 @@ function SleepStudioChat() {
   const [typing, setTyping] = useState(false);
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Secondary right-side panels share ONE drawer; multiple open ones become tabs.
   const [openDrawers, setOpenDrawers] = useState<DrawerId[]>([]);
@@ -907,7 +906,12 @@ function SleepStudioChat() {
           nodeRefs?: { nodeId: string; canvasId?: string }[];
         };
         const answer = data.content ?? "";
-        const stamped = (data.trace ?? []).map((e) => ({ ...e, tMs: Date.now() }));
+        // Prefer the server-provided wall-clock (ts) so each row shows true
+        // per-call latency; fall back to arrival time for older payloads.
+        const stamped = (data.trace ?? []).map((e) => ({
+          ...e,
+          tMs: (e as { ts?: number }).ts ?? Date.now(),
+        }));
         setMessages((prev) => [...prev, { role: "ai", text: answer }]);
         setStreaming("");
         loadConversations();
@@ -1044,53 +1048,6 @@ function SleepStudioChat() {
   return (
     <div className="ra-scope" onClick={() => menuOpen && setMenuOpen(false)}>
       <div className="app-frame">
-        <div className="topbar">
-          <div className="topbar-left">
-            <span style={{ display: "inline-flex" }}>
-              <BrandMark />
-            </span>
-          </div>
-          <div className="topbar-right">
-            <div className="topbar-mobile">
-              <button className="icon-btn" title="Open panels" onClick={() => openDrawer("observability")}>
-                <Avatar kind="user" size={26} src={user?.imageUrl} mono="O" />
-              </button>
-            </div>
-            <div className="topbar-profile" style={{ position: "relative" }}>
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={(e) => { e.stopPropagation(); setDemoMenuOpen((o) => !o); }}
-                aria-haspopup="menu"
-                aria-expanded={demoMenuOpen}
-                title="Account"
-              >
-                <Avatar kind="user" size={30} src={user?.imageUrl} mono={(user?.email || "?").charAt(0).toUpperCase()} />
-              </button>
-              {demoMenuOpen && (
-                <>
-                  <div onClick={() => setDemoMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} aria-hidden="true" />
-                  <div role="menu" style={{ position: "absolute", right: 0, top: "100%", marginTop: 8, minWidth: 220, zIndex: 50, background: "var(--frame)", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", boxShadow: "0 18px 50px rgba(20,18,12,.25)", padding: "4px 0" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", color: "var(--text)", fontSize: 13 }}>
-                      <Ic.User size={14} />
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || "Account"}</span>
-                      {isAdmin && <span className="role-pill" style={{ marginLeft: "auto" }}>ADMIN</span>}
-                    </div>
-                    <div className="pop-div" />
-                    <button
-                      className="pop-row danger"
-                      style={{ width: "100%" }}
-                      onClick={() => { setDemoMenuOpen(false); signOut(); }}
-                    >
-                      <span className="ic"><Ic.SignOut size={17} /></span>Sign out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
         <div className="body">
           {sidebarOpen ? (
             <>

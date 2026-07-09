@@ -1840,6 +1840,13 @@ async function runChatCompletion(
   const completion = await openai.chat.completions.create({
     model,
     max_completion_tokens: maxTokens,
+    // These pipeline calls are structured extraction/decision/reply steps, not
+    // deep reasoning. gpt-5.4's default effort makes the state-extraction call
+    // (LOOP 0) spend ~15s "thinking". "none" skips reasoning entirely and still
+    // returns valid structured output, cutting that latency dramatically.
+    // NOTE: gpt-5.4 does NOT support "minimal" (400 unsupported_value); the
+    // valid tiers are 'none' | 'low' | 'medium' | 'high' | 'xhigh'.
+    reasoning_effort: "none",
     messages,
   });
 
@@ -3617,6 +3624,9 @@ type ChatTraceEvent =
   | {
       kind: "openai_request";
       loop: number;
+      // server wall-clock (ms) when the call started — lets the trace UI show
+      // true per-call latency instead of stamping every event at client arrival
+      ts: number;
       model: string;
       messages: Array<{ role: string; preview: string }>;
       tools: Array<{ name: string; description?: string }>;
@@ -3624,6 +3634,8 @@ type ChatTraceEvent =
   | {
       kind: "openai_response";
       loop: number;
+      // server wall-clock (ms) when the call returned
+      ts: number;
       content: string;
       finishReason: string | null;
       toolCalls: Array<{ name: string; args: unknown }>;
@@ -3649,6 +3661,7 @@ function createTracingOpenAIClient(openai: OpenAI, sink: ChatTraceEvent[]): Open
     sink.push({
       kind: "openai_request",
       loop: myLoop,
+      ts: Date.now(),
       model: typeof params.model === "string" ? params.model : "(model)",
       messages: messages.map((m) => ({
         role: String(m.role ?? ""),
@@ -3666,6 +3679,7 @@ function createTracingOpenAIClient(openai: OpenAI, sink: ChatTraceEvent[]): Open
     sink.push({
       kind: "openai_response",
       loop: myLoop,
+      ts: Date.now(),
       content: choice?.message?.content ?? "",
       finishReason: choice?.finish_reason ?? null,
       toolCalls: (choice?.message?.tool_calls ?? []).map((c) => {
