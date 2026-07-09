@@ -50,6 +50,8 @@ export interface UnifiedCanvasProps {
   inspectorContext?: CanvasInspectorContext;
   /** Extra tabs appended to the inspector panel (e.g. a State schema editor). */
   inspectorExtraTabs?: { id: string; label: string; content: ReactNode }[];
+  /** Hide the inspector panel (Inspector/Compiler tabs) entirely. */
+  hideInspector?: boolean;
   /** Give the canvas + inspector a constant viewport-filling height (overlay). */
   fillHeight?: boolean;
   /** Decorative dashed frame + corner tag around the graph (e.g. trained version). */
@@ -69,6 +71,7 @@ export default function Canvas({
   compile = compileCanvas,
   inspectorContext,
   inspectorExtraTabs,
+  hideInspector,
   fillHeight,
   graphTag,
   fireSignal,
@@ -108,6 +111,7 @@ export default function Canvas({
             doc={doc}
             inspectorContext={inspectorContext}
             inspectorExtraTabs={inspectorExtraTabs}
+            hideInspector={hideInspector}
             fillHeight={fillHeight}
             graphTag={graphTag}
             fireSignal={fireSignal}

@@ -466,11 +466,8 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .act-chip .ic{color:var(--text-3);display:flex;}
 .ra-scope .composer-row{display:flex;align-items:center;gap:11px;}
 .ra-scope .composer{flex:1;display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);
-  border-radius:999px;padding:6px 8px 6px 6px;}
+  border-radius:999px;padding:6px 8px 6px 18px;}
 .ra-scope .composer:focus-within{background:var(--surface-2);}
-.ra-scope .comp-plus{width:36px;height:36px;flex:0 0 auto;border-radius:50%;background:var(--surface-2);color:var(--text-2);
-  display:flex;align-items:center;justify-content:center;}
-.ra-scope .comp-plus:hover{background:#b3b1a3;color:var(--text);}
 .ra-scope .comp-send{width:36px;height:36px;flex:0 0 auto;border-radius:50%;background:var(--surface-2);color:var(--text-2);
   display:flex;align-items:center;justify-content:center;}
 .ra-scope .comp-send:hover{background:#b3b1a3;color:var(--text);}
@@ -489,6 +486,8 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .topbar-mobile{display:none;align-items:center;gap:4px;}
 .ra-scope .sheet-scrim{display:none;}
 .ra-scope .sidebar-sheet{display:none;}
+/* the mobile right-edge launcher is hidden on desktop (docked rails handle it) */
+.ra-scope .mobile-railnav{display:none;}
 
 /* ---------- responsive (mobile) ----------
    Bumped to 900px: below this the fixed 300px sidebar + 400px right drawer leave
@@ -503,6 +502,19 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 
   /* no collapsed right rail on mobile — its actions move to the navbar */
   .ra-scope .right-rail{display:none;}
+
+  /* mobile-only launcher: a horizontal bar across the top whose icons each open
+     the bottom drawer (there's no docked rail/sidebar on mobile). */
+  /* float only the icons in the top-right so the Sleep Assistant header sits
+     inline with them (no full-width bar, no background). */
+  .ra-scope .mobile-railnav{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:2px;
+    position:fixed;top:0;right:0;z-index:60;
+    background:transparent;
+    padding:8px 12px;}
+  .ra-scope .mrail-btn{width:40px;height:40px;flex:0 0 auto;display:flex;align-items:center;
+    justify-content:center;border-radius:12px;color:var(--text-2);border:1px solid transparent;}
+  .ra-scope .mrail-btn:hover,.ra-scope .mrail-btn:active{background:var(--surface);color:var(--text);}
+
 
   /* the unified drawer (chats / observability / expert / upload / account)
      comes up from the bottom as a sheet — not a full-screen overlay — so the

@@ -20,7 +20,6 @@ import {
   STATE_NODES,
   STATE_PROMPT,
   STATE_TOOLS,
-  STATE_TYPES,
   type FlowEdge,
   type FlowGroup,
   type FlowNode,
@@ -229,44 +228,6 @@ function DatasetRow({
           <button className="sc-btn ghost" style={{ marginTop: 10 }}>+ Add record</button>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ---------------- schema row ---------------- */
-function SchemaRow({
-  field,
-  onChange,
-  onRemove,
-}: {
-  field: SchemaField;
-  onChange: (next: SchemaField) => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div className="sc-schema-r">
-      <input
-        className="sc-input"
-        style={{ background: "transparent", border: "none", padding: "2px 0" }}
-        value={field[0]}
-        onChange={(e) => onChange([e.target.value, field[1], field[2]])}
-      />
-      <div className="sc-select-wrap">
-        <select
-          className="sc-select"
-          value={field[1]}
-          onChange={(e) => onChange([field[0], e.target.value, field[2]])}
-        >
-          {STATE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </div>
-      <input
-        className={"sc-init" + (field[2] === "null" ? " null" : "")}
-        style={{ background: "transparent", border: "none", padding: "2px 0" }}
-        value={field[2]}
-        onChange={(e) => onChange([field[0], field[1], e.target.value])}
-      />
-      <button className="sc-row-x" onClick={onRemove} title="Remove">×</button>
     </div>
   );
 }
@@ -526,7 +487,6 @@ function KnowledgePane({
 
       <div className="sc-list-head">
         <span className="sc-lbl">Datasets</span>
-        <button className="sc-btn">+ Add dataset</button>
       </div>
       {DATASETS.map((d) => (
         <DatasetRow key={d.name} name={d.name} cols={d.cols} notes={d.notes} records={d.records} />
@@ -759,34 +719,6 @@ function StatePane({
   currentState?: Record<string, unknown> | null;
   loaded?: boolean;
 }) {
-  const schemaTab = (
-    <div className="sc-schema-tab">
-      <div className="sc-schema">
-        <div className="sc-schema-h">
-          <span className="sc-lbl">Field</span>
-          <span className="sc-lbl">Type</span>
-          <span className="sc-lbl">Initial</span>
-          <span />
-        </div>
-        {fields.map((f, i) => (
-          <SchemaRow
-            key={i}
-            field={f}
-            onChange={(next) => setFields((fs) => fs.map((x, j) => (j === i ? next : x)))}
-            onRemove={() => setFields((fs) => fs.filter((_, j) => j !== i))}
-          />
-        ))}
-      </div>
-      <button
-        className="sc-btn ghost"
-        style={{ marginTop: 10 }}
-        onClick={() => setFields((f) => [...f, ["new_field", "string", "null"]])}
-      >
-        + Add field
-      </button>
-    </div>
-  );
-
   const currentEntries: [string, unknown][] = currentState
     ? Object.entries(currentState)
     : fields.map(([name, , initialValue]) => [name, initialValue]);
@@ -837,7 +769,6 @@ function StatePane({
               })),
               stateUpdateSystemPrompt: STATE_PROMPT,
             }}
-            inspectorExtraTabs={[{ id: "schema", label: "Schema", content: schemaTab }]}
             fillHeight={fillHeight}
             onChange={({ doc }) => onStateChange(doc)}
           />
@@ -878,6 +809,7 @@ function PolicyPane({
             seedDoc={POLICY_SEED_DOC}
             nodeKinds={DEFAULT_POLICY_NODE_KINDS}
             inspectorContext={{ executionPhase: "policy", runtimeProfile: "default" }}
+            hideInspector
             fillHeight={fillHeight}
             graphTag={movedToWeights ? "Moved into the weights" : undefined}
             fireSignal={fireSignal}

@@ -272,6 +272,8 @@ interface EditorInnerProps<TOutput> {
   inspectorContext?: CanvasInspectorContext;
   /** Extra tabs appended to the inspector panel (e.g. a State schema editor). */
   inspectorExtraTabs?: { id: string; label: string; content: ReactNode }[];
+  /** When true, the inspector panel (Inspector/Compiler tabs) is not rendered. */
+  hideInspector?: boolean;
   /**
    * When true, the canvas + inspector row is given a constant height that fills
    * from below the toolbars to the bottom of the viewport, rather than a fixed
@@ -1972,6 +1974,7 @@ export function EditorInner<TOutput>({
   seedDoc,
   inspectorContext,
   inspectorExtraTabs,
+  hideInspector,
   fillHeight,
   graphTag,
   fireSignal,
@@ -2511,9 +2514,6 @@ export function EditorInner<TOutput>({
     }));
   }
 
-  function updateFreeText(text: string) {
-    patchActive((c) => ({ ...c, freeText: text }));
-  }
 
   const compilerPromptGroups = useMemo(
     () => collectPromptGroupsForCompiler(liveDoc, inspectorContext),
@@ -3585,6 +3585,7 @@ export function EditorInner<TOutput>({
       >
         {renderCanvasSurface(fullscreen)}
 
+        {!hideInspector && (
         <aside
           className={
             fullscreen
@@ -3598,7 +3599,6 @@ export function EditorInner<TOutput>({
             {[
               ["inspector", "Inspector"],
               ["compiler", "Compiler"],
-              ["notes", "Notes"],
               ...(inspectorExtraTabs ?? []).map((t) => [t.id, t.label] as const),
             ].map(([id, label]) => (
               <button
@@ -4186,26 +4186,11 @@ export function EditorInner<TOutput>({
             </pre>
           )}
 
-          {inspectorTab === "notes" && (
-            <div>
-              <p className="text-[11px] font-serif text-gray-400 mb-2 leading-relaxed">
-                Free-text instructions appended after this canvas&rsquo;s compiled output. Use for
-                nuances the diagram cannot capture.
-              </p>
-              <textarea
-                value={active.freeText}
-                onChange={(e) => updateFreeText(e.target.value)}
-                rows={8}
-                placeholder="e.g. Do not repeat a question already asked…"
-                className="w-full bg-[#d6d3c4] border border-[#c8c4b4] rounded px-3 py-2 text-sm font-serif text-gray-800 placeholder-gray-400 focus:outline-none focus:border-gray-500 resize-y leading-relaxed"
-              />
-            </div>
-          )}
-
           {(inspectorExtraTabs ?? []).map(
             (t) => inspectorTab === t.id && <div key={t.id}>{t.content}</div>
           )}
         </aside>
+        )}
       </div>
     </div>
   );

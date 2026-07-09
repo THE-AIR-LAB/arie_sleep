@@ -4,13 +4,13 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import "./ra-theme.css";
-import { Ic } from "./ra-icons";
+import { Ic, type IconName } from "./ra-icons";
 import { Avatar } from "./ra-shared";
 import {
   ACTION_CHIPS,
   SUGGESTIONS,
 } from "./sleep-data";
-import { RightDrawer, type DrawerId } from "./RightDrawer";
+import { RightDrawer, DRAWER_LABEL, type DrawerId } from "./RightDrawer";
 import { FeedbackControls, type FeedbackEntry, type FeedbackSignal } from "./FeedbackControls";
 import type { Turn, TimedTraceEvent } from "../../../components/trace/TraceView";
 import { AuthProvider, useAuth } from "../../../context/AuthContext";
@@ -424,18 +424,6 @@ function Sidebar({
         )}
         <div className="side-bottom-row">
           <button
-            className={"help-btn" + (infoOpen ? " open" : "")}
-            title="How to use the studio"
-            aria-label="How to use the studio"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen(() => false);
-              setInfoOpen((o) => !o);
-            }}
-          >
-            <Ic.Info size={18} />
-          </button>
-          <button
             className={"acct-chip" + (menuOpen ? " open" : "")}
             onClick={(e) => { e.stopPropagation(); setInfoOpen(() => false); setMenuOpen((o) => !o); }}
           >
@@ -448,6 +436,18 @@ function Sidebar({
               <div className="acct-sub">signed in</div>
             </div>
             <span className="chev"><Ic.Chevron size={16} /></span>
+          </button>
+          <button
+            className={"help-btn" + (infoOpen ? " open" : "")}
+            title="How to use the studio"
+            aria-label="How to use the studio"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(() => false);
+              setInfoOpen((o) => !o);
+            }}
+          >
+            <Ic.Info size={18} />
           </button>
         </div>
       </div>
@@ -580,6 +580,44 @@ function SidebarRail({ onExpand }: { onExpand: () => void }) {
   );
 }
 
+/* ---------------- mobile-only right-edge nav ---------------- */
+// On mobile the docked sidebar and rails are hidden, so this floating vertical
+// bar on the right edge is the only launcher for the bottom drawer. Each icon
+// opens the sheet with its tab active; admin-only panels are filtered out.
+const MOBILE_NAV: Array<{ id: DrawerId; icon: IconName }> = [
+  { id: "chats", icon: "Chat" },
+  { id: "account", icon: "User" },
+];
+
+function MobileNav({
+  onOpen,
+  isAdmin,
+}: {
+  onOpen: (id: DrawerId) => void;
+  isAdmin: boolean;
+}) {
+  return (
+    <nav className="mobile-railnav" aria-label="Panels">
+      {MOBILE_NAV.filter(
+        (n) => isAdmin || !ADMIN_ONLY_DRAWERS.includes(n.id)
+      ).map((n) => {
+        const I = Ic[n.icon];
+        return (
+          <button
+            key={n.id}
+            className="mrail-btn"
+            title={DRAWER_LABEL[n.id]}
+            aria-label={DRAWER_LABEL[n.id]}
+            onClick={(e) => { e.stopPropagation(); onOpen(n.id); }}
+          >
+            <I size={15} />
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 /* ---------------- compact (collapsed) right drawer rail ---------------- */
 function RightRail({ onOpen }: { onOpen: (id: DrawerId) => void }) {
   return (
@@ -597,7 +635,7 @@ function ThreadHeader() {
     <div className="thread-head">
       <Avatar kind="assistant" size={18} ring mono="SA" />
       <div className="th-meta">
-        <div className="th-name">Sleep Assistant <span className="online-dot" /></div>
+        <div className="th-name">Sleep Assistant</div>
         <div className="th-sub">Here to help you rest</div>
       </div>
     </div>
@@ -784,7 +822,6 @@ function Composer({
         </div>
         <div className="composer-row">
           <div className="composer">
-            <button className="comp-plus" title="Add"><Ic.Plus size={18} /></button>
             <input
               ref={inputRef}
               className="comp-input"
@@ -1275,6 +1312,7 @@ function SleepStudioChat() {
 
           {/* The collapsed right rail only opens Model Setup, so it is admin-only. */}
           {openDrawers.length === 0 && isAdmin && <RightRail onOpen={openDrawer} />}
+          {openDrawers.length === 0 && <MobileNav onOpen={openDrawer} isAdmin={isAdmin} />}
           {openDrawers.length > 0 && (
             <ResizeHandle
               side="left"
