@@ -40,8 +40,9 @@ const homeAppearance = {
   },
 };
 
-// Full-screen logo splash shown on first load: holds for 3s, then fades out
-// over 700ms and unmounts. Non-interactive so it never blocks the page beneath.
+// Full-screen logo splash shown on first load: holds for 3s (the logo stays
+// interactive during the hold), then fades out over 700ms and unmounts —
+// letting pointer events through only once it starts fading.
 function Splash() {
   const [phase, setPhase] = useState<"hold" | "fading" | "gone">("hold");
 
@@ -58,8 +59,8 @@ function Splash() {
 
   return (
     <div
-      className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-700 ${
-        phase === "fading" ? "opacity-0" : "opacity-100"
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-700 ${
+        phase === "fading" ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       style={{ backgroundColor: "#E1DECF" }}
     >
@@ -97,7 +98,7 @@ function HomeContent() {
           className="mx-auto mt-4 text-sm leading-relaxed text-black/60"
           style={{ maxWidth: CONTENT_WIDTH }}
         >
-          An AI sleep coach that reviews sleep logs, screens for red flags, and helps build a
+          An AI sleep expert that reviews sleep logs, screens for red flags, and helps build a
           routine that sticks. Educational coaching only, not a diagnosis or medical treatment.
         </p>
       </div>

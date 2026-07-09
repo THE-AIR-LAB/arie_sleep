@@ -1694,6 +1694,14 @@ function StudioLoading() {
 function StudioSplash({ ready }: { ready: boolean }) {
   const [phase, setPhase] = useState<"hold" | "fading" | "gone">("hold");
   const [minElapsed, setMinElapsed] = useState(false);
+  // Drives the logo's fade-IN: starts hidden, flips visible on the next frame so
+  // the opacity transition runs. The overlay's own opacity handles the fade-OUT.
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setMinElapsed(true), 3000);
@@ -1719,7 +1727,13 @@ function StudioSplash({ ready }: { ready: boolean }) {
       }
       style={{ backgroundColor: "#E1DECF" }}
     >
-      <SiteLogo size={120} href="/demo/sleep/studio" />
+      <div
+        className={
+          "transition-opacity duration-700 " + (entered ? "opacity-100" : "opacity-0")
+        }
+      >
+        <SiteLogo size={120} href="/demo/sleep/studio" />
+      </div>
     </div>
   );
 }
