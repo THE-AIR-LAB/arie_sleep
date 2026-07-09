@@ -35,6 +35,8 @@ const homeAppearance = {
       border: "none",
       boxShadow: "none",
     },
+    // Smaller input + placeholder text than Clerk's default sizing.
+    formFieldInput: `${clerkAppearance.elements.formFieldInput} text-sm placeholder:text-sm`,
   },
 };
 
