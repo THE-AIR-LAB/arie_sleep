@@ -18,10 +18,23 @@ const CONTENT_WIDTH = "25rem";
 // the description container above it.
 const homeAppearance = {
   ...clerkAppearance,
+  variables: {
+    ...clerkAppearance.variables,
+    // Match the rest of the landing page instead of Clerk's serif default.
+    fontFamily: "var(--font-sans)",
+  },
   elements: {
     ...clerkAppearance.elements,
-    rootBox: { width: CONTENT_WIDTH, maxWidth: "100%" },
-    card: { ...clerkAppearance.elements.card, width: CONTENT_WIDTH, maxWidth: "100%" },
+    // Fill the available width and cap at CONTENT_WIDTH, so the card shrinks to
+    // fit (and stays centered) on mobile instead of overflowing at a fixed size.
+    rootBox: { width: "100%", maxWidth: CONTENT_WIDTH },
+    card: {
+      ...clerkAppearance.elements.card,
+      width: "100%",
+      maxWidth: CONTENT_WIDTH,
+      border: "none",
+      boxShadow: "none",
+    },
   },
 };
 
@@ -72,7 +85,7 @@ function HomeContent() {
       <Splash />
       <div className="text-center">
         <p className="text-xs uppercase tracking-[0.28em] text-black/50">The AI Research Lab</p>
-        <h1 className="mt-3 text-3xl font-bold text-black sm:text-4xl">Sleep Assistant</h1>
+        <h1 className="mt-3 text-3xl font-normal text-black sm:text-4xl">Sleep Assistant</h1>
         <p
           className="mx-auto mt-4 text-sm leading-relaxed text-black/60"
           style={{ maxWidth: CONTENT_WIDTH }}
@@ -86,7 +99,7 @@ function HomeContent() {
           changes the layout height (which otherwise makes the page jump). */}
       <div className="flex min-h-[460px] w-full flex-col items-center justify-start">
       {loading ? (
-        <p className="text-sm font-serif text-gray-400">Loading…</p>
+        <p className="text-sm text-gray-400">Loading…</p>
       ) : user ? (
         <Link
           href={STUDIO_PATH}
@@ -95,7 +108,10 @@ function HomeContent() {
           Open the studio
         </Link>
       ) : (
-        <div className="flex flex-col items-center gap-4">
+        <div
+          className="flex w-full flex-col items-center gap-4"
+          style={{ maxWidth: CONTENT_WIDTH }}
+        >
           {mode === "signin" ? (
             <SignIn
               routing="hash"
@@ -111,7 +127,7 @@ function HomeContent() {
               appearance={homeAppearance}
             />
           )}
-          <p className="text-sm font-serif text-gray-600">
+          <p className="text-sm text-gray-600">
             {mode === "signin" ? (
               <>
                 Don&apos;t have an account?{" "}
