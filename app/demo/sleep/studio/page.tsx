@@ -1686,7 +1686,7 @@ function SleepStudioChat() {
 function StudioLoading() {
   return (
     <div className="flex flex-1 items-center justify-center bg-[#E1DECF]">
-      <SiteLogo size={120} href="/demo/sleep/studio" />
+      <SiteLogo size={120} href="/sleep" />
     </div>
   );
 }
@@ -1735,7 +1735,7 @@ function StudioSplash({ ready }: { ready: boolean }) {
           "transition-opacity duration-700 " + (entered ? "opacity-100" : "opacity-0")
         }
       >
-        <SiteLogo size={120} href="/demo/sleep/studio" />
+        <SiteLogo size={120} href="/sleep" />
       </div>
     </div>
   );

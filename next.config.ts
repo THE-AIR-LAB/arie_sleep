@@ -19,6 +19,14 @@ const nextConfig: NextConfig = {
   // Combined with the literal dynamic import() in app/lib/tools/mcp.ts, Vercel's
   // tracer still includes the package, so it's present at runtime.
   serverExternalPackages: ["@modelcontextprotocol/sdk"],
+  // Serve the sleep studio under the shorter /sleep endpoint. This is a rewrite
+  // (not a redirect), so the URL bar stays on /sleep while the existing
+  // /demo/sleep/studio route renders. The old path keeps working too.
+  async rewrites() {
+    return [
+      { source: "/sleep", destination: "/demo/sleep/studio" },
+    ];
+  },
 };
 
 export default nextConfig;
