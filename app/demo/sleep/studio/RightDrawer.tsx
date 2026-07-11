@@ -42,8 +42,8 @@ const ALL_TABS: DrawerId[] = [
   "chats",
   "observability",
   "modelsetup",
-  "expert",
-  "upload",
+  // "expert",
+  // "upload",
 ];
 
 // Panels that expose internal wiring (model/prompt setup, step-by-step traces).
@@ -73,6 +73,7 @@ export function RightDrawer({
   chatsContent,
   accountContent,
   modelSetupContent,
+  activeConversationId,
   onDismiss,
   isAdmin = false,
 }: {
@@ -92,6 +93,8 @@ export function RightDrawer({
    * floating window survives the drawer closing.
    */
   modelSetupContent?: React.ReactNode;
+  /** Active conversation id — the Upload pane attaches files to it. */
+  activeConversationId?: string | null;
   /** Close the whole drawer (mobile: flick the sheet down past the threshold). */
   onDismiss?: () => void;
   /** Non-admins never see the internal Model Setup / Observability panels. */
@@ -197,21 +200,8 @@ export function RightDrawer({
             }}
           >
             <span className="drawer-tab-label">{DRAWER_LABEL[id]}</span>
-            {/* Desktop tabs are closable; on mobile the full set is fixed and
-                the sheet is dismissed by flicking the grabber down. */}
-            {!isMobile && (
-              <button
-                type="button"
-                className="drawer-tab-x"
-                aria-label={`Close ${DRAWER_LABEL[id]}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose(id);
-                }}
-              >
-                ✕
-              </button>
-            )}
+            {/* Per-tab close removed — the whole drawer is dismissed via the
+                collapse button (desktop) or by flicking the grabber down (mobile). */}
           </div>
         ))}
       </div>
@@ -253,7 +243,7 @@ export function RightDrawer({
           )}
           {id === "modelsetup" && modelSetupContent}
           {id === "expert" && <ExpertChatContent active={activeId === "expert"} />}
-          {id === "upload" && <UploadContent />}
+          {id === "upload" && <UploadContent conversationId={activeConversationId ?? null} />}
           {id === "account" && accountContent}
         </div>
       ))}

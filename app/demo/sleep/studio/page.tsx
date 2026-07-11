@@ -46,7 +46,7 @@ interface Conversation {
 
 // The function panels shown as drawer tabs on desktop. Opening any one of them
 // opens the whole set (see openDrawer) so all tabs are visible.
-const PANEL_TABS: DrawerId[] = ["modelsetup", "observability", "expert", "upload"];
+const PANEL_TABS: DrawerId[] = ["modelsetup", "observability" /*, "expert", "upload" */];
 
 // Panels that expose internal wiring (model/prompt setup, step-by-step traces).
 // Only admins may see or open these; non-admins get the plain chat surface.
@@ -324,7 +324,6 @@ function Sidebar({
       <div className="side-head">
         <div>
           <div className="side-title">Sleep Assistant</div>
-          <div className="side-sub">Track · coach · rest</div>
         </div>
         <button className="icon-btn side-close" title="Collapse sidebar" onClick={onClose}>
           <Ic.Panel size={17} />
@@ -1105,19 +1104,33 @@ function SleepStudioChat() {
   const [feedbackByIdx, setFeedbackByIdx] = useState<Record<number, FeedbackEntry[]>>({});
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(300); // px, resizable
-  const [obsWidth, setObsWidth] = useState(400); // px, resizable
+  // Right drawer width. `null` means "use the CSS default" (half the screen, via
+  // `--obs-w` falling back to 50vw) — so the drawer opens at half the screen by
+  // default, immune to persistence/effect races. A number is set only once the
+  // user actually drags to resize, and that px width is what we persist.
+  const [obsWidth, setObsWidth] = useState<number | null>(null);
+  // Right drawer resize bounds, derived from the viewport on mount (kept in state
+  // to avoid touching `window` during SSR/hydration). `def` = half the screen.
+  const [obsBounds, setObsBounds] = useState({ min: 320, max: 680, def: 400 });
   // restore persisted drawer widths (client-only, avoids hydration mismatch)
   useEffect(() => {
     const s = Number(localStorage.getItem("ra-sidebar-w"));
     if (s) setSidebarWidth(Math.max(240, Math.min(520, s)));
-    const o = Number(localStorage.getItem("ra-obs-w"));
-    if (o) setObsWidth(Math.max(300, Math.min(680, o)));
+    // Half the screen is the default width; allow dragging up to 75% of it.
+    const half = Math.round(window.innerWidth / 2);
+    const min = 320;
+    const max = Math.max(half, Math.round(window.innerWidth * 0.75));
+    setObsBounds({ min, max, def: half });
+    // Only adopt a persisted width if the user previously resized; otherwise stay
+    // null so the CSS 50vw default applies.
+    const o = Number(localStorage.getItem("ra-obs-w2"));
+    if (o) setObsWidth(Math.max(min, Math.min(max, o)));
   }, []);
   useEffect(() => {
     localStorage.setItem("ra-sidebar-w", String(sidebarWidth));
   }, [sidebarWidth]);
   useEffect(() => {
-    localStorage.setItem("ra-obs-w", String(obsWidth));
+    if (obsWidth != null) localStorage.setItem("ra-obs-w2", String(obsWidth));
   }, [obsWidth]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -1623,11 +1636,11 @@ function SleepStudioChat() {
           {openDrawers.length > 0 && (
             <ResizeHandle
               side="left"
-              width={obsWidth}
+              width={obsWidth ?? obsBounds.def}
               setWidth={setObsWidth}
-              min={300}
-              max={680}
-              def={400}
+              min={obsBounds.min}
+              max={obsBounds.max}
+              def={obsBounds.def}
             />
           )}
           <RightDrawer
@@ -1638,7 +1651,7 @@ function SleepStudioChat() {
             isAdmin={isAdmin}
             turns={turns}
             onClearTurns={() => setTurns([])}
-            width={obsWidth}
+            width={obsWidth ?? undefined}
             onDismiss={closeAllDrawers}
             chatsContent={
               <ChatsPane
@@ -1664,6 +1677,7 @@ function SleepStudioChat() {
               />
             }
             modelSetupContent={<div className="drawer-pane" ref={setModelSetupSlot} />}
+            activeConversationId={activeId}
           />
           {/* SetupBar is mounted here (page level), not inside the drawer, so its
               popped-out floating window survives the drawer closing. It portals

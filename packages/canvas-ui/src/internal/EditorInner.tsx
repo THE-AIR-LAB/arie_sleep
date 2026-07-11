@@ -292,6 +292,12 @@ interface EditorInnerProps<TOutput> {
    * Null/undefined disables it; signals without exact refs do not animate.
    */
   fireSignal?: CanvasFireSignal | null;
+  /**
+   * Content rendered at the trailing (right) edge of the canvas tab bar. When
+   * provided it replaces the default "N canvases" count — hosts use it to dock
+   * chrome (e.g. a Pop out control) into the tab row.
+   */
+  tabBarTrailing?: ReactNode;
 }
 
 function isControlStructureKind(kind: Pick<NodeKindDef, "kind">): boolean {
@@ -1978,6 +1984,7 @@ export function EditorInner<TOutput>({
   fillHeight,
   graphTag,
   fireSignal,
+  tabBarTrailing,
 }: EditorInnerProps<TOutput>) {
   // Stable index of kinds keyed by `kind` for O(1) lookups.
   const kindByKey = useMemo(() => {
@@ -3428,34 +3435,42 @@ export function EditorInner<TOutput>({
         >
           + Canvas
         </button>
-        <span className="ml-auto text-[10px] font-sans uppercase tracking-widest text-gray-400">
-          {canvases.length} canvas{canvases.length === 1 ? "" : "es"}
-        </span>
+        {/* Trailing controls: the Tools toggle sits just left of the host-provided
+            slot (e.g. Pop out), replacing the default "N canvases" count. */}
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setToolbarOpen((o) => !o)}
+            aria-expanded={toolbarOpen}
+            className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs font-sans uppercase tracking-widest text-gray-600 hover:text-gray-900 hover:bg-[#eceadd]"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="12"
+              height="12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`transition-transform ${toolbarOpen ? "rotate-90" : ""}`}
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+            Tools
+          </button>
+          {tabBarTrailing ? (
+            <div className="flex items-center">{tabBarTrailing}</div>
+          ) : (
+            <span className="text-[10px] font-sans uppercase tracking-widest text-gray-400">
+              {canvases.length} canvas{canvases.length === 1 ? "" : "es"}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Toolbar — a collapsible accordion wrapping the node + canvas action rows */}
+      {/* Toolbar — collapsible node + canvas action rows (toggle lives in the tab bar above) */}
       <div className={`${fullscreen ? "flex" : "hidden lg:flex"} flex-col gap-2`}>
-        <button
-          type="button"
-          onClick={() => setToolbarOpen((o) => !o)}
-          aria-expanded={toolbarOpen}
-          className="flex items-center gap-1.5 self-start -ml-1 rounded px-1.5 py-1 text-[10px] font-sans uppercase tracking-widest text-gray-600 hover:text-gray-900 hover:bg-[#eceadd]"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="12"
-            height="12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`transition-transform ${toolbarOpen ? "rotate-90" : ""}`}
-          >
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-          Tools
-        </button>
         {toolbarOpen && (
           <div className="flex flex-col gap-2">
             {/* Node toolbar (row 1) — add-node buttons + Delete selected */}

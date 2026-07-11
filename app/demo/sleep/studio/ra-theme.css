@@ -223,7 +223,7 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
    title + monospace-uppercase subtitle) so the drawer reads as the same family
    as the left rail. Docks as a flex sibling of .main on desktop; full-screen
    overlay on mobile. */
-.ra-scope .obs-panel{width:var(--obs-w,400px);flex:0 0 var(--obs-w,400px);background:var(--panel);
+.ra-scope .obs-panel{width:var(--obs-w,50vw);flex:0 0 var(--obs-w,50vw);background:var(--panel);
   border-left:1px solid var(--line);
   display:flex;flex-direction:column;min-height:0;}
 .ra-scope .obs-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line-soft);}
@@ -266,9 +266,11 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .obs-docked .sc-stage{grid-template-columns:1fr;}
 .ra-scope .obs-docked .rf-canvas-body{flex-direction:column;}
 .ra-scope .obs-docked .rf-canvas-body > *{width:100%;max-width:none;}
-/* Board is flex-1 in the original row layout; stacked in a column it has no
-   height to fill and collapses, so pin it to a usable preview height. */
-.ra-scope .obs-docked .rf-canvas-surface{flex:none;height:340px;min-height:340px;}
+/* The canvas fills the available height and the inspector takes a bounded share
+   below it. fillHeight mode measures rf-canvas-body's height from the viewport
+   (and recomputes on resize), so the canvas follows the window height. */
+.ra-scope .obs-docked .rf-canvas-surface{flex:1 1 auto;height:auto;min-height:240px;}
+.ra-scope .obs-docked .rf-canvas-body > aside{flex:0 0 auto;height:auto;max-height:34%;}
 /* Pop-out / dock toggle button: icon + label, matches the mono .sc-close. */
 .sysconf .obs-dock-toggle{display:inline-flex;align-items:center;gap:5px;}
 .sysconf .obs-dock-toggle svg{flex:0 0 auto;}
@@ -351,7 +353,11 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   transition:border-color .15s, background .15s;}
 .ra-scope .upload-drop:hover{border-color:var(--accent);background:var(--surface-2);}
 .ra-scope .upload-drop.dragging{border-color:var(--accent);background:var(--accent-soft,var(--surface-2));}
+.ra-scope .upload-error{margin-top:10px;font-size:12.5px;color:var(--danger);}
 .ra-scope .upload-ico{color:var(--accent);margin-bottom:2px;}
+/* File name doubles as a signed download link. */
+.ra-scope a.upload-item-name{text-decoration:none;display:block;}
+.ra-scope a.upload-item-name:hover{color:var(--accent);text-decoration:underline;}
 .ra-scope .upload-drop-title{font-family:var(--serif);font-size:16px;color:var(--text);}
 .ra-scope .upload-drop-sub{font-size:12.5px;color:var(--text-3);}
 .ra-scope .upload-list{display:flex;flex-direction:column;gap:8px;}
@@ -360,13 +366,17 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .upload-item-meta{flex:1;min-width:0;display:flex;flex-direction:column;}
 .ra-scope .upload-item-name{font-size:13.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ra-scope .upload-item-size{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:10.5px;color:var(--text-3);margin-top:1px;}
+.ra-scope .upload-item-attach{flex:0 0 auto;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;
+  padding:3px 8px;border-radius:7px;border:1px solid var(--line);color:var(--text-3);white-space:nowrap;}
+.ra-scope .upload-item-attach:hover{border-color:var(--accent);color:var(--accent);}
+.ra-scope .upload-item-attach.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink,#fff);}
 .ra-scope .upload-item-x{flex:0 0 auto;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:var(--text-3);}
 .ra-scope .upload-item-x:hover{background:var(--surface-2);color:var(--text);}
 /* Shared right drawer — tab strip when multiple panels are open */
 /* Tab bar: the scrollable tab row plus a pinned "close panel" button. */
 /* pinned to the same height as .thread-head so the header divider line sits at
    the same level on the left (main) and in the side drawer */
-.ra-scope .drawer-tabbar{flex:0 0 auto;height:76px;display:flex;align-items:stretch;border-bottom:1px solid var(--line-soft);}
+.ra-scope .drawer-tabbar{flex:0 0 auto;height:46px;display:flex;align-items:stretch;border-bottom:1px solid var(--line-soft);}
 /* Tabs stay on ONE line and scroll horizontally (never vertically). The
    scrollbar is hidden — scroll with trackpad / shift-wheel. */
 .ra-scope .drawer-tabs{flex:1 1 auto;min-width:0;display:flex;flex-wrap:nowrap;align-items:stretch;gap:2px;padding:0 8px;
@@ -376,7 +386,7 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .drawer-collapse{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:42px;
   color:var(--text-3);border-left:1px solid var(--line-soft);cursor:pointer;}
 .ra-scope .drawer-collapse:hover{background:var(--surface);color:var(--text);}
-.ra-scope .drawer-tab{display:flex;align-items:center;gap:7px;padding:13px 11px 11px;cursor:pointer;white-space:nowrap;
+.ra-scope .drawer-tab{display:flex;align-items:center;gap:7px;padding:7px 11px;cursor:pointer;white-space:nowrap;
   color:var(--text-3);font-family:var(--serif);font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px;}
 .ra-scope .drawer-tab:hover{color:var(--text-2);}
 .ra-scope .drawer-tab.on{color:var(--text);border-bottom-color:var(--accent);}
@@ -623,6 +633,9 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .sysconf .sc-close{font-family:var(--sc-mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--sc-input-line);
   border-radius:7px;padding:7px 13px;color:var(--sc-ink);white-space:nowrap;}
 .sysconf .sc-close:hover{background:var(--sc-input);}
+/* Save / Pop out / Close cluster used in the Knowledge/State header bar. */
+.sysconf .obs-tabbar-controls{display:flex;align-items:center;gap:6px;}
+.sysconf .obs-tabbar-controls .sc-close{margin-left:0;padding:5px 10px;}
 
 /* body: nav + content */
 .sysconf .sc-body{flex:1;display:flex;min-height:0;}

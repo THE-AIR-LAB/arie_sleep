@@ -787,6 +787,7 @@ function PolicyPane({
   movedToWeights,
   fireSignal,
   loaded = true,
+  tabBarTrailing,
 }: {
   policyDoc: CanvasDoc | null;
   onPolicyChange: (doc: CanvasDoc) => void;
@@ -794,6 +795,7 @@ function PolicyPane({
   movedToWeights?: boolean;
   fireSignal?: CanvasFireSignal | null;
   loaded?: boolean;
+  tabBarTrailing?: React.ReactNode;
 }) {
   return (
     <div className={"sc-pane-inner" + (fillHeight ? " sc-pane-fill" : "")}>
@@ -812,6 +814,7 @@ function PolicyPane({
             fillHeight={fillHeight}
             graphTag={movedToWeights ? "Moved into the weights" : undefined}
             fireSignal={fireSignal}
+            tabBarTrailing={tabBarTrailing}
             onChange={({ doc }) => onPolicyChange(doc)}
           />
         ) : (
@@ -1368,6 +1371,8 @@ export function useSleepSetup() {
       fillHeight?: boolean;
       fireSignal?: CanvasFireSignal | null;
       currentState?: Record<string, unknown> | null;
+      /** Docked into the Policy canvas tab bar (e.g. the Pop out control). */
+      tabBarTrailing?: React.ReactNode;
     }
   ) => {
     let pane: React.ReactNode = null;
@@ -1403,6 +1408,7 @@ export function useSleepSetup() {
           fillHeight={opts?.fillHeight}
           fireSignal={opts?.fireSignal}
           loaded={loaded}
+          tabBarTrailing={opts?.tabBarTrailing}
         />
       );
     else if (which === "env") pane = <EnvPane />;
@@ -1610,6 +1616,40 @@ export function SetupBar({
     <span className="sc-lbl" style={{ opacity: 0.6 }}>Read-only</span>
   );
 
+  // The Save / Pop out / Close controls used in the header bar of the non-canvas
+  // sections (Knowledge, State).
+  const dockControls = (
+    <div className="obs-tabbar-controls">
+      {SaveBtn}
+      <button
+        className="sc-close obs-dock-toggle"
+        aria-label="Pop out to a floating window"
+        title="Pop out to a floating window"
+        onClick={popOut}
+      >
+        <Ic.Expand size={13} /> Pop out
+      </button>
+      <button className="sc-close sc-modal-x" aria-label="Close" onClick={close}>
+        ✕
+      </button>
+    </div>
+  );
+
+  // The Policy section has no header row — only a single borderless Pop out
+  // control docked into the canvas tab bar. Uses the same type styling as the
+  // canvas tabs / Tools toggle so every title in the bar matches.
+  const tabBarPopOut = (
+    <button
+      type="button"
+      className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs font-sans uppercase tracking-widest text-gray-600 hover:text-gray-900 hover:bg-[#eceadd]"
+      aria-label="Pop out to a floating window"
+      title="Pop out to a floating window"
+      onClick={popOut}
+    >
+      <Ic.Expand size={13} /> Pop out
+    </button>
+  );
+
   // The docked chrome (section chips + inline pane) lives inside the drawer via
   // the `slot` portal target. The floating window is portaled to <body> and is
   // owned by this page-level SetupBar, so it stays present when the drawer — and
@@ -1636,31 +1676,25 @@ export function SetupBar({
         })}
       </div>
 
-      {/* Docked inline: the actual section component, embedded in the drawer. */}
+      {/* Docked inline: the actual section component, embedded in the drawer.
+          The Policy section drops the header bar and docks its controls into the
+          canvas tab bar; other sections keep the header row. */}
       {active && !floating && (
         <div className="sysconf obs-docked">
-          <div className="sc-modal-bar obs-docked-bar">
-            <span className="sc-lbl">{label}</span>
-            <span className="sp" />
-            {SaveBtn}
-            <button
-              className="sc-close obs-dock-toggle"
-              aria-label="Pop out to a floating window"
-              title="Pop out to a floating window"
-              onClick={popOut}
-            >
-              <Ic.Expand size={13} /> Pop out
-            </button>
-            <button
-              className="sc-close sc-modal-x"
-              aria-label="Close"
-              onClick={close}
-            >
-              ✕
-            </button>
-          </div>
+          {active !== "policy" && (
+            <div className="sc-modal-bar obs-docked-bar">
+              <span className="sc-lbl">{label}</span>
+              <span className="sp" />
+              {dockControls}
+            </div>
+          )}
           <div className="obs-docked-body">
-            {setup.renderSectionPane(active, { fillHeight: true, fireSignal, currentState })}
+            {setup.renderSectionPane(active, {
+              fillHeight: true,
+              fireSignal,
+              currentState,
+              tabBarTrailing: active === "policy" ? tabBarPopOut : undefined,
+            })}
           </div>
         </div>
       )}

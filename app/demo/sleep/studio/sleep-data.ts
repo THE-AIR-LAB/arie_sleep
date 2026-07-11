@@ -321,12 +321,12 @@ export const SUGGESTIONS: { icon: string; label: string }[] = [
   { icon: "Edit", label: "Draft a wind-down routine" },
 ];
 export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [
-  { icon: "Upload", label: "Upload sleep data" },
-  {
-    icon: "User",
-    label: "Chat with the expert",
-    prefill: "I'd like to chat with a sleep expert about ",
-  },
+  // { icon: "Upload", label: "Upload sleep data" },
+  // {
+  //   icon: "User",
+  //   label: "Chat with the expert",
+  //   prefill: "I'd like to chat with a sleep expert about ",
+  // },
 ];
 
 const OPENERS = [
