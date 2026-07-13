@@ -822,8 +822,8 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 /* Collapsible "Current state" header — styled like the Knowledge/State/Policy
    nav (proportional font, 13px, dark ink, normal weight) rather than the muted
    monospace caption. */
-.sysconf .sc-curstate-head{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:none;border:none;
-  padding:0;margin-bottom:9px;cursor:pointer;text-align:center;}
+.sysconf .sc-curstate-head{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;
+  padding:0;margin-bottom:9px;cursor:pointer;text-align:left;}
 .sysconf .sc-curstate-head > .sc-lbl{margin-bottom:0;font-family:var(--sc-serif);font-size:13px;
   font-weight:400;letter-spacing:0;text-transform:none;color:var(--sc-ink);}
 .sysconf .sc-curstate-head .sc-curstate-chev{flex:0 0 auto;color:var(--sc-ink);transition:transform .15s ease;}

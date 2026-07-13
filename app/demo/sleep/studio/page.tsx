@@ -55,6 +55,7 @@ const ADMIN_ONLY_DRAWERS: DrawerId[] = ["modelsetup", "observability"];
 const ADMIN_ITEMS = [
   // { icon: "Grid", label: "Admin dashboard", href: "/demo/sleep/expert-dashboard" },
   { icon: "Sliders", label: "Model setup", href: "/demo/sleep/studio/config" },
+  { icon: "Shield", label: "User roles", href: "/admin/users" },
 ] as const;
 
 // Copy for the bottom-left "How to use the studio" help panel. Each section maps to a
