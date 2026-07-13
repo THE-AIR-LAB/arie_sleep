@@ -2019,6 +2019,11 @@ export function EditorInner<TOutput>({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<string>("inspector");
   const [canvasFullscreen, setCanvasFullscreen] = useState(false);
+  // Collapse the graph surface (docked column layout) so the inspector below
+  // gets the reclaimed height.
+  const [canvasCollapsed, setCanvasCollapsed] = useState(false);
+  // "How to use the canvas" help overlay.
+  const [helpOpen, setHelpOpen] = useState(false);
   // The node + canvas-action toolbar is collapsible to reclaim space; starts
   // collapsed so the canvas gets the room (expand via the TOOLS header).
   const [toolbarOpen, setToolbarOpen] = useState(false);
@@ -3287,6 +3292,8 @@ export function EditorInner<TOutput>({
       }
       role={fullscreen ? "dialog" : undefined}
       aria-modal={fullscreen || undefined}
+      // Collapsed: hide the surface entirely so the inspector below fills the row.
+      style={canvasCollapsed && !fullscreen ? { display: "none" } : undefined}
     >
       <ReactFlow
         key={`${active.id}-${fullscreen ? "full" : "inline"}`}
@@ -3436,6 +3443,20 @@ export function EditorInner<TOutput>({
         {/* Trailing controls: the Tools toggle sits just left of the host-provided
             slot (e.g. Pop out), replacing the default "N canvases" count. */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Info: overlays how-to-use-the-canvas instructions. Sits before Tools. */}
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            aria-label="How to use the canvas"
+            title="How to use the canvas"
+            className="flex items-center justify-center rounded p-1 text-[#1c1b16] hover:bg-[#eceadd]"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <line x1="12" y1="11" x2="12" y2="16.5" />
+              <circle cx="12" cy="7.75" r="1" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
           <button
             type="button"
             onClick={() => setToolbarOpen((o) => !o)}
@@ -3457,6 +3478,47 @@ export function EditorInner<TOutput>({
             </svg>
             Tools
           </button>
+          {/* Fullscreen: exit control, styled like Tools, to the right of it. */}
+          {fullscreen && (
+            <button
+              type="button"
+              onClick={() => setCanvasFullscreen(false)}
+              aria-label="Exit fullscreen"
+              title="Exit fullscreen (Esc)"
+              className="flex items-center gap-1.5 rounded px-1.5 py-1 text-[13px] font-sans text-[#1c1b16] hover:bg-[#eceadd]"
+            >
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+              Close
+            </button>
+          )}
+          {/* Collapse the canvas so the inspector below reclaims the height.
+              Only shown in the docked/fill-height (stacked) layout. */}
+          {fillHeight && !fullscreen && (
+            <button
+              type="button"
+              onClick={() => setCanvasCollapsed((v) => !v)}
+              aria-expanded={!canvasCollapsed}
+              title={canvasCollapsed ? "Expand canvas" : "Collapse canvas"}
+              className="flex items-center gap-1.5 rounded px-1.5 py-1 text-[13px] font-sans text-[#1c1b16] hover:bg-[#eceadd]"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="12"
+                height="12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform ${canvasCollapsed ? "" : "rotate-180"}`}
+              >
+                <path d="M6 15l6-6 6 6" />
+              </svg>
+              {canvasCollapsed ? "Expand" : "Collapse"}
+            </button>
+          )}
           {tabBarTrailing ? (
             <div className="flex items-center">{tabBarTrailing}</div>
           ) : null}
@@ -3602,6 +3664,13 @@ export function EditorInner<TOutput>({
               : fillHeight
                 ? "w-full lg:w-72 h-full overflow-auto shrink-0 rounded border border-[#c8c4b4] bg-[#dddacb] p-4 space-y-3"
                 : "w-full lg:w-72 lg:h-[360px] lg:overflow-auto shrink-0 rounded border border-[#c8c4b4] bg-[#dddacb] p-4 space-y-3"
+          }
+          // When the canvas is collapsed, override the docked height cap
+          // (max-height:34%) so the inspector expands to fill the row.
+          style={
+            canvasCollapsed && !fullscreen
+              ? { maxHeight: "none", height: "100%", flex: "1 1 auto" }
+              : undefined
           }
         >
           <div className="flex flex-wrap items-center gap-1 border-b border-[#c0bdb0] pb-2">
@@ -4219,6 +4288,95 @@ export function EditorInner<TOutput>({
                 {renderEditorWorkspace(true)}
               </div>
             </>,
+            document.body
+          )
+        : null}
+
+      {helpOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[200] flex items-center justify-center p-6"
+              style={{ background: "rgba(31,29,24,0.42)" }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="How to use the canvas"
+              onClick={() => setHelpOpen(false)}
+            >
+              <div
+                className="w-[min(560px,100%)] max-h-[85vh] overflow-auto rounded-[14px] border border-[#a8a698] bg-[#d8d6c7] shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-[#bcbaad] bg-[#d8d6c7] px-[18px] py-4">
+                  <span className="font-sans text-[16px] font-semibold text-[#1f1d18]">
+                    How to use the canvas
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setHelpOpen(false)}
+                    aria-label="Close"
+                    className="flex h-7 w-7 items-center justify-center rounded text-[#86806f] hover:bg-[#c9c7b9] hover:text-[#1f1d18]"
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="px-[18px] pb-5 pt-4 font-sans text-[13.5px] leading-[1.6] text-[#56534b]">
+                  <p className="mb-3.5">
+                    The canvas is a flowchart that <b className="font-semibold text-[#1f1d18]">compiles into the prompt</b> the
+                    model runs each turn. Build it like this:
+                  </p>
+                  <div className="space-y-3.5">
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">1</div>
+                      <div>
+                        <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Add a node</div>
+                        <p>Open <b className="font-semibold text-[#1f1d18]">Tools</b> and pick a node type (Prompt, IF/condition, Subtree, Terminate…). It drops onto the canvas.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">2</div>
+                      <div>
+                        <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Connect nodes</div>
+                        <p>Drag from the small handle (dot) on one node to another. IF nodes have separate <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">TRUE</span> / <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">FALSE</span> outputs.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">3</div>
+                      <div>
+                        <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Edit a node</div>
+                        <p>Click it to open the <b className="font-semibold text-[#1f1d18]">Inspector</b> on the right, where you set its text, type, and options. Click an edge to edit or remove it.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">4</div>
+                      <div>
+                        <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Delete</div>
+                        <p>Select a node or edge and press <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">Delete</span>, or use the delete control in Tools.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">5</div>
+                      <div>
+                        <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Move around</div>
+                        <p>Drag the empty canvas to pan; scroll or use the <span className="font-mono text-[11px]">+ / −</span> buttons to zoom; the fit / fullscreen buttons sit at the top-right.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">6</div>
+                      <div>
+                        <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Multiple flows</div>
+                        <p>Use the <b className="font-semibold text-[#1f1d18]">+ Canvas</b> tab to add another flow, double-click a tab to rename it, and reference one from another with a Subtree node.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-3.5 border-t border-[#bcbaad] pt-3">
+                    Execution starts at the <b className="font-semibold text-[#1f1d18]">Start</b> node and follows the branches
+                    top-to-bottom. To see the exact compiled prompt, switch the Inspector to the <b className="font-semibold text-[#1f1d18]">Compiler</b> tab.
+                  </p>
+                </div>
+              </div>
+            </div>,
             document.body
           )
         : null}

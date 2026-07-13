@@ -392,15 +392,11 @@ function KnowledgePane({
   setFiles,
   guidelineItems,
   setGuidelineItems,
-  dirty,
-  onCommit,
 }: {
   files: string[];
   setFiles: React.Dispatch<React.SetStateAction<string[]>>;
   guidelineItems: string[];
   setGuidelineItems: React.Dispatch<React.SetStateAction<string[]>>;
-  dirty: boolean;
-  onCommit: () => void;
 }) {
   const [drag, setDrag] = useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
@@ -422,14 +418,6 @@ function KnowledgePane({
 
       <div className="sc-list-head" style={{ marginTop: 0 }}>
         <span className="sc-lbl">Dataset: {GUIDELINE_ITEMS_DATASET_NAME} · {guidelineItems.length} rows</span>
-        <button
-          className="sc-btn primary"
-          onClick={onCommit}
-          disabled={!dirty}
-          style={{ opacity: dirty ? 1 : 0.5, cursor: dirty ? "pointer" : "default" }}
-        >
-          {dirty ? "Commit changes" : "Committed"}
-        </button>
       </div>
       <p className="desc" style={{ margin: "0 0 8px" }}>
         One row per guideline. Legacy guideline blocks were converted into rows
@@ -723,6 +711,7 @@ function StatePane({
     ? Object.entries(currentState)
     : fields.map(([name, , initialValue]) => [name, initialValue]);
   const hasLiveState = !!currentState;
+  const [stateOpen, setStateOpen] = useState(true);
   const fmtStateVal = (v: unknown): string => {
     if (v === null || v === undefined || v === "" || v === "null") return "—";
     if (Array.isArray(v)) return v.length ? v.join(", ") : "—";
@@ -739,18 +728,42 @@ function StatePane({
       </div>
       {currentEntries.length > 0 && (
         <div className="sc-curstate">
-          <span className="sc-lbl">{hasLiveState ? "Current state · this conversation" : "State variables"}</span>
-          <div className="sc-curstate-rows">
-            {currentEntries.map(([k, v]) => {
-              const set = fmtStateVal(v) !== "—";
-              return (
-                <div key={k} className={"sc-curstate-row" + (set ? "" : " unset")}>
-                  <span className="sc-curstate-k">{k}</span>
-                  <span className="sc-curstate-v">{fmtStateVal(v)}</span>
-                </div>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            className="sc-curstate-head"
+            onClick={() => setStateOpen((o) => !o)}
+            aria-expanded={stateOpen}
+            title={stateOpen ? "Collapse" : "Expand"}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="11"
+              height="11"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={"sc-curstate-chev" + (stateOpen ? " open" : "")}
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+            <span className="sc-lbl">{hasLiveState ? "Current state · this conversation" : "State variables"}</span>
+          </button>
+          {stateOpen && (
+            <div className="sc-curstate-rows">
+              {currentEntries.map(([k, v]) => {
+                const set = fmtStateVal(v) !== "—";
+                return (
+                  <div key={k} className={"sc-curstate-row" + (set ? "" : " unset")}>
+                    <span className="sc-curstate-k">{k}</span>
+                    <span className="sc-curstate-v">{fmtStateVal(v)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
       <div className="sc-canvas-host">
@@ -1383,8 +1396,6 @@ export function useSleepSetup() {
           setFiles={setFiles}
           guidelineItems={guidelineItems}
           setGuidelineItems={editGuidelineItems}
-          dirty={dirty}
-          onCommit={save}
         />
       );
     else if (which === "state")
@@ -1789,8 +1800,6 @@ function useLocalAgent({ movedToWeights }: { movedToWeights?: boolean } = {}) {
           setFiles={setFiles}
           guidelineItems={guidelineItems}
           setGuidelineItems={setGuidelineItems}
-          dirty={false}
-          onCommit={() => {}}
         />
       );
     else if (which === "state")
