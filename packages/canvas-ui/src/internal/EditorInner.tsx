@@ -29,6 +29,7 @@ import {
   type OnNodesChange,
   useNodes,
   useNodesInitialized,
+  useReactFlow,
   getSmoothStepPath,
   ConnectionLineType,
   Position,
@@ -1508,6 +1509,39 @@ function anchorBetweenRects(
   };
 }
 
+/** Same as Controls' fit-view (third button): center the graph when a canvas opens. */
+function FitViewOnOpen({
+  canvasId,
+  layoutKey,
+}: {
+  canvasId: string;
+  /** Remount/resize signal — drawer open, split drag, collapse toggle, etc. */
+  layoutKey: string;
+}) {
+  const { fitView } = useReactFlow();
+  const nodesInitialized = useNodesInitialized();
+
+  useEffect(() => {
+    if (!nodesInitialized) return;
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      fitView({ padding: 0.2, duration: 0 });
+    };
+    // Wait a frame so the surface has a real size (drawer/split often mounts at 0),
+    // then a short follow-up after layout settles (tab switch / drawer expand).
+    const raf = requestAnimationFrame(run);
+    const t = window.setTimeout(run, 80);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
+    };
+  }, [canvasId, layoutKey, nodesInitialized, fitView]);
+
+  return null;
+}
+
 function PromptGroupOverlays({
   groups,
   collapsedEdges,
@@ -2034,12 +2068,12 @@ export function EditorInner<TOutput>({
   // elsewhere so State/Policy can't end up with a hidden board.
   const canvasIsCollapsed = splitPanels && canvasCollapsed;
   // Share of the body axis for the graph (rest → inspector).
-  // Stack (State/Policy): 50/50 height. Split (bottom workflow): 2/3 · 1/3 width.
+  // Stack (State/Policy height) and split (bottom workflow width): both 2/3 · 1/3.
   // Separate storage keys so one layout doesn't overwrite the other.
-  const defaultCanvasShare = splitPanels ? 2 / 3 : 0.5;
+  const defaultCanvasShare = 2 / 3;
   const canvasShareKey = splitPanels
     ? "rf-canvas-inspector-share-split"
-    : "rf-canvas-inspector-share";
+    : "rf-canvas-inspector-share-stack";
   const [canvasShare, setCanvasShare] = useState(defaultCanvasShare);
   const [splitDragging, setSplitDragging] = useState(false);
   // "How to use the canvas" help overlay.
@@ -3336,7 +3370,7 @@ export function EditorInner<TOutput>({
         onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.Step}
-        fitView={fillHeight || fullscreen}
+        fitView
         fitViewOptions={{ padding: 0.2 }}
         proOptions={REACT_FLOW_PRO_OPTIONS}
         onNodeClick={(_, n) => {
@@ -3355,6 +3389,16 @@ export function EditorInner<TOutput>({
           setSelectedCollapsedEdgeId(null);
         }}
       >
+        <FitViewOnOpen
+          canvasId={active.id}
+          layoutKey={[
+            fullscreen ? "full" : "inline",
+            fillHeight ? "fill" : "fixed",
+            canvasIsCollapsed ? "collapsed" : "open",
+            // Bucket height so tiny resize jitter doesn't refit; big open still does.
+            String(Math.round((fillRowHeight ?? 0) / 40)),
+          ].join(":")}
+        />
         <PromptGroupOverlays
           groups={promptGroups}
           collapsedEdges={collapsedEdgeDetails.map((detail) => detail.edge)}

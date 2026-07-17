@@ -468,7 +468,6 @@ function Sidebar({
             <div className="acct-meta">
               <div className="acct-name-row">
                 <span className="acct-name">{userEmail || "Account"}</span>
-                {isAdmin && <span className="role-pill">ADMIN</span>}
               </div>
               <div className="acct-sub">signed in</div>
             </div>
@@ -572,7 +571,6 @@ function AccountPane({
         <div className="acct-meta">
           <div className="acct-name-row">
             <span className="acct-name">{userEmail || "Account"}</span>
-            {isAdmin && <span className="role-pill">ADMIN</span>}
           </div>
           <div className="acct-sub">signed in</div>
         </div>
@@ -1264,7 +1262,7 @@ function BottomCanvasDrawer({
         aria-label="Resize workflow (drag up or down; double-click to reset)"
         title="Drag to resize"
         onPointerDown={onResizeDown}
-        onDoubleClick={() => setHeight(Math.round(window.innerHeight * 0.55))}
+        onDoubleClick={() => setHeight(Math.round(window.innerHeight / 3))}
       />
       {/* Fallback close for narrow widths where the canvas tab bar (and its inline
           close) is hidden, so the drawer is never stuck open. Hidden on lg+. */}
@@ -1360,7 +1358,12 @@ function SleepStudioChat() {
   // open/close.
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [canvasDoc, setCanvasDoc] = useState<CanvasDoc | null>(null);
-  const [canvasHeight, setCanvasHeight] = useState(460);
+  // Bottom workflow drawer: open at ~1/3 of the viewport height.
+  const [canvasHeight, setCanvasHeight] = useState(360);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setCanvasHeight(Math.round(window.innerHeight / 3));
+  }, []);
   // When the bottom drawer opens/resizes, nudge fillHeight canvases (e.g. the
   // Policy canvas in the right drawer) to re-measure against the newly reserved
   // bottom space. They listen for window resize; dispatch one after layout.
