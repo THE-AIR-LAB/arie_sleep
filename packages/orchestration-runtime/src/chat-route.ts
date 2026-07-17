@@ -26,6 +26,7 @@ import {
   type StateValueSource,
   type HybridExecutionPlan,
 } from "@airlab/canvas-planner/canvas-hybrid-runtime";
+import { buildStructuralExecutionPlan } from "@airlab/canvas-planner/canvas-structural-planner";
 import {
   buildObservationIngressPromptValues,
   CARRIED_OUTPUT_PROMPT_VALUE_NAME,
@@ -435,6 +436,18 @@ async function fetchCanvasDoc(
   }
 
   return buildCanvasDoc((data ?? []) as StoredCanvasRow[]);
+}
+
+// True when the plan's policy phase has at least one execution-graph step that maps
+// back to a canvas node — the data the studio needs to animate the traversed path.
+function policyPlanHasNodeRefs(plan: HybridExecutionPlan): boolean {
+  const steps = plan.policy.code_plan?.execution_graph?.steps;
+  return (
+    Array.isArray(steps) &&
+    steps.some(
+      (step) => Array.isArray(step.sourceNodeRefs) && step.sourceNodeRefs.length > 0
+    )
+  );
 }
 
 async function fetchExecutionPlan(
@@ -1064,11 +1077,36 @@ async function loadRuntimePromptConfig(
     (policyCanvasRows ?? []) as StoredCanvasRow[],
     policyCanvasDoc
   );
-  const executionPlan = await fetchExecutionPlan(
+  let executionPlan = await fetchExecutionPlan(
     supabase,
     setupSource.sourceTable,
     config.id
   );
+  // The persisted plan is what records the per-node path (`nodeRefs`) that drives the
+  // studio's policy-canvas trace animation. It can fail to carry any node refs when it
+  // is the `full_prompt` fallback (row missing/stale — save-time regeneration is
+  // best-effort and swallows failures) OR when it is an older rules-only plan whose
+  // graph is rebuilt by `buildLegacyPolicyExecutionGraph` (those steps have no
+  // `sourceNodeRefs`). In both cases the trace disappears. When a policy canvas exists
+  // and the persisted policy plan carries no node refs, recompile the structural policy
+  // plan from the live canvas — that is exactly what save-time produces — so the
+  // traversed path is recorded again. Only swap in the recompiled policy phase when it
+  // actually yields node refs; the state phase is left on the persisted plan untouched.
+  if (policyCanvasDoc && !policyPlanHasNodeRefs(executionPlan)) {
+    try {
+      const recompiled = buildStructuralExecutionPlan({
+        stateSchema,
+        stateCanvasDoc,
+        policyCanvasDoc,
+      });
+      if (recompiled.policy.mode !== "full_prompt" && policyPlanHasNodeRefs(recompiled)) {
+        executionPlan = { ...executionPlan, policy: recompiled.policy };
+      }
+    } catch (err) {
+      // Never let trace-recovery break a chat turn — fall back to the persisted plan.
+      console.error("[api/chat/route] policy plan recompile failed:", err);
+    }
+  }
   const toolsByName = compileToolsByName(stateCanvasDoc, policyCanvasDoc);
 
   return {

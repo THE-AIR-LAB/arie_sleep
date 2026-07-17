@@ -280,7 +280,6 @@ function OvCard({
   desc,
   thumb,
   go,
-  onPopOut,
 }: {
   id: string;
   icon: React.ReactNode;
@@ -289,7 +288,6 @@ function OvCard({
   desc: string;
   thumb: React.ReactNode;
   go: (id: string) => void;
-  onPopOut: (id: string) => void;
 }) {
   return (
     <div
@@ -304,14 +302,6 @@ function OvCard({
       <div className="top">
         <span className="ico">{icon}</span>
         <h3>{title}</h3>
-        <button
-          className="sc-ovexpand"
-          title="Open in floating window"
-          aria-label={`Open ${title} in floating window`}
-          onClick={(e) => { e.stopPropagation(); onPopOut(id); }}
-        >
-          <Ic.Expand size={15} />
-        </button>
       </div>
       <p className="desc">{desc}</p>
       <span className="stat">{stat}</span>
@@ -322,14 +312,12 @@ function OvCard({
 
 function Overview({
   go,
-  onPopOut,
   guidelines,
   files,
   fields,
   agentLabel = "Primary agent",
 }: {
   go: (id: string) => void;
-  onPopOut: (id: string) => void;
   guidelines: number;
   files: number;
   fields: number;
@@ -354,7 +342,6 @@ function Overview({
           desc="Datasets and files the model can draw on."
           thumb={<KnowledgeThumb h={116} />}
           go={go}
-          onPopOut={onPopOut}
         />
         <OvCard
           id="state"
@@ -364,7 +351,6 @@ function Overview({
           desc="What the assistant remembers across the conversation."
           thumb={<FlowThumb nodes={STATE_NODES} edges={STATE_EDGES} h={116} />}
           go={go}
-          onPopOut={onPopOut}
         />
         <OvCard
           id="policy"
@@ -374,7 +360,6 @@ function Overview({
           desc="How the assistant decides what to do next."
           thumb={<FlowThumb nodes={POLICY_NODES} edges={POLICY_EDGES} h={116} />}
           go={go}
-          onPopOut={onPopOut}
         />
       </div>
       <span className="sc-lbl" style={{ display: "block", margin: "0 0 10px" }}>Readiness</span>
@@ -1358,10 +1343,28 @@ export function useSleepSetup() {
         }),
       });
       if (res.ok) {
-        const { id } = (await res.json()) as { id?: string };
+        const { id, executionPlanSaved, executionPlanError } =
+          (await res.json()) as {
+            id?: string;
+            executionPlanSaved?: boolean;
+            executionPlanError?: string;
+          };
         if (id) configIdRef.current = id;
         preservedRef.current.datasets = config.datasets;
         setDirty(false);
+        // The canvas rows saved, but the execution plan that actually drives the
+        // runtime (and the policy-canvas trajectory) is regenerated separately and
+        // best-effort. If that failed, the system will keep running the previous
+        // plan — surface it instead of reporting a clean save.
+        if (executionPlanSaved === false) {
+          setSaveError(
+            `Saved, but the execution plan failed to regenerate — the runtime will keep using the previous plan${
+              executionPlanError ? `: ${executionPlanError.slice(0, 240)}` : "."
+            }`
+          );
+        } else {
+          setSaveError(null);
+        }
       } else {
         const body = await res.text().catch(() => "");
         let detail = body;
@@ -1384,7 +1387,7 @@ export function useSleepSetup() {
       fillHeight?: boolean;
       fireSignal?: CanvasFireSignal | null;
       currentState?: Record<string, unknown> | null;
-      /** Docked into the Policy canvas tab bar (e.g. the Pop out control). */
+      /** Optional content docked at the trailing edge of the Policy canvas tab bar. */
       tabBarTrailing?: React.ReactNode;
     }
   ) => {
@@ -1474,11 +1477,10 @@ export function SetupBar({
   onTopDockChange?: (height: number) => void;
 } = {}) {
   const setup = useSleepSetup();
-  // `active` is the open section. `floating` toggles between the docked-inline
-  // view (component lives in the drawer) and the popped-out floating window.
+  // `active` is the open section. The setup always renders docked inline in the
+  // drawer — the pop-out-to-floating-window feature was removed.
   // Opens on Policy by default so the Model Setup tab lands on the flow.
   const [active, setActive] = useState<string | null>("policy");
-  const [floating, setFloating] = useState(false);
 
   // Build a fire signal from the latest completed turn so the Policy canvas
   // animates the path the model took. The signal id is the turn id (a new turn
@@ -1515,120 +1517,23 @@ export function SetupBar({
     { id: "policy", label: "Policy", ico: "Sliders" },
   ];
 
-  const docked = active != null && !floating;
+  const docked = active != null;
   React.useEffect(() => {
     onDockedChange?.(docked);
   }, [docked, onDockedChange]);
 
-  // When true, the popped-out window snaps to a full-width bar across the top of
-  // the screen instead of free-floating at `win` geometry.
-  const [topDocked, setTopDocked] = useState(false);
-
-  const close = () => {
-    setActive(null);
-    setFloating(false);
-    setTopDocked(false);
-  };
-  const label = active ? OPTS.find((o) => o.id === active)?.label ?? active : "";
-
-  // The popped-out window's geometry (fixed-positioned). Drag the title bar to
-  // move it; drag the bottom-right handle to resize. `win` is null until it's
-  // popped out (initialized centered by `popOut`, below).
-  const [win, setWin] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const dragRef = React.useRef<{ sx: number; sy: number; bx: number; by: number } | null>(null);
-  const sizeRef = React.useRef<{ sx: number; sy: number; bw: number; bh: number } | null>(null);
-  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
-  // Tell the host how much vertical space the top-docked window occupies so it
-  // can pad the app frame (chat + side panels reflow below it). 0 = not docked.
-  const topDockHeight = topDocked && floating && win ? win.h : 0;
+  // No floating window anymore, so nothing ever reserves top-dock height. Reset
+  // the host's reserved space once so the chat/side panels reflow full-height.
   React.useEffect(() => {
-    onTopDockChange?.(topDockHeight);
+    onTopDockChange?.(0);
     return () => onTopDockChange?.(0);
-  }, [topDockHeight, onTopDockChange]);
+  }, [onTopDockChange]);
 
-  const FLOAT_MIN_W = 360;
-  const FLOAT_MIN_H = 280;
+  const close = () => setActive(null);
 
-  // Pop out centered, sized to the viewport.
-  const popOut = () => {
-    const w = Math.min(720, window.innerWidth - 32);
-    const h = Math.round(window.innerHeight * 0.8);
-    setWin({
-      x: Math.round((window.innerWidth - w) / 2),
-      y: Math.round((window.innerHeight - h) / 2),
-      w,
-      h,
-    });
-    setFloating(true);
-  };
-
-  const onBarPointerDown = (e: React.PointerEvent) => {
-    // Let the Save/Dock/Close buttons work normally — only drag from empty bar.
-    // When snapped to the top it isn't a free window, so dragging is disabled.
-    if ((e.target as HTMLElement).closest("button") || !win || topDocked) return;
-    dragRef.current = { sx: e.clientX, sy: e.clientY, bx: win.x, by: win.y };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-  const onBarPointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d) return;
-    setWin((w) =>
-      w
-        ? {
-            ...w,
-            // Keep at least part of the title bar on screen.
-            x: clamp(d.bx + (e.clientX - d.sx), 40 - w.w, window.innerWidth - 80),
-            y: clamp(d.by + (e.clientY - d.sy), 0, window.innerHeight - 44),
-          }
-        : w
-    );
-  };
-  const onBarPointerUp = (e: React.PointerEvent) => {
-    dragRef.current = null;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-  };
-
-  const onResizePointerDown = (e: React.PointerEvent) => {
-    if (!win) return;
-    e.stopPropagation();
-    sizeRef.current = { sx: e.clientX, sy: e.clientY, bw: win.w, bh: win.h };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-  const onResizePointerMove = (e: React.PointerEvent) => {
-    const s = sizeRef.current;
-    if (!s) return;
-    setWin((w) =>
-      w
-        ? {
-            ...w,
-            w: clamp(s.bw + (e.clientX - s.sx), FLOAT_MIN_W, window.innerWidth - w.x - 8),
-            h: clamp(s.bh + (e.clientY - s.sy), FLOAT_MIN_H, window.innerHeight - w.y - 8),
-          }
-        : w
-    );
-  };
-  const onResizePointerUp = (e: React.PointerEvent) => {
-    sizeRef.current = null;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-  };
-
-  // The header actions are shared between the docked view and the floating
-  // window — only the pop-out/dock toggle differs.
-  const SaveBtn = setup.canEdit ? (
-    <button
-      className="sc-close"
-      onClick={setup.save}
-      disabled={setup.saving || !setup.dirty}
-    >
-      {setup.saving ? "Saving…" : "Save"}
-    </button>
-  ) : (
-    <span className="sc-lbl" style={{ opacity: 0.6 }}>Read-only</span>
-  );
-
-  // Save + Pop out live on the section nav bar itself (no separate title row).
-  const navActions = active && !floating ? (
+  // Save lives on the section nav bar itself (no separate title row). The
+  // pop-out-to-floating-window control was removed per request.
+  const navActions = active ? (
     <div className="obs-setup-actions">
       {setup.canEdit ? (
         <button
@@ -1642,15 +1547,6 @@ export function SetupBar({
       ) : (
         <span className="obs-setup-action" style={{ opacity: 0.6 }}>Read-only</span>
       )}
-      <button
-        type="button"
-        className="obs-setup-action"
-        onClick={popOut}
-        title="Pop out to a floating window"
-        aria-label="Pop out to a floating window"
-      >
-        <Ic.Expand size={13} /> Pop out
-      </button>
     </div>
   ) : null;
 
@@ -1669,7 +1565,7 @@ export function SetupBar({
               type="button"
               className={"obs-setup-chip" + (on ? " on" : "")}
               aria-pressed={on}
-              onClick={() => (on && !floating ? close() : setActive(o.id))}
+              onClick={() => (on ? close() : setActive(o.id))}
               title={on ? `Close ${o.label}` : `Open ${o.label}`}
             >
               <span>{o.label}</span>
@@ -1680,8 +1576,8 @@ export function SetupBar({
       </div>
 
       {/* Docked inline: the actual section component, embedded in the drawer.
-          No title row — Save/Pop out are on the nav bar above. */}
-      {active && !floating && (
+          No title row — Save is on the nav bar above. */}
+      {active && (
         <div className="sysconf obs-docked">
           <div className="obs-docked-body">
             {setup.renderSectionPane(active, {
@@ -1699,68 +1595,6 @@ export function SetupBar({
     <>
       {/* Docked chrome renders into the drawer's slot when the drawer is open. */}
       {slot ? createPortal(dockedChrome, slot) : null}
-
-      {/* Popped out: a non-modal floating window — no dimming backdrop, so the
-          chat behind it stays visible and usable. Drag by the title bar to move,
-          drag the bottom-right handle to resize; Dock returns it to the drawer.
-          Portaled to <body> and owned by the page-level SetupBar, so it stays
-          present when the drawer (and thus the slot) is closed. */}
-      {active && floating && win && typeof document !== "undefined" &&
-        createPortal(
-        <div className="sysconf obs-float-scope">
-          <div
-            className={"sc-modal sc-modal--sheet obs-float" + (topDocked ? " obs-float--top" : "")}
-            style={
-              topDocked
-                ? { left: 0, right: 0, top: 0, width: "auto", height: win.h }
-                : { left: win.x, top: win.y, width: win.w, height: win.h }
-            }
-          >
-            <div
-              className={"sc-modal-bar" + (topDocked ? "" : " sc-modal-bar--draggable")}
-              onPointerDown={onBarPointerDown}
-              onPointerMove={onBarPointerMove}
-              onPointerUp={onBarPointerUp}
-              onPointerCancel={onBarPointerUp}
-            >
-              <span className="sc-lbl">{label}</span>
-              <span className="sp" />
-              {SaveBtn}
-              <button
-                className={"sc-close obs-dock-toggle" + (topDocked ? " on" : "")}
-                aria-label={topDocked ? "Unsnap from the top" : "Dock to the top of the screen"}
-                title={topDocked ? "Unsnap from the top" : "Dock to the top of the screen"}
-                aria-pressed={topDocked}
-                onClick={() => setTopDocked((t) => !t)}
-              >
-                <Ic.Expand size={13} /> Top
-              </button>
-              <button
-                className="sc-close obs-dock-toggle"
-                aria-label="Dock back into the side drawer"
-                title="Dock back into the side drawer"
-                onClick={() => { setTopDocked(false); setFloating(false); }}
-              >
-                <Ic.Panel size={13} /> Dock
-              </button>
-              {/* Close removed from the popped-out window — use Dock to return it
-                  to the drawer (and close from there). */}
-            </div>
-            <div className="sc-modal-body">{setup.renderSectionPane(active, { fillHeight: true, fireSignal, currentState })}</div>
-            <div
-              className="obs-float-resize"
-              role="separator"
-              aria-label="Resize window"
-              title="Drag to resize"
-              onPointerDown={onResizePointerDown}
-              onPointerMove={onResizePointerMove}
-              onPointerUp={onResizePointerUp}
-              onPointerCancel={onResizePointerUp}
-            />
-          </div>
-        </div>,
-        document.body
-      )}
     </>
   );
 }
@@ -1842,7 +1676,6 @@ function SleepStudioConfigInner() {
   // All accordions start collapsed; the active agent (v0 Primary) is still
   // highlighted to show which configuration the pane is displaying.
   const [openAgents, setOpenAgents] = useState<Set<string>>(new Set());
-  const [floating, setFloating] = useState<string | null>(null);
   const [publishVer, setPublishVer] = useState<{ id: string; label: string } | null>(null);
   const [training, setTraining] = useState(false);
   const closePublish = () => {
@@ -2049,7 +1882,6 @@ function SleepStudioConfigInner() {
             <Overview
               agentLabel={`${activeVersion.label} · ${active.agent === "environment" ? "Environment" : "Primary agent"}`}
               go={(id) => setActive({ version: active.version, agent: active.agent, section: id })}
-              onPopOut={setFloating}
               guidelines={overviewCounts.guidelines}
               files={overviewCounts.files}
               fields={overviewCounts.fields}
@@ -2059,19 +1891,6 @@ function SleepStudioConfigInner() {
           )}
         </div>
       </div>
-
-      {floating && (
-        <div className="sc-modal-scrim" onClick={() => setFloating(null)}>
-          <div className="sc-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="sc-modal-bar">
-              <span className="sc-lbl">{floating}</span>
-              <span className="sp" />
-              <button className="sc-close" onClick={() => setFloating(null)}>Close</button>
-            </div>
-            <div className="sc-modal-body">{activeAgent.state.renderSectionPane(floating, { fillHeight: true })}</div>
-          </div>
-        </div>
-      )}
 
       {publishVer && (
         <div className="sc-modal-scrim" onClick={closePublish}>

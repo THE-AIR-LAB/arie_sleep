@@ -14,6 +14,102 @@
    serif in the prototype (headings, assistant name, message body) use the site
    sans (American Grotesk, exposed by globals.css as --font-sans). */
 
+/* ========================= BLACK & WHITE THEME ========================= */
+/* `.ra-mono` turns the interface monochrome by changing ACTUAL COLOR VALUES —
+   no grayscale() filter, so real photos (user avatars, the site logo) keep
+   their colors; only UI element colors are remapped.
+
+   Three layers:
+   1. Token overrides below — the greige palette becomes a neutral gray ramp,
+      which covers everything that reads from CSS variables (chat, sidebar,
+      drawers, buttons).
+   2. Canvas node kinds hard-code Tailwind color utilities (emerald START,
+      sky/orange PROMPT, amber IF, stone TERMINATE, emerald SUBTREE, …). Those
+      don't read tokens, so each utility is remapped to a neutral gray of the
+      same lightness step (generated block further down).
+   3. A few chat accents that hard-code a hue (the online dot) are neutralized
+      explicitly. */
+.ra-scope.ra-mono{
+  /* Every large background surface is pure white; only a hair of gray remains
+     for hover feedback (--surface-2) and borders (--line) so elements stay
+     legible against the white. */
+  --bg:#ffffff;
+  --frame:#ffffff;
+  --rail:#ffffff;
+  --surface:#ffffff;
+  --surface-2:#f3f3f3;
+  --elevated:#ffffff;
+  --line:#dcdcdc;
+  --line-soft:#ededed;
+  --text:#111111;
+  --text-2:#444444;
+  --text-3:#777777;
+  --text-4:#a6a6a6;
+  --accent:#111111;
+  --accent-ink:#ffffff;
+  --accent-soft:rgba(0,0,0,.06);
+  --danger:#555555;
+}
+/* Neutral scrollbars + accents that hard-code a hue (no token to catch them). */
+.ra-scope.ra-mono ::-webkit-scrollbar-thumb{background:#c9c9c9;}
+.ra-scope.ra-mono ::-webkit-scrollbar-thumb:hover{background:#b3b3b3;}
+.ra-scope.ra-mono .online-dot{background:#8a8a8a;box-shadow:0 0 8px #8a8a8a88;}
+/* The mic sets its recording color via an inline style (#F05025); neutralize it. */
+.ra-scope.ra-mono .comp-mic[style*="background"]{background:#111 !important;}
+
+/* The model-setup drawer (.sysconf) only turns white when the chat's Black &
+   white theme is on. Its palette is beige by default; here we override just its
+   surface tokens to white/near-white for the white theme, keeping ink dark and
+   the accent orange so colored controls are unaffected. In the beige (default)
+   theme none of this applies, so the drawer keeps its original beige look. */
+.ra-scope.ra-mono .sysconf{
+  --sc-bg:#ffffff;
+  --sc-panel:#ffffff;
+  --sc-panel-2:#fafafa;
+  --sc-input:#ffffff;
+  --sc-input-line:#dcdcdc;
+  --sc-line:#e4e4e4;
+  --sc-line-soft:#eeeeee;
+  --sc-board:#ffffff;
+}
+/* Hard-coded greige hover/active states inside the drawer → light gray (white theme only). */
+.ra-scope.ra-mono .sysconf .sc-back:hover,
+.ra-scope.ra-mono .sysconf .sc-agentpick:hover,
+.ra-scope.ra-mono .sysconf .sc-agentpick.open,
+.ra-scope.ra-mono .sysconf .sc-agentpick.current,
+.ra-scope.ra-mono .sysconf .sc-ovcard:hover,
+.ra-scope.ra-mono .sysconf .sc-ds-row:hover,
+.ra-scope.ra-mono .sysconf .sc-block-h:hover{background:#f2f2f2 !important;}
+.ra-scope.ra-mono .sysconf .sc-btn:hover{background:#ececec !important;}
+
+/* Canvas editor keeps its COLORS in the white theme (colored node kinds + colored
+   toolbar buttons stay). We only normalize the canvas's own warm-greige *surface*
+   backgrounds (inspector/compiler panel, tab bar, board, inputs, neutral buttons)
+   to white so they match the white theme — the saturated/dark values (orange
+   #c2611f accent, green #1a3d2a node, near-black #1c1b16 border) are left intact.
+   Scoped to the white chat theme (.ra-mono); the drawer canvas is nested inside
+   it, so these also cover the model-setup canvas in the white theme. */
+.ra-scope.ra-mono .bg-\[\#c8c4b4\]{background-color:#f4f4f4 !important;}
+.ra-scope.ra-mono .bg-\[\#c9c7b9\]{background-color:#f4f4f4 !important;}
+.ra-scope.ra-mono .bg-\[\#cbc8b8\]{background-color:#f4f4f4 !important;}
+.ra-scope.ra-mono .bg-\[\#cbc9ba\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#d0cdc0\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#d4d0c0\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#d6d3c4\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#d8d5c8\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#d8d6c7\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#dddacb\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#e0dccc\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#e7e4d8\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#ece7d6\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#eceadd\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#f3f1e6\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .bg-\[\#f7f4e8\]{background-color:#ffffff !important;}
+.ra-scope.ra-mono .border-\[\#a8a698\]{border-color:#e4e4e4 !important;}
+.ra-scope.ra-mono .border-\[\#bcbaad\]{border-color:#e4e4e4 !important;}
+.ra-scope.ra-mono .border-\[\#c0bdb0\]{border-color:#e4e4e4 !important;}
+.ra-scope.ra-mono .border-\[\#c8c4b4\]{border-color:#e4e4e4 !important;}
+
 /* ============================== CHAT SCOPE ============================== */
 .ra-scope{
   --bg:#c2c0b3;
@@ -407,6 +503,49 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .drawer-collapse{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:42px;
   color:var(--text-3);border-left:1px solid var(--line-soft);cursor:pointer;}
 .ra-scope .drawer-collapse:hover{background:var(--surface);color:var(--text);}
+
+/* ---------- bottom canvas drawer (full-width bottom sheet) ---------- */
+/* Docked to the bottom of the window, spanning the full width. Slides up on
+   open. Drag the top grabber to resize its height; the × in the tab bar closes
+   it. Launched from the right rail (under the drawer icon). The horizontal
+   analogue of the right side drawer. */
+.ra-scope .bottom-drawer{
+  position:fixed;left:0;right:0;bottom:0;z-index:45;
+  display:flex;flex-direction:column;min-height:0;
+  /* Flat, VS Code-style: a clean 1px divider instead of a drop shadow, matching
+     the borderless/shadowless side drawers. */
+  background:var(--panel);border-top:1px solid var(--line);
+  /* This drawer's OWN canvas sits at the viewport bottom, so it reserves nothing
+     (overrides the app-frame value that shrinks canvases above the drawer). */
+  --rf-fill-reserve-bottom:0px;
+  animation:ra-bottomUp .22s ease;}
+@keyframes ra-bottomUp{from{transform:translateY(100%);}to{transform:none;}}
+/* VS Code-style splitter: a full-width invisible strip straddling the top edge;
+   dragging anywhere resizes, and the whole border turns accent on hover/drag. */
+.ra-scope .bottom-drawer-resize{position:absolute;top:0;left:0;right:0;height:9px;
+  transform:translateY(-50%);z-index:6;cursor:row-resize;touch-action:none;}
+.ra-scope .bottom-drawer-resize::before{content:"";position:absolute;left:0;right:0;top:50%;
+  height:2px;transform:translateY(-50%);background:transparent;}
+.ra-scope .bottom-drawer-resize:hover::before,
+.ra-scope .bottom-drawer-resize.active::before{background:var(--accent);}
+/* Close button lives inline in the canvas tab bar (docked via tabBarTrailing),
+   so the drawer header and the Main/+Canvas · Tools · Collapse row are one line.
+   It sits inside .rf-canvas (exempt from the .ra-scope button reset), so it's
+   styled explicitly here. */
+.ra-scope .bottom-drawer-close{display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:8px;border:none;background:transparent;
+  color:var(--text-2);cursor:pointer;margin-left:2px;}
+.ra-scope .bottom-drawer-close:hover{background:var(--surface);color:var(--text);}
+/* Fallback close, shown only below lg where the canvas tab bar (with the inline
+   close) is hidden. Mutually exclusive with the inline close, so no overlap. */
+.ra-scope .bottom-drawer-close-fallback{position:absolute;top:7px;right:12px;z-index:7;
+  display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+  border-radius:8px;color:var(--text-2);background:var(--surface);border:1px solid var(--line);cursor:pointer;}
+.ra-scope .bottom-drawer-close-fallback:hover{color:var(--text);}
+@media(min-width:1024px){.ra-scope .bottom-drawer-close-fallback{display:none;}}
+/* Small top gap so the tab bar clears the resize splitter that straddles the top edge. */
+.ra-scope .bottom-drawer-body{flex:1;min-height:0;padding:8px 14px 12px;overflow:auto;}
+body.ra-resizing-v,body.ra-resizing-v *{cursor:row-resize !important;user-select:none !important;}
 .ra-scope .drawer-tab{display:flex;align-items:center;gap:7px;padding:7px 11px;cursor:pointer;white-space:nowrap;
   color:var(--text);font-family:var(--serif);font-size:13px;font-weight:400;border-bottom:2px solid transparent;margin-bottom:-1px;}
 .ra-scope .drawer-tab:hover{color:var(--text);}
@@ -649,6 +788,9 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 
 /* ========================= SYSTEM CONFIG SCOPE ========================= */
 .sysconf{
+  /* Original beige "System Configuration" palette (the default look). The white
+     theme overrides these tokens via `.ra-scope.ra-mono .sysconf` below, so the
+     drawer only turns white when the chat's Black & white theme is on. */
   --sc-bg:#d8d6c7;
   --sc-panel:#e0ded0;
   --sc-panel-2:#dad8c9;

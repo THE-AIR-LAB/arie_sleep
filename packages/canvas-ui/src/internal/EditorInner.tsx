@@ -2073,7 +2073,15 @@ export function EditorInner<TOutput>({
     const BOTTOM_GAP = 36; // 16px overlay inset + 20px modal-body bottom padding
     const recompute = () => {
       const top = el.getBoundingClientRect().top;
-      setFillRowHeight(Math.max(260, Math.round(window.innerHeight - top - BOTTOM_GAP)));
+      // Space reserved at the bottom of the viewport by the host (e.g. a docked
+      // bottom drawer). Read from a CSS var on this element so it cascades: a
+      // canvas above the drawer inherits the reserve, one INSIDE the drawer
+      // overrides it to 0. Defaults to 0 when unset.
+      const reserve =
+        parseFloat(getComputedStyle(el).getPropertyValue("--rf-fill-reserve-bottom")) || 0;
+      setFillRowHeight(
+        Math.max(260, Math.round(window.innerHeight - reserve - top - BOTTOM_GAP))
+      );
     };
     // Measure after layout settles so the toolbars have their final height.
     raf = requestAnimationFrame(recompute);

@@ -18,8 +18,10 @@ import { AuthProvider, useAuth } from "../../../context/AuthContext";
 import AuthModal from "../../../components/AuthModal";
 import SiteLogo from "../../../components/SiteLogo";
 import { useVoiceRecorder, useTTS } from "./useVoice";
+import Canvas, { type CanvasDoc } from "../../../components/canvas/Canvas";
 
 const TTS_PREF_KEY = "sleep-studio-tts-autoplay";
+const MONO_PREF_KEY = "sleep-studio-mono-theme";
 
 /** Strip common markdown so the TTS voice reads clean sentences instead of asterisks and backticks. */
 function stripMarkdownForSpeech(text: string): string {
@@ -287,6 +289,8 @@ function Sidebar({
   onOpenObservability,
   onToggleFeedbackMode,
   feedbackMode,
+  monoTheme,
+  onToggleMono,
   userEmail,
   userImage,
   isAdmin,
@@ -309,6 +313,8 @@ function Sidebar({
   onOpenObservability: () => void;
   onToggleFeedbackMode: () => void;
   feedbackMode: boolean;
+  monoTheme: boolean;
+  onToggleMono: () => void;
   userEmail: string;
   userImage?: string;
   isAdmin: boolean;
@@ -434,6 +440,13 @@ function Sidebar({
             )}
             <div className="pop-label"><Ic.User size={13} /> Account</div>
             <button
+              className="pop-row"
+              onClick={() => { setMenuOpen(() => false); onToggleMono(); }}
+            >
+              <span className="ic"><Ic.Moon size={17} /></span>
+              Black &amp; white{monoTheme ? " ✓" : ""}
+            </button>
+            <button
               className="pop-row danger"
               onClick={() => { setMenuOpen(() => false); onSignOut(); }}
             >
@@ -530,6 +543,8 @@ function AccountPane({
   userImage,
   isAdmin,
   feedbackMode,
+  monoTheme,
+  onToggleMono,
   onOpenObservability,
   onToggleFeedbackMode,
   onSignOut,
@@ -538,6 +553,8 @@ function AccountPane({
   userImage?: string;
   isAdmin: boolean;
   feedbackMode: boolean;
+  monoTheme: boolean;
+  onToggleMono: () => void;
   onOpenObservability: () => void;
   onToggleFeedbackMode: () => void;
   onSignOut: () => void;
@@ -581,6 +598,10 @@ function AccountPane({
         </>
       )}
       <div className="pop-label"><Ic.User size={13} /> Account</div>
+      <button className="pop-row" onClick={onToggleMono}>
+        <span className="ic"><Ic.Moon size={17} /></span>
+        Black &amp; white{monoTheme ? " ✓" : ""}
+      </button>
       <button className="pop-row danger" onClick={onSignOut}>
         <span className="ic"><Ic.SignOut size={17} /></span>Sign out
       </button>
@@ -660,6 +681,8 @@ function MobileNav({
 function RightRail({
   onOpen,
   isAdmin,
+  canvasOpen,
+  onToggleCanvas,
   autoSpeak,
   onToggleAutoSpeak,
   isSpeaking,
@@ -667,6 +690,8 @@ function RightRail({
 }: {
   onOpen: (id: DrawerId) => void;
   isAdmin: boolean;
+  canvasOpen: boolean;
+  onToggleCanvas: () => void;
   autoSpeak: boolean;
   onToggleAutoSpeak: () => void;
   isSpeaking: boolean;
@@ -679,6 +704,16 @@ function RightRail({
           <Ic.Panel size={18} />
         </button>
       )}
+      {/* Canvas launcher, docked in the rail directly under the drawer icon. */}
+      <button
+        className={"rail-btn" + (canvasOpen ? " accent" : "")}
+        title={canvasOpen ? "Close canvas" : "Open canvas"}
+        aria-label={canvasOpen ? "Close canvas" : "Open canvas"}
+        aria-pressed={canvasOpen}
+        onClick={onToggleCanvas}
+      >
+        <Ic.Grid size={18} />
+      </button>
       <VoiceReplyButton
         className="rail-btn"
         autoSpeak={autoSpeak}
@@ -866,25 +901,31 @@ function Thread({
   );
 }
 
-function EmptyState({ onSuggest }: { onSuggest: (t: string) => void }) {
+// `compact` collapses the empty state to just the avatar (used while the canvas
+// drawer is open, so the picture stays but the copy + suggestions are hidden).
+function EmptyState({ onSuggest, compact = false }: { onSuggest: (t: string) => void; compact?: boolean }) {
   return (
-    <div className="empty">
+    <div className={"empty" + (compact ? " compact" : "")}>
       <Avatar kind="assistant" size={96} ring mono="SA" className="empty-orb" />
-      <div className="empty-title">Start a conversation</div>
-      <div className="empty-sub">
-        Sleep Assistant can review your sleep logs, summarise guidance, and help you
-        build a routine that sticks.
-      </div>
-      <div className="suggests">
-        {SUGGESTIONS.map((s) => {
-          const I = Ic[s.icon as keyof typeof Ic];
-          return (
-            <button key={s.label} className="sug-chip" onClick={() => onSuggest(s.label)}>
-              <span className="ic"><I size={15} /></span>{s.label}
-            </button>
-          );
-        })}
-      </div>
+      {!compact && (
+        <>
+          <div className="empty-title">Start a conversation</div>
+          <div className="empty-sub">
+            Sleep Assistant can review your sleep logs, summarise guidance, and help you
+            build a routine that sticks.
+          </div>
+          <div className="suggests">
+            {SUGGESTIONS.map((s) => {
+              const I = Ic[s.icon as keyof typeof Ic];
+              return (
+                <button key={s.label} className="sug-chip" onClick={() => onSuggest(s.label)}>
+                  <span className="ic"><I size={15} /></span>{s.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1032,6 +1073,125 @@ function Composer({
   );
 }
 
+/* ---------------- bottom canvas drawer ---------------- */
+// Minimal starter graph so the freshly opened canvas isn't blank.
+const BOTTOM_CANVAS_SEED: CanvasDoc = {
+  version: 2,
+  activeId: "main",
+  canvases: [
+    {
+      id: "main",
+      name: "Main",
+      freeText: "",
+      graph: {
+        nodes: [
+          {
+            id: "start",
+            type: "start",
+            position: { x: 400, y: 80 },
+            data: { label: "Start building your flow here." },
+          },
+        ],
+        edges: [],
+      },
+    },
+  ],
+};
+
+/**
+ * A full-width drawer docked to the bottom of the window. It behaves like the
+ * right side drawer but slides up from the bottom (the horizontal analogue): it
+ * spans the whole window width, can be resized by dragging its top grabber, and
+ * is dismissed with the × in its bar. Hosts a Canvas editor that fills the
+ * drawer's width.
+ */
+function BottomCanvasDrawer({
+  open,
+  onClose,
+  height,
+  setHeight,
+  doc,
+  onDocChange,
+}: {
+  open: boolean;
+  onClose: () => void;
+  height: number;
+  setHeight: (h: number) => void;
+  doc: CanvasDoc | null;
+  onDocChange: (doc: CanvasDoc) => void;
+}) {
+  // VS Code-style splitter: the drawer's top edge is a full-width drag handle
+  // that highlights while hovered/dragged. Drag up = taller (up to near the top
+  // of the window); the layout above reflows into the remaining space.
+  const [resizing, setResizing] = useState(false);
+  const onResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = height;
+    setResizing(true);
+    const onMove = (ev: PointerEvent) => {
+      const next = startH + (startY - ev.clientY);
+      setHeight(Math.round(Math.max(240, Math.min(window.innerHeight - 72, next))));
+    };
+    const onUp = () => {
+      setResizing(false);
+      document.body.classList.remove("ra-resizing-v");
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    document.body.classList.add("ra-resizing-v");
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
+  if (!open) return null;
+  return (
+    <div className="bottom-drawer" style={{ height }} role="dialog" aria-label="Canvas">
+      <div
+        className={"bottom-drawer-resize" + (resizing ? " active" : "")}
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize canvas (drag up or down; double-click to reset)"
+        title="Drag to resize"
+        onPointerDown={onResizeDown}
+        onDoubleClick={() => setHeight(Math.round(window.innerHeight * 0.55))}
+      />
+      {/* Fallback close for narrow widths where the canvas tab bar (and its inline
+          close) is hidden, so the drawer is never stuck open. Hidden on lg+. */}
+      <button
+        type="button"
+        className="bottom-drawer-close-fallback"
+        aria-label="Close canvas"
+        title="Close canvas"
+        onClick={onClose}
+      >
+        <Ic.Close size={18} />
+      </button>
+      <div className="bottom-drawer-body">
+        <Canvas
+          value={doc}
+          seedDoc={BOTTOM_CANVAS_SEED}
+          fillHeight
+          onChange={({ doc }) => onDocChange(doc)}
+          // Dock the close button into the canvas's own tab bar so the drawer
+          // header and the Main/+Canvas · Tools · Collapse row share one line.
+          tabBarTrailing={
+            <button
+              type="button"
+              className="bottom-drawer-close"
+              aria-label="Close canvas"
+              title="Close canvas"
+              onClick={onClose}
+            >
+              <Ic.Close size={16} />
+            </button>
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- page ---------------- */
 function SleepStudioChat() {
   const { user, isAdmin, signOut, roleLoaded } = useAuth();
@@ -1044,6 +1204,25 @@ function SleepStudioChat() {
   const [streaming, setStreaming] = useState("");
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  // Black & white theme preference (persisted). Adds `.ra-mono` to the root
+  // scope, which swaps the palette and grayscales the whole interface.
+  const [monoTheme, setMonoTheme] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      setMonoTheme(window.localStorage.getItem(MONO_PREF_KEY) === "1");
+    } catch {
+      // localStorage may throw in private mode — safe to ignore.
+    }
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(MONO_PREF_KEY, monoTheme ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [monoTheme]);
   // Voice: TTS auto-play preference (persisted to localStorage) and hooks.
   const [autoSpeak, setAutoSpeak] = useState(false);
   const autoSpeakRef = useRef(autoSpeak);
@@ -1062,6 +1241,20 @@ function SleepStudioChat() {
   // "How to use the studio" help panel, anchored bottom-left of the sidebar.
   const [infoOpen, setInfoOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Bottom canvas drawer: a full-width sheet that slides up from the bottom and
+  // hosts a Canvas editor. Its doc and height are kept here so they survive
+  // open/close.
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [canvasDoc, setCanvasDoc] = useState<CanvasDoc | null>(null);
+  const [canvasHeight, setCanvasHeight] = useState(460);
+  // When the bottom drawer opens/resizes, nudge fillHeight canvases (e.g. the
+  // Policy canvas in the right drawer) to re-measure against the newly reserved
+  // bottom space. They listen for window resize; dispatch one after layout.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    return () => cancelAnimationFrame(id);
+  }, [canvasOpen, canvasHeight]);
   // Secondary right-side panels share ONE drawer; multiple open ones become tabs.
   const [openDrawers, setOpenDrawers] = useState<DrawerId[]>([]);
   const [activeDrawer, setActiveDrawer] = useState<DrawerId | null>(null);
@@ -1525,7 +1718,7 @@ function SleepStudioChat() {
 
   return (
     <div
-      className="ra-scope"
+      className={"ra-scope" + (monoTheme ? " ra-mono" : "")}
       onClick={() => {
         if (menuOpen) setMenuOpen(false);
         if (infoOpen) setInfoOpen(false);
@@ -1533,7 +1726,21 @@ function SleepStudioChat() {
     >
       {/* Splash overlay covers the app while it assembles, then fades out. */}
       <StudioSplash ready={roleLoaded && convosLoaded} />
-      <div className="app-frame" style={topDockH ? { paddingTop: topDockH } : undefined}>
+      {/* Reserve space at the top (Model Setup top-dock) and bottom (canvas
+          drawer) so the rest of the UI reflows into the remaining area instead of
+          being covered — the bottom drawer pushes the chat up rather than
+          overlaying it. */}
+      <div
+        className="app-frame"
+        style={{
+          ...(topDockH ? { paddingTop: topDockH } : {}),
+          ...(canvasOpen ? { paddingBottom: canvasHeight } : {}),
+          // Tell fillHeight canvases above the drawer how much bottom space is
+          // reserved, so they shrink to fit instead of running under the drawer.
+          // The bottom drawer overrides this back to 0 for its own canvas (CSS).
+          ["--rf-fill-reserve-bottom" as string]: canvasOpen ? `${canvasHeight}px` : "0px",
+        }}
+      >
         <div className="body">
           {sidebarOpen ? (
             <>
@@ -1554,6 +1761,8 @@ function SleepStudioChat() {
                 onOpenObservability={() => openDrawer("observability")}
                 onToggleFeedbackMode={() => setFeedbackMode((m) => !m)}
                 feedbackMode={feedbackMode}
+                monoTheme={monoTheme}
+                onToggleMono={() => setMonoTheme((v) => !v)}
                 userEmail={user?.email ?? ""}
                 userImage={user?.imageUrl}
                 isAdmin={isAdmin}
@@ -1601,7 +1810,7 @@ function SleepStudioChat() {
                 onRemoveFeedback={onRemoveFeedback}
               />
             ) : (
-              <EmptyState onSuggest={send} />
+              <EmptyState onSuggest={send} compact={canvasOpen} />
             )}
             <Composer
               value={input}
@@ -1622,6 +1831,8 @@ function SleepStudioChat() {
             <RightRail
               onOpen={openDrawer}
               isAdmin={isAdmin}
+              canvasOpen={canvasOpen}
+              onToggleCanvas={() => setCanvasOpen((v) => !v)}
               autoSpeak={autoSpeak}
               onToggleAutoSpeak={() => setAutoSpeak((v) => !v)}
               isSpeaking={isSpeaking}
@@ -1676,6 +1887,8 @@ function SleepStudioChat() {
                 userImage={user?.imageUrl}
                 isAdmin={isAdmin}
                 feedbackMode={feedbackMode}
+                monoTheme={monoTheme}
+                onToggleMono={() => setMonoTheme((v) => !v)}
                 onOpenObservability={() => openDrawer("observability")}
                 onToggleFeedbackMode={() => { setFeedbackMode((m) => !m); closeDrawer("account"); }}
                 onSignOut={signOut}
@@ -1688,6 +1901,17 @@ function SleepStudioChat() {
               popped-out floating window survives the drawer closing. It portals
               its docked view into the drawer's Model Setup slot when open. */}
           {isAdmin && <SetupBar turns={turns} slot={modelSetupSlot} onTopDockChange={setTopDockH} />}
+
+          {/* Bottom canvas drawer. Its launcher lives in the right rail, under
+              the Model Setup (drawer) icon — see RightRail. */}
+          <BottomCanvasDrawer
+            open={canvasOpen}
+            onClose={() => setCanvasOpen(false)}
+            height={canvasHeight}
+            setHeight={setCanvasHeight}
+            doc={canvasDoc}
+            onDocChange={setCanvasDoc}
+          />
         </div>
       </div>
     </div>
