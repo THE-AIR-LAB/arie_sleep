@@ -3695,7 +3695,9 @@ async function runStatefulAssistantTurn(
   latestUserMessage: string,
   knownState: StateSnapshot,
   promptConfig: RuntimePromptConfig,
-  conversationId: string
+  conversationId: string,
+  // Shared with the tracing client so model calls are tagged state vs policy.
+  phaseRef: { current: ChatTracePhase } = { current: "policy" }
 ): Promise<{
   assistantReply: string;
   nextState: StateSnapshot;
@@ -3750,6 +3752,9 @@ async function runStatefulAssistantTurn(
           latestUserMessage
         );
   }
+
+  // State update is done; everything below is the policy stage.
+  phaseRef.current = "policy";
 
   const policyPlan = promptConfig.executionPlan.policy;
   let assistantBodyReply: string;
@@ -3867,10 +3872,16 @@ function buildTextResponse(content: string) {
  * stateful pipeline (state update, then policy) produces a request + response
  * pair, matching the shape the trace viewer renders.
  */
+/** Which stage of the turn a model round-trip belongs to. The turn always runs
+ *  the state update first, then the policy, so the tracing client stamps this
+ *  from a shared ref the pipeline flips between the two phases. */
+type ChatTracePhase = "state" | "policy";
+
 type ChatTraceEvent =
   | {
       kind: "openai_request";
       loop: number;
+      phase?: ChatTracePhase;
       // server wall-clock (ms) when the call started — lets the trace UI show
       // true per-call latency instead of stamping every event at client arrival
       ts: number;
@@ -3881,6 +3892,7 @@ type ChatTraceEvent =
   | {
       kind: "openai_response";
       loop: number;
+      phase?: ChatTracePhase;
       // server wall-clock (ms) when the call returned
       ts: number;
       content: string;
@@ -3894,11 +3906,16 @@ type ChatTraceEvent =
  * through to the real client. Used only when a request opts into tracing, so
  * the default (plain-text) chat path is unaffected.
  */
-function createTracingOpenAIClient(openai: OpenAI, sink: ChatTraceEvent[]): OpenAI {
+function createTracingOpenAIClient(
+  openai: OpenAI,
+  sink: ChatTraceEvent[],
+  phaseRef: { current: ChatTracePhase },
+): OpenAI {
   let loop = 0;
   const realCreate = openai.chat.completions.create.bind(openai.chat.completions);
   const tracedCreate = (async (params: Record<string, unknown>) => {
     const myLoop = loop++;
+    const phase = phaseRef.current;
     const messages = Array.isArray(params.messages)
       ? (params.messages as Array<{ role?: unknown; content?: unknown }>)
       : [];
@@ -3908,6 +3925,7 @@ function createTracingOpenAIClient(openai: OpenAI, sink: ChatTraceEvent[]): Open
     sink.push({
       kind: "openai_request",
       loop: myLoop,
+      phase,
       ts: Date.now(),
       model: typeof params.model === "string" ? params.model : "(model)",
       messages: messages.map((m) => ({
@@ -3926,6 +3944,7 @@ function createTracingOpenAIClient(openai: OpenAI, sink: ChatTraceEvent[]): Open
     sink.push({
       kind: "openai_response",
       loop: myLoop,
+      phase,
       ts: Date.now(),
       content: choice?.message?.content ?? "",
       finishReason: choice?.finish_reason ?? null,
@@ -4024,8 +4043,11 @@ export function createChatPostHandler(options: CreateChatRouteOptions) {
 
       const wantsTrace = body?.trace === true;
       const traceSink: ChatTraceEvent[] = [];
+      // Flipped to "policy" inside runStatefulAssistantTurn once the state update
+      // finishes, so each traced model call is tagged with its turn stage.
+      const phaseRef = { current: "state" as ChatTracePhase };
       const baseOpenAI = new OpenAI({ apiKey: process.env.AIRLAB_OPENAI_API_KEY });
-      const openai = wantsTrace ? createTracingOpenAIClient(baseOpenAI, traceSink) : baseOpenAI;
+      const openai = wantsTrace ? createTracingOpenAIClient(baseOpenAI, traceSink, phaseRef) : baseOpenAI;
       const promptConfig = await loadRuntimePromptConfig(supabase, setupSource);
       const knownState = getConversationKnownState(
         conversationRow.current_state,
@@ -4056,7 +4078,8 @@ export function createChatPostHandler(options: CreateChatRouteOptions) {
                     trimmedUserMessage,
                     knownState,
                     promptConfig,
-                    conversationId
+                    conversationId,
+                    phaseRef
                   )
               );
               await saveAssistantReply(
@@ -4100,7 +4123,8 @@ export function createChatPostHandler(options: CreateChatRouteOptions) {
         trimmedUserMessage,
         knownState,
         promptConfig,
-        conversationId
+        conversationId,
+        phaseRef
       );
       await saveAssistantReply(
         supabase,

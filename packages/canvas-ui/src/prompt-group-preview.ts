@@ -1225,7 +1225,10 @@ export function buildPromptNodeInspectorPreview(args: {
   promptContextDoc?: CanvasDoc;
 }): PromptGroupInspectorPreview | null {
   const { node, entry, inspectorContext, promptContextDoc } = args;
-  const phase = inspectorContext.executionPhase;
+  // "workflow" is a structural canvas, not a compiled prompt phase — treat it as
+  // "no phase" for prompt-group IO/compilation.
+  const rawPhase = inspectorContext.executionPhase;
+  const phase = rawPhase === "workflow" ? undefined : rawPhase;
   if (!phase || !isPromptLikeNode(node)) {
     return null;
   }

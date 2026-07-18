@@ -524,7 +524,7 @@ export interface CanvasNodeData extends Record<string, unknown> {
 
 export type CanvasNode = Node<CanvasNodeData, string>;
 
-export type CanvasExecutionPhase = "policy" | "state";
+export type CanvasExecutionPhase = "policy" | "state" | "workflow";
 
 export interface CanvasFireNodeRef {
   canvasId?: string;

@@ -2,13 +2,15 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { CanvasNode, NodeKindDef } from "../types";
 import { ClampedNodeText } from "./ClampedNodeText";
 
-const SIDE_HANDLE_OFFSETS = ["18%", "34%", "50%", "66%", "82%"];
-const LOOP_SOURCE_HANDLE_OFFSETS = ["24%", "38%", "52%", "66%", "80%"];
-const LOOP_TARGET_HANDLE_OFFSETS = ["16%", "30%", "44%", "58%", "72%"];
+// Two connection points per side (kept in sync with the runtime slot patterns in
+// general-orchestration.ts, which now only assign slots 0 and 1).
+const SIDE_HANDLE_OFFSETS = ["33%", "67%"];
+const LOOP_SOURCE_HANDLE_OFFSETS = ["40%", "68%"];
+const LOOP_TARGET_HANDLE_OFFSETS = ["32%", "60%"];
 const HANDLE_CLASS =
-  "!h-2.5 !w-2.5 !border-2 !border-white !bg-teal-600";
+  "!h-2.5 !w-2.5 !border-2 !border-white !bg-[#B0BEA5]";
 const LOOP_HANDLE_CLASS =
-  "!h-2.5 !w-2.5 !border-2 !border-white !bg-teal-700";
+  "!h-2.5 !w-2.5 !border-2 !border-white !bg-[#9aab8f]";
 const LEGACY_HANDLE_CLASS =
   "!h-1 !w-1 !border-0 !bg-transparent !opacity-0";
 
@@ -20,8 +22,8 @@ function StageNode({ data, selected }: NodeProps<CanvasNode>) {
 
   return (
     <div
-      className={`relative w-[290px] rounded-lg border-2 border-teal-500 bg-teal-50 px-4 py-3 text-left font-sans text-sm text-teal-950 shadow-sm ${
-        selected ? "ring-2 ring-teal-600" : ""
+      className={`relative w-[290px] rounded-lg border-2 border-[#C7C7C7] bg-[#C7C7C7] px-4 py-3 text-left font-sans text-sm text-[#3d4a35] shadow-sm ${
+        selected ? "ring-2 ring-[#B0BEA5]" : ""
       }`}
     >
       <Handle type="target" position={Position.Top} className={HANDLE_CLASS} />
@@ -57,7 +59,7 @@ function StageNode({ data, selected }: NodeProps<CanvasNode>) {
         position={Position.Right}
         className={LEGACY_HANDLE_CLASS}
       />
-      <div className="mb-1 text-[10px] uppercase tracking-widest text-teal-700">
+      <div className="rf-node-title mb-1 text-left text-[#3d4a35]">
         Stage
       </div>
       <ClampedNodeText
@@ -68,7 +70,7 @@ function StageNode({ data, selected }: NodeProps<CanvasNode>) {
         {data.label || "Describe this workflow stage..."}
       </ClampedNodeText>
       {childWorkflowCanvasName ? (
-        <div className="mt-2 rounded border border-teal-200 bg-white/70 px-2 py-1 text-[11px] font-medium text-teal-800">
+        <div className="mt-2 rounded border border-[#B0BEA5] bg-white/70 px-2 py-1 text-[11px] font-medium text-[#3d4a35]">
           Child workflow: {childWorkflowCanvasName}
         </div>
       ) : null}
@@ -113,7 +115,7 @@ export const STAGE: NodeKindDef = {
   toolbarLabel: "+ Stage",
   toolbarDescription: "A high-level workflow stage the run can enter.",
   toolbarClassName:
-    "rounded border border-teal-500 bg-teal-50 px-3 py-2 text-xs font-sans uppercase tracking-widest text-teal-900 hover:bg-teal-100",
+    "rounded border border-[#B0BEA5] bg-[#eef1eb] px-3 py-2 text-xs font-sans uppercase tracking-widest text-[#3d4a35] hover:bg-[#e0e5da]",
   component: StageNode,
   defaultLabel: "Stage: new workflow stage",
   inspector: {

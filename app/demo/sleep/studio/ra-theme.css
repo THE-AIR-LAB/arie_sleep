@@ -117,6 +117,11 @@
 body:has(.ra-scope.ra-mono) .rf-canvas-help,
 body:has(.ra-scope.ra-mono) .rf-canvas-help-head{
   background:#ffffff !important;border-color:#e4e4e4 !important;}
+/* The State/Policy/Workflow "how it works" callout is square (no border radius). */
+.rf-canvas-help-note{border-radius:0 !important;}
+/* On the white theme make it white with a hairline border, not a beige block. */
+body:has(.ra-scope.ra-mono) .rf-canvas-help-note{
+  background:#ffffff !important;border-color:#e4e4e4 !important;}
 body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen,
 body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-surface,
 body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector,
@@ -270,6 +275,10 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .right-rail.floating{position:absolute;top:0;bottom:0;right:0;width:64px;flex:none;
   z-index:22;background:transparent;pointer-events:none;padding-top:12px;}
 .ra-scope .right-rail.floating > *{pointer-events:auto;}
+/* Floating over the chat, the rail is transparent, so the day divider (TODAY)
+   and other thread lines would show through under the icons. Give the floating
+   rail buttons the chat background so they cover anything behind them. */
+.ra-scope .right-rail.floating .rail-btn{background:var(--frame);}
 .ra-scope .rail-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--text-2);border:1px solid transparent;}
 .ra-scope .rail-flip svg{transform:rotate(180deg);}
 .ra-scope .rail-btn:hover{background:var(--surface);color:var(--text);}
@@ -407,6 +416,10 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
    not filled buttons. Selection is shown with a neutral underline — no accent
    fill. */
 .ra-scope .obs-setup{display:flex;gap:22px;padding:0 16px;height:46px;align-items:stretch;border-bottom:1px solid var(--line-soft);}
+/* "How each turn reaches the model" info trigger, at the right of the nav. */
+.ra-scope .obs-setup .obs-setup-info{display:flex;align-items:center;flex:0 0 auto;
+  margin-left:auto;color:var(--text-3);background:none;border:none;cursor:pointer;padding:0;}
+.ra-scope .obs-setup .obs-setup-info:hover{color:var(--text);}
 /* Selectors are scoped under `.obs-setup` so they out-specify the global
    `.ra-scope button{border:none;color:inherit}` reset — otherwise the underline
    (a border) and the muted inactive color would be wiped out. */
@@ -811,6 +824,13 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{
    clipped to ~1px — must match Knowledge/State/Policy (.obs-setup-chip). */
 .ra-scope .drawer-tabbar{flex:0 0 auto;height:var(--studio-head-h,60px);display:flex;align-items:stretch;border-bottom:1px solid var(--line-soft);
   overflow:visible;}
+/* Close button at the right of the drawer tab bar — borderless icon aligned to
+   the same 16px right gutter as the nav (i), State Edit, and canvas Save so they
+   stack in one vertical line. */
+.ra-scope .drawer-tabbar .drawer-close-btn{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  margin-left:auto;margin-right:16px;padding:0;border:none;background:transparent;color:var(--text-2);
+  cursor:pointer;border-radius:8px;}
+.ra-scope .drawer-tabbar .drawer-close-btn:hover{background:var(--surface);color:var(--text);}
 /* Tabs stay on ONE line and scroll horizontally. Do not set overflow-y:hidden —
    that clipped the Model Setup underline thinner than Knowledge. */
 .ra-scope .drawer-tabs{flex:1 1 auto;min-width:0;display:flex;flex-wrap:nowrap;align-items:stretch;gap:22px;padding:0 16px;
@@ -915,7 +935,7 @@ body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select
 .rf-canvas-fullscreen .rf-canvas-tabs,
 .rf-canvas-fullscreen .rf-inspector-tabs{
   border-radius:0 !important;}
-.rf-canvas-fullscreen .rf-inspector-tabs button{
+.rf-canvas-fullscreen .rf-inspector-tabs button:not(.rf-inspector-fs-btn){
   border-radius:0 !important;box-shadow:none !important;outline:none !important;
   background:transparent !important;}
 /* Tab-bar trailing controls (Info / Fullscreen / Tools / Save / Close): shared
@@ -926,7 +946,9 @@ body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action,
 .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action,
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close,
-.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close{
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close,
+.ra-scope .rf-inspector-tabs .rf-inspector-fs-btn,
+.rf-canvas-fullscreen .rf-inspector-tabs .rf-inspector-fs-btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   margin:0;border:none;background:transparent;cursor:pointer;
   padding:6px 8px;border-radius:8px !important;
@@ -934,7 +956,9 @@ body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select
   color:#1c1b16;white-space:nowrap;}
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-btn--icon,
 .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-btn--icon{
-  padding:6px;}
+  padding:6px;color:var(--text-3);}
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-btn--icon:hover,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-btn--icon:hover{color:var(--text);}
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-actions,
 .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-actions{
   margin-left:0;display:flex;align-items:center;gap:4px;}
@@ -943,18 +967,27 @@ body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
 .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover,
-.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover{
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover,
+.ra-scope .rf-inspector-tabs .rf-inspector-fs-btn:hover,
+.rf-canvas-fullscreen .rf-inspector-tabs .rf-inspector-fs-btn:hover{
   background:var(--surface, #eceadd);}
 .ra-scope.ra-mono .rf-canvas-tabs .rf-canvas-tab-btn:hover,
 .ra-scope.ra-mono .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
 .ra-scope.ra-mono .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover,
+.ra-scope.ra-mono .rf-inspector-tabs .rf-inspector-fs-btn:hover,
 body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-btn:hover,
 body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
-body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover{
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-tabs .rf-inspector-fs-btn:hover{
   background:#f2f2f2 !important;}
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled,
 .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled{
   opacity:.4;cursor:default;}
+/* Unsaved-changes callout: the Save button turns accent + shows a dot the moment
+   the setup is dirty, so pending edits are obvious against the muted clean state. */
+.ra-scope .obs-setup-action.dirty{color:var(--accent) !important;font-weight:600 !important;}
+.ra-scope .obs-setup-action.dirty .unsaved-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--accent);margin-right:6px;vertical-align:middle;}
 .ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled:hover,
 .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled:hover{
   background:transparent;}
@@ -1088,7 +1121,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab
 .ra-scope .mini-btn:hover{background:var(--surface);color:var(--text-2);}
 
 .ra-scope .msg-user{align-self:flex-end;max-width:74%;background:var(--surface-2);border:1px solid var(--line);
-  border-radius:15px;padding:11px 15px;font-size:15px;line-height:1.5;color:var(--text);animation:ra-fadeUp .3s ease both;}
+  border-radius:15px;padding:6px 15px;font-size:15px;line-height:1.5;color:var(--text);animation:ra-fadeUp .3s ease both;}
 
 .ra-scope .typing{display:flex;align-items:center;gap:13px;align-self:stretch;}
 .ra-scope .typing .avatar{width:28px;height:28px;}
@@ -1375,6 +1408,9 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab
 .sysconf .sc-file button{color:var(--sc-ink-3);font-size:13px;line-height:1;}
 .sysconf .sc-list-head{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px;}
 .sysconf .sc-list-head .sc-lbl{margin:0;}
+.sysconf .sc-knowledge-head{gap:12px;margin-bottom:8px;}
+.sysconf .sc-knowledge-actions{display:flex;align-items:center;gap:4px;flex:0 0 auto;margin-left:auto;}
+.sysconf .sc-drop--compact{padding:10px 14px;margin-bottom:10px;font-size:13.5px;}
 .sysconf .sc-ds{border:1px solid var(--sc-line);border-radius:10px;background:var(--sc-panel);margin-bottom:10px;overflow:hidden;}
 .sysconf .sc-ds-row{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;}
 .sysconf .sc-ds-row:hover{background:#e4e2d4;}
@@ -1400,8 +1436,10 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab
   display:flex;flex-direction:column;overflow:hidden;
   border-bottom:1px solid var(--sc-line);}
 .sysconf .sc-curstate > .sc-lbl{display:block;margin-bottom:9px;}
-/* Title row stays pinned; chips/editor scroll in .sc-curstate-body below. */
-.sysconf .sc-curstate-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;
+/* Title row stays pinned; chips/editor scroll in .sc-curstate-body below. The
+   bar is a fixed 46px row with vertically-centered content in BOTH states, so
+   the title sits in exactly the same place whether expanded or collapsed. */
+.sysconf .sc-curstate-bar{display:flex;align-items:center;gap:12px;height:46px;padding:0 16px;
   flex:0 0 auto;background:var(--sc-panel, var(--panel));z-index:1;}
 /* Collapsible header — same 16px inset + 14px type in both open and closed. */
 .sysconf .sc-curstate-head{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;
@@ -1428,10 +1466,16 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab
 .sysconf .sc-curstate-v{font-family:var(--sc-serif);font-size:13.5px;color:var(--sc-ink);font-weight:600;}
 .sysconf .sc-curstate-row.unset{opacity:.5;}
 .sysconf .sc-curstate-row.unset .sc-curstate-v{font-weight:400;}
-/* Edit / Done / + Add — right side of the State variables title row. */
-.sysconf .sc-curstate-actions{display:flex;align-items:center;gap:14px;margin:0 0 0 auto;padding:0;flex:0 0 auto;}
-.sysconf .sc-var-edit{font-family:var(--sc-mono);font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--sc-ink-3);}
-.sysconf .sc-var-edit:hover{color:var(--sc-ink);}
+/* Edit / Done / + Add — same chrome as Policy tab-bar actions (Fullscreen / Save). */
+.sysconf .sc-curstate-actions{display:flex;align-items:center;gap:4px;margin:0 0 0 auto;padding:0;flex:0 0 auto;}
+.sysconf .sc-var-edit{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  margin:0;border:none;background:transparent;cursor:pointer;
+  padding:6px 8px;border-radius:8px !important;
+  font-family:inherit;font-size:14px;font-weight:400;letter-spacing:normal;
+  text-transform:none;line-height:1.25;color:var(--sc-ink, #1c1b16);white-space:nowrap;}
+.sysconf .sc-var-edit:hover{background:var(--surface, #eceadd);color:var(--sc-ink, #1c1b16);}
+.ra-scope.ra-mono .sysconf .sc-var-edit:hover{background:#f2f2f2 !important;}
 .sysconf .sc-var-list{display:flex;flex-direction:column;gap:6px;padding:0 16px;}
 .sysconf .sc-var-row{display:grid;grid-template-columns:1fr 116px 1fr 22px;gap:8px;align-items:center;}
 .sysconf .sc-var-row > *{min-width:0;}
@@ -1465,8 +1509,8 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab
 .sysconf .sc-guide-preview{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font-family:var(--sc-serif);font-size:13px;color:var(--sc-ink-3);}
 .sysconf .sc-block-b{padding:4px 15px 16px;border-top:1px solid var(--sc-line-soft);}
-/* Knowledge guideline body: no nested textarea box — text sits flush under the header. */
-.sysconf .sc-guide-body{padding:0 15px 14px;border-top:none;}
+/* Knowledge guideline body: no nested textarea box — text sits under the header. */
+.sysconf .sc-guide-body{padding:14px 15px;border-top:none;}
 .sysconf .sc-textarea.sc-guide-text{
   border:none;background:transparent;border-radius:0;padding:0;margin:0;
   box-shadow:none;min-height:0;}

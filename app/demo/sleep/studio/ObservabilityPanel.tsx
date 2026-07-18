@@ -61,9 +61,11 @@ export function ObservabilityContent({
 
 /**
  * Explains how the State and Policy canvases are compiled into prompts and sent
- * to the model each turn. Purely informational — opened from the trace header.
+ * to the model each turn — the full prompt payload and the fixed order it is
+ * assembled in. Purely informational. Opened from the trace header and from the
+ * Model Setup nav (the "i" next to Knowledge / State / Policy).
  */
-function CompilationInfoModal({ onClose }: { onClose: () => void }) {
+export function CompilationInfoModal({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="obs-info-overlay"

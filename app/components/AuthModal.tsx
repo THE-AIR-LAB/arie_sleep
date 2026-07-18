@@ -12,17 +12,17 @@ type AuthModalProps = {
 export const clerkAppearance = {
   variables: {
     colorPrimary: "#1E2938",
-    colorBackground: "#E1DECF",
+    colorBackground: "#ffffff",
     colorText: "#1a1a1a",
     colorTextSecondary: "#6b7280",
-    colorInputBackground: "#E1DECF",
+    colorInputBackground: "#ffffff",
     colorInputText: "#1a1a1a",
     borderRadius: "0px",
     fontFamily: "var(--font-app)",
     fontSize: "14px",
   },
   elements: {
-    card: { boxShadow: "none", border: "1px solid rgb(209,213,219)", backgroundColor: "#E1DECF" },
+    card: { boxShadow: "none", border: "1px solid rgb(209,213,219)", backgroundColor: "#ffffff" },
     cardBox: { boxShadow: "none" },
     header: { display: "none" },
     footer: { display: "none" },
@@ -33,13 +33,13 @@ export const clerkAppearance = {
     dividerLine: "bg-gray-300",
     dividerText: "text-gray-500",
     formFieldLabel: "text-gray-800",
-    formFieldInput: "border border-gray-400 bg-[#E1DECF] text-gray-900 rounded-none focus:border-gray-900 focus:ring-0 placeholder:text-gray-400",
-    formButtonPrimary: "bg-[#1E2938] hover:bg-[#2d3d50] text-[#E1DECF] rounded-none shadow-none",
+    formFieldInput: "border border-gray-400 bg-[#ffffff] text-gray-900 rounded-none focus:border-gray-900 focus:ring-0 placeholder:text-gray-400",
+    formButtonPrimary: "bg-[#1E2938] hover:bg-[#2d3d50] text-[#ffffff] rounded-none shadow-none",
     footerActionLink: "text-[#1E2938] underline",
     identityPreviewText: "text-gray-900",
     identityPreviewEditButton: "text-[#1E2938]",
     formResendCodeLink: "text-[#1E2938]",
-    otpCodeFieldInput: "border border-gray-400 bg-[#E1DECF] rounded-none",
+    otpCodeFieldInput: "border border-gray-400 bg-[#ffffff] rounded-none",
     alertText: "text-gray-800",
   },
 };
@@ -67,7 +67,7 @@ export default function AuthModal({ redirectAfterLogin }: AuthModalProps) {
   }, [isLoaded, isSignedIn, redirect, router]);
 
   return (
-    <div className="min-h-screen bg-[#E1DECF]">
+    <div className="min-h-screen bg-[#ffffff]">
       <div className="px-4 py-3 border-b border-gray-300">
         <Link href="/demo" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
           ← Back

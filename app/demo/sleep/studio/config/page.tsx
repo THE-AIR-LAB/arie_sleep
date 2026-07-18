@@ -38,6 +38,7 @@ import { DEFAULT_POLICY_NODE_KINDS } from "../../../../components/canvas/node-ki
 import { normalizeGuidelineBlocks } from "../../../../components/setup/guideline-schema";
 import { buildGuidelineItemText } from "../../../../lib/general-orchestration";
 import { AuthProvider, useAuth } from "../../../../context/AuthContext";
+import { CompilationInfoModal } from "../ObservabilityPanel";
 
 const SLEEP_SETUP_ENDPOINT = "/api/admin/setup/sleep";
 const SLEEP_DEMO_KEY = "sleep";
@@ -389,14 +390,63 @@ function KnowledgePane({
         <p>Collect the materials the model should draw from — uploaded files and structured datasets.</p>
       </div>
 
-      <div className="sc-list-head" style={{ marginTop: 0 }}>
-        <span className="sc-lbl">Dataset: {GUIDELINE_ITEMS_DATASET_NAME} · {guidelineItems.length} rows</span>
+      <div className="sc-list-head sc-knowledge-head" style={{ marginTop: 0 }}>
+        <span className="sc-lbl">
+          Dataset: {GUIDELINE_ITEMS_DATASET_NAME} · {guidelineItems.length} rows
+        </span>
+        <div className="sc-knowledge-actions">
+          <button type="button" className="sc-var-edit" onClick={addRow}>
+            + Add guideline
+          </button>
+          <button
+            type="button"
+            className="sc-var-edit"
+            onClick={() => fileRef.current?.click()}
+          >
+            + Add file
+          </button>
+        </div>
       </div>
-      <p className="desc" style={{ margin: "0 0 8px" }}>
-        One row per guideline. Legacy guideline blocks were converted into rows
-        (content, problem description, and recommendation concatenated) and now
-        live in this dataset.
-      </p>
+      <input
+        ref={fileRef}
+        type="file"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => e.target.files && add(e.target.files)}
+      />
+      <div
+        className={"sc-drop sc-drop--compact" + (drag ? " drag" : "")}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          if (e.dataTransfer.files) add(e.dataTransfer.files);
+        }}
+      >
+        <span>
+          Drop files here or{" "}
+          <span className="browse" onClick={() => fileRef.current?.click()}>
+            browse
+          </span>
+        </span>
+        <span className="fmts">PDF · TXT · MD · DOCX</span>
+      </div>
+      {files.length > 0 && (
+        <div className="sc-files" style={{ marginBottom: 10 }}>
+          {files.map((f, i) => (
+            <span key={i} className="sc-file">
+              {f}
+              <button onClick={() => setFiles((fs) => fs.filter((_, j) => j !== i))}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       <div className="sc-guidelines" style={{ display: "grid", gap: 0 }}>
         {guidelineItems.map((row, i) => {
           const open = openRows.has(i);
@@ -461,31 +511,6 @@ function KnowledgePane({
           );
         })}
       </div>
-      <button className="sc-btn ghost" style={{ marginTop: 10 }} onClick={addRow}>
-        {guidelineItems.length === 0 ? "+ Create guideline rows" : "+ Add row"}
-      </button>
-
-      <span className="sc-lbl sc-field-lbl">Files</span>
-      <input ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={(e) => e.target.files && add(e.target.files)} />
-      <div
-        className={"sc-drop" + (drag ? " drag" : "")}
-        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files) add(e.dataTransfer.files); }}
-      >
-        <span>Drop files here or <span className="browse" onClick={() => fileRef.current?.click()}>browse</span></span>
-        <span className="fmts">PDF · TXT · MD · DOCX</span>
-      </div>
-      {files.length > 0 && (
-        <div className="sc-files">
-          {files.map((f, i) => (
-            <span key={i} className="sc-file">
-              {f}
-              <button onClick={() => setFiles((fs) => fs.filter((_, j) => j !== i))}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -739,6 +764,15 @@ function StatePane({
   const [varsHeight, setVarsHeight] = useState<number | null>(null);
   const [varsSplitDragging, setVarsSplitDragging] = useState(false);
   const varsRef = React.useRef<HTMLDivElement | null>(null);
+  // Collapsing/expanding the State variables block frees or reclaims height for
+  // the canvas + inspector row below. That row measures its height only on
+  // window resize, so nudge a re-measure here — otherwise the inspector can't be
+  // dragged into the space freed by collapsing the variables.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    return () => cancelAnimationFrame(id);
+  }, [stateOpen]);
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -1481,6 +1515,40 @@ export function useSleepSetup() {
   }, []);
 
   const markDirty = () => { if (dirtyArmedRef.current) setDirty(true); };
+  // The canvas re-emits its doc on mount (each drawer open) and whenever a node
+  // is selected or the trace path animates over it — none of which are real
+  // edits. Compare only persisted content (id/type/position/data + edge routing),
+  // stripping transient UI flags (selected, drag, animation), so those don't
+  // falsely flag unsaved changes.
+  const stripTransient = (doc: CanvasDoc | null) =>
+    doc == null
+      ? null
+      : {
+          version: doc.version,
+          canvases: doc.canvases.map((c) => ({
+            id: c.id,
+            name: c.name,
+            freeText: c.freeText ?? "",
+            graph: {
+              nodes: (c.graph?.nodes ?? []).map((n) => ({
+                id: n.id,
+                type: n.type,
+                position: n.position,
+                data: n.data,
+              })),
+              edges: (c.graph?.edges ?? []).map((e) => ({
+                id: e.id,
+                source: e.source,
+                target: e.target,
+                sourceHandle: e.sourceHandle ?? null,
+                targetHandle: e.targetHandle ?? null,
+                label: e.label ?? null,
+              })),
+            },
+          })),
+        };
+  const sameCanvasDoc = (a: CanvasDoc | null, b: CanvasDoc | null) =>
+    JSON.stringify(stripTransient(a)) === JSON.stringify(stripTransient(b));
 
   const editGuidelineItems: React.Dispatch<React.SetStateAction<string[]>> = (updater) => {
     setGuidelineItems(updater);
@@ -1602,7 +1670,7 @@ export function useSleepSetup() {
           fields={fields}
           setFields={editFields}
           stateDoc={stateDoc}
-          onStateChange={(doc) => { setStateDoc(doc); markDirty(); }}
+          onStateChange={(doc) => { if (!sameCanvasDoc(stateDoc, doc)) markDirty(); setStateDoc(doc); }}
           stateCompile={stateCompile}
           fillHeight={opts?.fillHeight}
           currentState={opts?.currentState}
@@ -1615,7 +1683,7 @@ export function useSleepSetup() {
       pane = (
         <PolicyPane
           policyDoc={policyDoc}
-          onPolicyChange={(doc) => { setPolicyDoc(doc); markDirty(); }}
+          onPolicyChange={(doc) => { if (!sameCanvasDoc(policyDoc, doc)) markDirty(); setPolicyDoc(doc); }}
           fillHeight={opts?.fillHeight}
           fireSignal={opts?.fireSignal}
           loaded={loaded}
@@ -1678,6 +1746,9 @@ export function SetupBar({
   // drawer — the pop-out-to-floating-window feature was removed.
   // Opens on Policy by default so the Model Setup tab lands on the flow.
   const [active, setActive] = useState<string | null>("policy");
+  // The "How each turn reaches the model" modal (full prompts + the fixed order
+  // they're sent in), opened from the "i" on the left of the section nav.
+  const [compileInfoOpen, setCompileInfoOpen] = useState(false);
 
   // Build a fire signal from the latest completed turn so the Policy canvas
   // animates the path the model took. The signal id is the turn id (a new turn
@@ -1735,11 +1806,21 @@ export function SetupBar({
       {setup.canEdit ? (
         <button
           type="button"
-          className="obs-setup-action"
+          className={"obs-setup-action" + (setup.dirty && !setup.saving ? " dirty" : "")}
           onClick={() => void setup.save()}
           disabled={setup.saving || !setup.dirty}
+          title={setup.dirty ? "You have unsaved changes" : "No changes to save"}
         >
-          {setup.saving ? "Saving…" : "Save"}
+          {setup.saving ? (
+            "Saving…"
+          ) : setup.dirty ? (
+            <>
+              <span className="unsaved-dot" aria-hidden />
+              Save
+            </>
+          ) : (
+            "Save"
+          )}
         </button>
       ) : (
         <span className="obs-setup-action" style={{ opacity: 0.6 }}>Read-only</span>
@@ -1775,7 +1856,17 @@ export function SetupBar({
           );
         })}
         {!canvasSection ? navActions : null}
+        <button
+          type="button"
+          className="obs-setup-info"
+          aria-label="How each turn reaches the model"
+          title="How each turn reaches the model — full prompts & order"
+          onClick={() => setCompileInfoOpen(true)}
+        >
+          <Ic.Info size={16} />
+        </button>
       </div>
+      {compileInfoOpen && <CompilationInfoModal onClose={() => setCompileInfoOpen(false)} />}
 
       {/* Docked inline: the actual section component, embedded in the drawer.
           For canvas sections, Save is docked into the canvas tab bar

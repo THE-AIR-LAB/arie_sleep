@@ -337,8 +337,8 @@ function Sidebar({
         <div>
           <div className="side-title">Sleep Assistant</div>
         </div>
-        <button className="icon-btn side-close" title="Collapse sidebar" onClick={onClose}>
-          <Ic.Panel size={17} />
+        <button className="icon-btn side-close" title="Close sidebar" aria-label="Close sidebar" onClick={onClose}>
+          <Ic.Close size={17} />
         </button>
       </div>
 
@@ -690,29 +690,30 @@ function RightRail({
       className={"right-rail" + (floating ? " floating" : "")}
       style={floating && rightOffset != null ? { right: rightOffset } : undefined}
     >
-      {/* Panel icon = toggle: opens the right drawer when closed, closes it when
-          open. Highlighted while the drawer is open. */}
-      {isAdmin && (
+      {/* Panel icon opens the right drawer. Hidden once it's open — the drawer
+          has its own × to close, so the launcher would be redundant. */}
+      {isAdmin && !panelOpen && (
         <button
-          className={"rail-btn" + (panelOpen ? " on" : "")}
-          title={panelOpen ? "Close panel" : "Open Model Setup"}
-          aria-label={panelOpen ? "Close panel" : "Open Model Setup"}
-          aria-pressed={panelOpen}
+          className="rail-btn"
+          title="Open Model Setup"
+          aria-label="Open Model Setup"
           onClick={onTogglePanel}
         >
           <Ic.Panel size={18} />
         </button>
       )}
-      {/* Workflow launcher, docked in the rail directly under the drawer icon. */}
-      <button
-        className={"rail-btn" + (canvasOpen ? " on" : "")}
-        title={canvasOpen ? "Close workflow" : "Open workflow"}
-        aria-label={canvasOpen ? "Close workflow" : "Open workflow"}
-        aria-pressed={canvasOpen}
-        onClick={onToggleCanvas}
-      >
-        <Ic.Workflow size={18} />
-      </button>
+      {/* Workflow launcher, docked in the rail directly under the drawer icon.
+          Hidden while the workflow is open (it has its own × to close). */}
+      {!canvasOpen && (
+        <button
+          className="rail-btn"
+          title="Open workflow"
+          aria-label="Open workflow"
+          onClick={onToggleCanvas}
+        >
+          <Ic.Workflow size={18} />
+        </button>
+      )}
     </aside>
   );
 }
@@ -1175,30 +1176,30 @@ const BOTTOM_WORKFLOW_SEED: CanvasDoc = {
             id: "e-intake-assess",
             source: "wf-stage-intake",
             target: "wf-stage-assess",
-            sourceHandle: "workflow-next-2",
-            targetHandle: "workflow-previous-2",
+            sourceHandle: "workflow-next-0",
+            targetHandle: "workflow-previous-0",
           },
           {
             id: "e-assess-guide",
             source: "wf-stage-assess",
             target: "wf-stage-guide",
-            sourceHandle: "workflow-next-2",
-            targetHandle: "workflow-previous-2",
+            sourceHandle: "workflow-next-0",
+            targetHandle: "workflow-previous-0",
           },
           {
             id: "e-guide-followup",
             source: "wf-stage-guide",
             target: "wf-stage-followup",
-            sourceHandle: "workflow-next-2",
-            targetHandle: "workflow-previous-2",
+            sourceHandle: "workflow-next-0",
+            targetHandle: "workflow-previous-0",
           },
           {
             id: "e-followup-assess-loop",
             source: "wf-stage-followup",
             target: "wf-stage-assess",
             label: "loop / return",
-            sourceHandle: "workflow-loop-2",
-            targetHandle: "workflow-loop-target-2",
+            sourceHandle: "workflow-loop-0",
+            targetHandle: "workflow-loop-target-0",
           },
         ],
       },
@@ -1220,6 +1221,9 @@ function BottomCanvasDrawer({
   setHeight,
   doc,
   onDocChange,
+  onSave,
+  saving,
+  saved,
 }: {
   open: boolean;
   onClose: () => void;
@@ -1227,6 +1231,9 @@ function BottomCanvasDrawer({
   setHeight: (h: number) => void;
   doc: CanvasDoc | null;
   onDocChange: (doc: CanvasDoc) => void;
+  onSave: () => void;
+  saving: boolean;
+  saved: boolean;
 }) {
   // VS Code-style splitter: the drawer's top edge is a full-width drag handle
   // that highlights while hovered/dragged. Drag up = taller (up to near the top
@@ -1281,23 +1288,36 @@ function BottomCanvasDrawer({
           seedDoc={BOTTOM_WORKFLOW_SEED}
           // Same node registry as airlab's RuntimeWorkflowCanvas (includes Stage).
           nodeKinds={WORKFLOW_CANVAS_NODE_KINDS}
+          // Drives the workflow-specific "How it works" info in the canvas (i).
+          inspectorContext={{ executionPhase: "workflow" }}
           fillHeight
           // Wide bottom drawer: canvas | Inspector/Compiler side by side.
           // (Side drawer Model Setup keeps the stacked column layout.)
           panelLayout="split"
           onChange={({ doc }) => onDocChange(doc)}
-          // Dock the close button into the canvas's own tab bar so the drawer
-          // header and the Overall Workflow · Tools · Collapse row share one line.
+          // Dock the Save + close controls into the canvas's own tab bar so the
+          // drawer header and the Overall Workflow · Tools row share one line.
           tabBarTrailing={
-            <button
-              type="button"
-              className="bottom-drawer-close"
-              aria-label="Close workflow"
-              title="Close workflow"
-              onClick={onClose}
-            >
-              <Ic.Close size={16} />
-            </button>
+            <div className="obs-setup-actions">
+              <button
+                type="button"
+                className="obs-setup-action"
+                onClick={onSave}
+                disabled={saving}
+                title="Save workflow"
+              >
+                {saving ? "Saving…" : saved ? "Saved ✓" : "Save"}
+              </button>
+              <button
+                type="button"
+                className="bottom-drawer-close"
+                aria-label="Close workflow"
+                title="Close workflow"
+                onClick={onClose}
+              >
+                <Ic.Close size={16} />
+              </button>
+            </div>
           }
         />
       </div>
@@ -1358,6 +1378,59 @@ function SleepStudioChat() {
   // open/close.
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [canvasDoc, setCanvasDoc] = useState<CanvasDoc | null>(null);
+  // Workflow persistence: the overview canvas is stored as `workflow_canvases`
+  // on the sleep setup config. Load it once so edits survive reload, and expose
+  // a Save that PUTs it back (the endpoint needs `config`, so we round-trip it).
+  const [workflowSaving, setWorkflowSaving] = useState(false);
+  const [workflowSaved, setWorkflowSaved] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/setup/sleep");
+        if (!res.ok) return;
+        const { workflowCanvases } = (await res.json()) as {
+          workflowCanvases?: Array<{ canvas_id?: string; name?: string; sort_order?: number; canvas: CanvasDoc["canvases"][number] }>;
+        };
+        if (cancelled || !Array.isArray(workflowCanvases) || workflowCanvases.length === 0) return;
+        const canvases = [...workflowCanvases]
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map((row) => ({ ...row.canvas, id: row.canvas_id || row.canvas.id, name: row.name || row.canvas.name }));
+        setCanvasDoc({ version: 2, activeId: canvases[0].id, canvases });
+      } catch {
+        /* keep the seeded default */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  const saveWorkflow = useCallback(async () => {
+    if (!canvasDoc || workflowSaving) return;
+    setWorkflowSaving(true);
+    try {
+      // The PUT requires `config`; fetch the current one so we don't clobber it.
+      const cur = await fetch("/api/admin/setup/sleep");
+      const config = (cur.ok ? (await cur.json())?.config : null) ?? {};
+      const workflowCanvases = canvasDoc.canvases.map((canvas, index) => ({
+        canvas_id: canvas.id,
+        name: canvas.name,
+        sort_order: index,
+        canvas,
+      }));
+      const res = await fetch("/api/admin/setup/sleep", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config, workflowCanvases }),
+      });
+      if (res.ok) {
+        setWorkflowSaved(true);
+        setTimeout(() => setWorkflowSaved(false), 1800);
+      }
+    } catch {
+      /* best-effort */
+    } finally {
+      setWorkflowSaving(false);
+    }
+  }, [canvasDoc, workflowSaving]);
   // Bottom workflow drawer: open at ~1/3 of the viewport height.
   const [canvasHeight, setCanvasHeight] = useState(360);
   useEffect(() => {
@@ -2028,6 +2101,9 @@ function SleepStudioChat() {
             setHeight={setCanvasHeight}
             doc={canvasDoc}
             onDocChange={setCanvasDoc}
+            onSave={saveWorkflow}
+            saving={workflowSaving}
+            saved={workflowSaved}
           />
         </div>
       </div>

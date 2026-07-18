@@ -714,12 +714,14 @@ function truncatePromptText(value: string, maxLength = 220): string {
 
 export const WORKFLOW_OVERVIEW_CANVAS_NAME = "Overall Workflow";
 export const WORKFLOW_OVERVIEW_CANVAS_MARKER = "airlab:workflow-overview";
+// Stage nodes expose only two connection points per side (slots 0 and 1), so
+// every pattern draws from those two. Extra parallel connections reuse them.
 const WORKFLOW_STAGE_HANDLE_SLOT_PATTERNS = [
-  [2],
-  [1, 3],
-  [0, 2, 4],
-  [0, 1, 3, 4],
-  [0, 1, 2, 3, 4],
+  [0],
+  [0, 1],
+  [0, 1],
+  [0, 1],
+  [0, 1],
 ];
 
 export type WorkflowStageTransitionDirection = "forward" | "loop";
@@ -738,8 +740,8 @@ export function getWorkflowStageHandleSlot(
     WORKFLOW_STAGE_HANDLE_SLOT_PATTERNS[
       Math.min(Math.max(total, 1), WORKFLOW_STAGE_HANDLE_SLOT_PATTERNS.length) -
         1
-    ] ?? WORKFLOW_STAGE_HANDLE_SLOT_PATTERNS.at(-1) ?? [2];
-  return slotPattern[Math.max(0, ordinal) % slotPattern.length] ?? 2;
+    ] ?? WORKFLOW_STAGE_HANDLE_SLOT_PATTERNS.at(-1) ?? [0];
+  return slotPattern[Math.max(0, ordinal) % slotPattern.length] ?? 0;
 }
 
 export function getWorkflowStageSourceHandleId(

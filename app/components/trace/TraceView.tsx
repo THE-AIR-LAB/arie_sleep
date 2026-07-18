@@ -11,6 +11,8 @@ export type TraceEvent =
   | {
       kind: "openai_request";
       loop: number;
+      /** Which stage of the turn this call belongs to (state update vs policy). */
+      phase?: "state" | "policy";
       model: string;
       messages: Array<{ role: string; preview: string; toolCalls?: number; toolCallId?: string }>;
       tools: Array<{ name: string; description?: string }>;
@@ -18,6 +20,7 @@ export type TraceEvent =
   | {
       kind: "openai_response";
       loop: number;
+      phase?: "state" | "policy";
       content: string;
       toolCalls: Array<{ name: string; args: Record<string, unknown> }>;
       finishReason: string | null;
@@ -79,12 +82,44 @@ const KIND_LABEL: Record<TraceEvent["kind"], string> = {
   tool_result: "← Tool",
 };
 
+// Alternating card tints: outgoing steps (request / tool dispatch) get the green
+// tint, incoming steps (response / tool result) get the pink tint, so the trace
+// reads as alternating rows.
 const KIND_COLOR: Record<TraceEvent["kind"], string> = {
-  openai_request: "border-blue-300 bg-blue-50",
-  openai_response: "border-blue-400 bg-blue-100",
-  tool_dispatch: "border-amber-300 bg-amber-50",
-  tool_result: "border-amber-400 bg-amber-100",
+  openai_request: "border-[#cfe0c6] bg-[#E4EDE0]",
+  openai_response: "border-[#e2d4d4] bg-[#EEE8E8]",
+  tool_dispatch: "border-[#cfe0c6] bg-[#E4EDE0]",
+  tool_result: "border-[#e2d4d4] bg-[#EEE8E8]",
 };
+
+// Plain-English "what is this step doing" line, shown on every trace row so the
+// technical preview (msg/tools/chars) isn't the only cue.
+function eventDescription(event: TraceEvent): string {
+  switch (event.kind) {
+    case "openai_request":
+      if (event.phase === "state")
+        return "Updating state: sends your latest message + current state so the model can extract the new values.";
+      if (event.phase === "policy")
+        return "Deciding the reply: sends the updated state + conversation to the policy prompt.";
+      return event.tools.length > 0
+        ? "Sends the prompt and conversation to the model, which may call a tool."
+        : "Sends the prompt and conversation to the model and waits for its reply.";
+    case "openai_response":
+      if (event.toolCalls.length > 0)
+        return `The model chose to call ${event.toolCalls.map((c) => c.name).join(", ")}.`;
+      if (event.phase === "state")
+        return `Returned the updated state (${event.content.length} characters of JSON).`;
+      if (event.phase === "policy")
+        return `Returned the assistant's reply (${event.content.length} characters).`;
+      return `The model returned its answer (${event.content.length} characters).`;
+    case "tool_dispatch":
+      return `Runs the ${event.tool} tool and waits for the result.`;
+    case "tool_result":
+      return event.ok
+        ? `The ${event.tool} tool returned ${event.bytes.toLocaleString()} bytes.`
+        : `The ${event.tool} tool failed${event.error ? `: ${event.error}` : "."}`;
+  }
+}
 
 function eventPreview(event: TraceEvent): string {
   switch (event.kind) {
@@ -119,17 +154,22 @@ export function TraceEventCard({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-black/5"
+        className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left rounded hover:bg-black/5 outline-none focus:ring-2 focus:ring-inset focus:ring-[#385100]"
       >
-        <span className="flex items-baseline gap-2 min-w-0">
-          <span className="font-bold uppercase tracking-widest text-[10px] text-gray-700 shrink-0">
-            {KIND_LABEL[event.kind]} · loop {event.loop}
-          </span>
-          {!open && (
-            <span className="text-gray-600 truncate text-[11px]">
-              {eventPreview(event)}
+        <span className="flex flex-col min-w-0 gap-0.5">
+          <span className="flex items-baseline gap-2 min-w-0">
+            <span className="font-bold uppercase tracking-widest text-[10px] text-gray-700 shrink-0">
+              {KIND_LABEL[event.kind]} · loop {event.loop}
             </span>
-          )}
+            {!open && (
+              <span className="text-gray-600 truncate text-[11px]">
+                {eventPreview(event)}
+              </span>
+            )}
+          </span>
+          <span className="font-sans normal-case text-[11px] leading-snug text-gray-500 truncate">
+            {eventDescription(event)}
+          </span>
         </span>
         <span className="flex items-center gap-2 shrink-0">
           <span className="text-[10px] text-gray-500 tabular-nums">
@@ -154,8 +194,8 @@ export function TraceEventCard({
           <div className="text-gray-500">messages sent ({event.messages.length}):</div>
           <ul className="space-y-1 pl-3">
             {event.messages.map((m, i) => (
-              <li key={i} className="border-l-2 border-blue-200 pl-2">
-                <span className="text-blue-700 uppercase tracking-wider text-[10px]">
+              <li key={i} className="border-l-2 border-[#385100]/30 pl-2">
+                <span className="text-[#385100] uppercase tracking-wider text-[10px]">
                   {m.role}
                 </span>
                 {m.toolCalls != null && (
@@ -187,7 +227,7 @@ export function TraceEventCard({
           ) : (
             <div>
               <div className="text-gray-500">final answer:</div>
-              <div className="text-gray-700 whitespace-pre-wrap mt-1">{event.content}</div>
+              <div className="text-gray-700 whitespace-pre-wrap break-all mt-1">{event.content}</div>
             </div>
           )}
         </div>

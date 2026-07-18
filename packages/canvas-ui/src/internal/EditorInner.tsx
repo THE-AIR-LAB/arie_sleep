@@ -3,18 +3,19 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ComponentType,
   type ReactNode,
+  type TextareaHTMLAttributes,
 } from "react";
 import { createPortal } from "react-dom";
 import {
   ReactFlow,
   Background,
   Controls,
-  ControlButton,
   ViewportPortal,
   addEdge,
   applyEdgeChanges,
@@ -1876,6 +1877,63 @@ function ToolTipWrap({
   );
 }
 
+/** Fullscreen inspector: grow the prompt box to fit its text. */
+function InspectorAutoTextarea({
+  autoHeight,
+  value,
+  className,
+  rows,
+  onChange,
+  ...rest
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  autoHeight: boolean;
+  value: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  const syncHeight = useCallback(() => {
+    const el = ref.current;
+    if (!el || !autoHeight) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [autoHeight]);
+
+  useLayoutEffect(() => {
+    syncHeight();
+  }, [syncHeight, value]);
+
+  useEffect(() => {
+    if (!autoHeight) {
+      const el = ref.current;
+      if (el) el.style.height = "";
+      return;
+    }
+    syncHeight();
+    window.addEventListener("resize", syncHeight);
+    return () => window.removeEventListener("resize", syncHeight);
+  }, [autoHeight, syncHeight]);
+
+  return (
+    <textarea
+      {...rest}
+      ref={ref}
+      value={value}
+      rows={autoHeight ? 1 : rows}
+      onChange={(e) => {
+        onChange?.(e);
+        if (autoHeight) {
+          const el = e.currentTarget;
+          el.style.height = "0px";
+          el.style.height = `${el.scrollHeight}px`;
+        }
+      }}
+      className={`${className ?? ""} ${
+        autoHeight ? "resize-none overflow-hidden" : ""
+      }`.trim()}
+    />
+  );
+}
+
 function describeSelectedNodeKind(node: CanvasNode | null): string {
   if (!node) {
     return "";
@@ -1970,6 +2028,9 @@ export function EditorInner<TOutput>({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<string>("inspector");
   const [canvasFullscreen, setCanvasFullscreen] = useState(false);
+  // Inspector-tab Fullscreen: overlay with the inspector filling the shell
+  // (canvas hidden). Distinct from the canvas tab-bar Fullscreen (side-by-side).
+  const [inspectorMaximized, setInspectorMaximized] = useState(false);
   // Fullscreen uses the same canvas | inspector chrome as the workflow bottom
   // drawer (side-by-side + drag resize), even when the host is a stacked pane.
   const splitChrome = splitPanels || canvasFullscreen;
@@ -1977,7 +2038,10 @@ export function EditorInner<TOutput>({
   // gets the reclaimed height.
   const [canvasCollapsed, setCanvasCollapsed] = useState(false);
   // Collapse only in the docked workflow drawer — fullscreen has no Collapse control.
-  const canvasIsCollapsed = splitPanels && !canvasFullscreen && canvasCollapsed;
+  // Inspector-maximized fullscreen also hides the canvas surface.
+  const canvasIsCollapsed =
+    (splitPanels && !canvasFullscreen && canvasCollapsed) ||
+    (canvasFullscreen && inspectorMaximized);
   // Share of the body axis for the graph (rest → inspector).
   // Stack (State/Policy height) and split (workflow / fullscreen width): both 2/3 · 1/3.
   // Separate storage keys so one layout doesn't overwrite the other.
@@ -2105,11 +2169,14 @@ export function EditorInner<TOutput>({
     // body instead of clipping under a stale fill height.
   }, [fillHeight, toolbarOpen]);
 
-  // Let Escape exit the fullscreen canvas overlay.
+  // Let Escape exit the fullscreen canvas overlay (and inspector-max mode).
   useEffect(() => {
     if (!canvasFullscreen) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setCanvasFullscreen(false);
+      if (e.key === "Escape") {
+        setCanvasFullscreen(false);
+        setInspectorMaximized(false);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -3194,23 +3261,9 @@ export function EditorInner<TOutput>({
           }}
         />
         <Background />
-        <Controls showInteractive={false} position="top-right" orientation="vertical">
-          <ControlButton
-            onClick={() => setCanvasFullscreen((v) => !v)}
-            title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen"}
-            aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-          >
-            {fullscreen ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
-              </svg>
-            )}
-          </ControlButton>
-        </Controls>
+        {/* Default zoom-in / zoom-out / fit-view controls only. The custom
+            Fullscreen control button was removed per request. */}
+        <Controls showInteractive={false} position="top-right" orientation="vertical" />
         {graphTag && graphFrame && (
           <ViewportPortal>
             <div
@@ -3317,7 +3370,7 @@ export function EditorInner<TOutput>({
             title="How to use the canvas"
             className="rf-canvas-tab-btn rf-canvas-tab-btn--icon"
           >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9" />
               <line x1="12" y1="11" x2="12" y2="16.5" />
               <circle cx="12" cy="7.75" r="1" fill="currentColor" stroke="none" />
@@ -3327,7 +3380,10 @@ export function EditorInner<TOutput>({
           {!fullscreen && (
             <button
               type="button"
-              onClick={() => setCanvasFullscreen(true)}
+              onClick={() => {
+                setInspectorMaximized(false);
+                setCanvasFullscreen(true);
+              }}
               aria-label="Fullscreen"
               title="Fullscreen"
               className="rf-canvas-tab-btn"
@@ -3359,31 +3415,7 @@ export function EditorInner<TOutput>({
             </svg>
             Tools
           </button>
-          {/* Collapse only in docked workflow split — hidden in fullscreen. */}
-          {splitPanels && !fullscreen && (
-            <button
-              type="button"
-              onClick={() => setCanvasCollapsed((v) => !v)}
-              aria-expanded={!canvasCollapsed}
-              title={canvasCollapsed ? "Expand canvas" : "Collapse canvas"}
-              className="rf-canvas-tab-btn"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="12"
-                height="12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform ${canvasCollapsed ? "" : "rotate-180"}`}
-              >
-                <path d="M6 15l6-6 6 6" />
-              </svg>
-              {canvasCollapsed ? "Expand" : "Collapse"}
-            </button>
-          )}
+          {/* Collapse control removed per request. */}
           {tabBarTrailing ? (
             <div className="rf-canvas-tab-trailing flex items-center">{tabBarTrailing}</div>
           ) : null}
@@ -3391,7 +3423,10 @@ export function EditorInner<TOutput>({
           {fullscreen && (
             <button
               type="button"
-              onClick={() => setCanvasFullscreen(false)}
+              onClick={() => {
+                setCanvasFullscreen(false);
+                setInspectorMaximized(false);
+              }}
               aria-label="Exit fullscreen"
               title="Exit fullscreen (Esc)"
               className="rf-canvas-tab-btn"
@@ -3629,11 +3664,14 @@ export function EditorInner<TOutput>({
                 {label}
               </button>
             ))}
-            {inspectorSelectionKind ? (
-              <span className="ml-auto flex min-w-0 max-w-[55%] items-center truncate text-[14px] font-sans font-normal text-[#1c1b16]">
-                {inspectorSelectionKind}
-              </span>
-            ) : null}
+            <div className="ml-auto flex min-w-0 items-center gap-1">
+              {inspectorSelectionKind ? (
+                <span className="min-w-0 max-w-[12rem] truncate text-[14px] font-sans font-normal text-[#1c1b16] sm:max-w-[16rem]">
+                  {inspectorSelectionKind}
+                </span>
+              ) : null}
+              {/* Inspector Fullscreen / Expand control removed per request. */}
+            </div>
           </div>
 
           <div className="rf-inspector-body min-h-0 flex-1 overflow-auto">
@@ -3737,12 +3775,13 @@ export function EditorInner<TOutput>({
                   <label className="block text-xs uppercase tracking-widest text-gray-500 font-sans">
                     {labelTitle}
                   </label>
-                  <textarea
+                  <InspectorAutoTextarea
+                    autoHeight
                     value={selectedNode.data.label}
                     onChange={(e) => updateSelectedNodeLabel(e.target.value)}
                     rows={textareaRows}
                     readOnly={selectedNodeNonEditable}
-                    className={`w-full border border-[#c0bdb0] rounded px-3 py-2 text-sm font-serif text-gray-800 focus:outline-none focus:border-gray-500 resize-y leading-relaxed ${
+                    className={`w-full border border-[#c0bdb0] rounded px-3 py-2 text-sm font-serif text-gray-800 focus:outline-none focus:border-gray-500 leading-relaxed ${
                       selectedNodeNonEditable
                         ? "bg-[#d8d5c8] cursor-not-allowed opacity-80"
                         : "bg-[#cbc8b8]"
@@ -3901,7 +3940,10 @@ export function EditorInner<TOutput>({
             <>
               <div
                 className="fixed inset-0 z-[90] bg-black/40"
-                onClick={() => setCanvasFullscreen(false)}
+                onClick={() => {
+                  setCanvasFullscreen(false);
+                  setInspectorMaximized(false);
+                }}
               />
               <div className="rf-canvas-fullscreen fixed inset-4 z-[100] flex flex-col overflow-hidden rounded border border-[#c8c4b4] bg-[#f3f1e6] shadow-2xl">
                 {renderEditorWorkspace(true)}
@@ -3945,51 +3987,119 @@ export function EditorInner<TOutput>({
                     The canvas is a flowchart that <b className="font-semibold text-[#1f1d18]">compiles into the prompt</b> the
                     model runs each turn. Build it like this:
                   </p>
+                  {inspectorContext?.executionPhase === "state" && (
+                    <div className="rf-canvas-help-note mb-4 rounded-none! border border-[#bcbaad] bg-[#cfcdbe] px-3.5 py-3" style={{ borderRadius: 0 }}>
+                      <div className="mb-1 text-[14px] font-semibold text-[#1f1d18]">How state works</div>
+                      <p className="mb-2">
+                        <b className="font-semibold text-[#1f1d18]">State</b> is the structured profile the
+                        assistant keeps about the person across the whole conversation — fields like age,
+                        sleep concern, or whether an emergency was flagged. Every turn, before it decides
+                        what to say, the model reads the newest message and updates these values.
+                      </p>
+                      <p className="mb-2">
+                        This canvas defines <b className="font-semibold text-[#1f1d18]">how</b> those updates
+                        happen: it compiles into the state-extraction prompt the runtime runs each turn to
+                        pull new facts out of the conversation and write them back into state.
+                      </p>
+                      <p>
+                        The variables themselves — their name, type, and initial value — are defined in the{" "}
+                        <b className="font-semibold text-[#1f1d18]">State</b> tab (via{" "}
+                        <b className="font-semibold text-[#1f1d18]">Edit</b>). The{" "}
+                        <b className="font-semibold text-[#1f1d18]">Policy</b> canvas then reads the
+                        up-to-date state to choose the assistant&apos;s next step, so what you capture here
+                        is what the assistant can reason about later.
+                      </p>
+                    </div>
+                  )}
+                  {inspectorContext?.executionPhase === "policy" && (
+                    <div className="rf-canvas-help-note mb-4 rounded-none! border border-[#bcbaad] bg-[#cfcdbe] px-3.5 py-3" style={{ borderRadius: 0 }}>
+                      <div className="mb-1 text-[14px] font-semibold text-[#1f1d18]">How the Policy canvas works</div>
+                      <p className="mb-2">
+                        The <b className="font-semibold text-[#1f1d18]">Policy canvas</b> is the flowchart of{" "}
+                        <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">IF</span>{" "}
+                        conditions and{" "}
+                        <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">PROMPT</span>{" "}
+                        nodes. It compiles into the policy prompt — the instructions that decide the assistant&apos;s reply.
+                      </p>
+                      <p className="mb-2">
+                        Each turn the model gets the <b className="font-semibold text-[#1f1d18]">freshly-updated state</b> (from
+                        the State canvas) plus the conversation history, walks the conditions from the{" "}
+                        <b className="font-semibold text-[#1f1d18]">Start</b> node downward, and stops at the PROMPT node whose
+                        branch matches — that becomes the reply for that turn.
+                      </p>
+                      <p>
+                        A <b className="font-semibold text-[#1f1d18]">Terminate stage</b> node ends the current workflow stage
+                        and routes to the next one (set its <span className="font-mono text-[11px]">nextStageId</span>). Switch the
+                        Inspector to <b className="font-semibold text-[#1f1d18]">Compiler</b> to read the exact compiled prompt.
+                      </p>
+                    </div>
+                  )}
+                  {inspectorContext?.executionPhase === "workflow" && (
+                    <div className="rf-canvas-help-note mb-4 rounded-none! border border-[#bcbaad] bg-[#cfcdbe] px-3.5 py-3" style={{ borderRadius: 0 }}>
+                      <div className="mb-1 text-[14px] font-semibold text-[#1f1d18]">How the workflow works</div>
+                      <p className="mb-2">
+                        The <b className="font-semibold text-[#1f1d18]">workflow</b> is the high-level map of the stages a
+                        conversation moves through (e.g. Intake → Assess → Guide → Follow up). Each{" "}
+                        <b className="font-semibold text-[#1f1d18]">Stage</b> node is one phase — lay them out left-to-right.
+                      </p>
+                      <p className="mb-2">
+                        Edges left→right are <b className="font-semibold text-[#1f1d18]">forward</b> transitions; an edge back to
+                        an earlier stage is a <b className="font-semibold text-[#1f1d18]">loop / return</b>. Order is read from
+                        each stage&apos;s position, so the left-to-right layout <i>is</i> the flow.
+                      </p>
+                      <p>
+                        At runtime only the <b className="font-semibold text-[#1f1d18]">current stage&apos;s</b> slice of the
+                        Policy and State canvases runs. A <b className="font-semibold text-[#1f1d18]">Terminate stage</b> node
+                        inside the Policy canvas advances the run to the next stage. So the workflow decides <i>what stages
+                        exist</i>, while Policy and State decide <i>how each stage behaves</i>.
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-3.5">
                     <div className="flex gap-3">
-                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">1</div>
+                      <div className="flex h-6 w-6 flex-none items-center justify-center bg-[#1c1b16] text-[13px] font-semibold text-[#f6f7f2]">1</div>
                       <div>
                         <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Expand the screen</div>
                         <p>Use the fullscreen control (top-right of the canvas) to enlarge the workspace — more room makes it easier to lay out and refine the flow.</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">2</div>
+                      <div className="flex h-6 w-6 flex-none items-center justify-center bg-[#1c1b16] text-[13px] font-semibold text-[#f6f7f2]">2</div>
                       <div>
                         <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Add a node</div>
                         <p>Open <b className="font-semibold text-[#1f1d18]">Tools</b> and pick a node type (Prompt, IF/condition, Subtree, Terminate…). It drops onto the canvas.</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">3</div>
+                      <div className="flex h-6 w-6 flex-none items-center justify-center bg-[#1c1b16] text-[13px] font-semibold text-[#f6f7f2]">3</div>
                       <div>
                         <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Connect nodes</div>
                         <p>Drag from the small handle (dot) on one node to another. IF nodes have separate <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">TRUE</span> / <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">FALSE</span> outputs.</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">4</div>
+                      <div className="flex h-6 w-6 flex-none items-center justify-center bg-[#1c1b16] text-[13px] font-semibold text-[#f6f7f2]">4</div>
                       <div>
                         <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Edit a node</div>
                         <p>Click it to open the <b className="font-semibold text-[#1f1d18]">Inspector</b> on the right, where you set its text, type, and options. Click an edge to edit or remove it.</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">5</div>
+                      <div className="flex h-6 w-6 flex-none items-center justify-center bg-[#1c1b16] text-[13px] font-semibold text-[#f6f7f2]">5</div>
                       <div>
                         <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Delete</div>
                         <p>Select a node or edge and press <span className="rounded border border-[#bcbaad] bg-[#c9c7b9] px-1 font-mono text-[11px] text-[#1f1d18]">Delete</span>, or use the delete control in Tools.</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">6</div>
+                      <div className="flex h-6 w-6 flex-none items-center justify-center bg-[#1c1b16] text-[13px] font-semibold text-[#f6f7f2]">6</div>
                       <div>
                         <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Move around</div>
                         <p>Drag the empty canvas to pan; scroll or use the <span className="font-mono text-[11px]">+ / −</span> buttons to zoom; the fit / fullscreen buttons sit at the top-right.</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#c2611f] text-[13px] font-semibold text-[#f6f7f2]">7</div>
+                      <div className="flex h-6 w-6 flex-none items-center justify-center bg-[#1c1b16] text-[13px] font-semibold text-[#f6f7f2]">7</div>
                       <div>
                         <div className="mb-0.5 text-[14px] font-semibold text-[#1f1d18]">Multiple flows</div>
                         <p>Use the <b className="font-semibold text-[#1f1d18]">+ Canvas</b> tab to add another flow, double-click a tab to rename it, and reference one from another with a Subtree node.</p>
