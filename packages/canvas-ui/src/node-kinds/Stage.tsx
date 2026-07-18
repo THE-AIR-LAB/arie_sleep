@@ -111,6 +111,7 @@ function StageNode({ data, selected }: NodeProps<CanvasNode>) {
 export const STAGE: NodeKindDef = {
   kind: "stage",
   toolbarLabel: "+ Stage",
+  toolbarDescription: "A high-level workflow stage the run can enter.",
   toolbarClassName:
     "rounded border border-teal-500 bg-teal-50 px-3 py-2 text-xs font-sans uppercase tracking-widest text-teal-900 hover:bg-teal-100",
   component: StageNode,

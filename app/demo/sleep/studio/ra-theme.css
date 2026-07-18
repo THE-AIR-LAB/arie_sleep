@@ -111,6 +111,44 @@
 .ra-scope.ra-mono .border-\[\#c0bdb0\]{border-color:#e4e4e4 !important;}
 .ra-scope.ra-mono .border-\[\#c8c4b4\]{border-color:#e4e4e4 !important;}
 
+/* Info modals + fullscreen canvas → pure white in the white theme.
+   Both portal to document.body (outside .ra-scope), so they need :has(.ra-mono).
+   Studio help + observability info stay inside .ra-scope. */
+body:has(.ra-scope.ra-mono) .rf-canvas-help,
+body:has(.ra-scope.ra-mono) .rf-canvas-help-head{
+  background:#ffffff !important;border-color:#e4e4e4 !important;}
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-surface,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#f3f1e6\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#dddacb\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#d8d6c7\]{
+  background:#ffffff !important;}
+/* Inspector inputs match the docked sidebar (light grey, not warm greige).
+   Fullscreen portals outside .ra-scope, so the .ra-mono remaps above don't apply. */
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#c8c4b4\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#c9c7b9\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#cbc8b8\]{
+  background:#f4f4f4 !important;}
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#d0cdc0\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#d4d0c0\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#d6d3c4\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#d8d5c8\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#e0dccc\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#e7e4d8\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#ece7d6\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .bg-\[\#eceadd\]{
+  background:#ffffff !important;}
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .border-\[\#a8a698\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .border-\[\#bcbaad\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .border-\[\#c0bdb0\],
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .border-\[\#c8c4b4\]{
+  border-color:#e4e4e4 !important;}
+.ra-scope.ra-mono .obs-info-card,
+.ra-scope.ra-mono .obs-info-head,
+.ra-scope.ra-mono .help-popover{background:#ffffff !important;}
+
 /* ============================== CHAT SCOPE ============================== */
 .ra-scope{
   --bg:#c2c0b3;
@@ -502,37 +540,51 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 /* Only this region scrolls — Inspector/Compiler title stays fixed. */
 .ra-scope .obs-docked .rf-inspector-body{
   flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;}
-/* Canvas graph: true/false tags at 12px; node titles + descriptions match at 20px. */
+/* Canvas graph: true/false tags at 12px; node titles + descriptions match at 20px.
+   Include .rf-canvas-fullscreen — it portals to document.body outside .ra-scope. */
 .ra-scope .rf-canvas-surface .react-flow__node,
-.ra-scope .rf-canvas-surface .react-flow__node *{
+.ra-scope .rf-canvas-surface .react-flow__node *,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node *{
   font-size:12px !important;
   line-height:1.35 !important;}
 .ra-scope .rf-canvas-surface .react-flow__node .rf-node-title,
 .ra-scope .rf-canvas-surface .react-flow__node .rf-node-title *,
 .ra-scope .rf-canvas-surface .react-flow__node .rf-node-desc,
-.ra-scope .rf-canvas-surface .react-flow__node .rf-node-desc *{
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-desc *,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node .rf-node-title,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node .rf-node-title *,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node .rf-node-desc,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node .rf-node-desc *{
   font-size:20px !important;
   line-height:1.35 !important;
   letter-spacing:normal !important;
   text-transform:none !important;
   text-align:left !important;}
 .ra-scope .rf-canvas-surface .react-flow__node .rf-node-title,
-.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title *{
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title *,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node .rf-node-title,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node .rf-node-title *{
   font-weight:700 !important;}
-.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title{
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node .rf-node-title{
   display:block !important;
   width:100% !important;
   padding-bottom:6px !important;
   margin-bottom:6px !important;
   border-bottom:1px solid currentColor !important;
   opacity:1;}
-.ra-scope .rf-canvas-surface .react-flow__edge-text{
+.ra-scope .rf-canvas-surface .react-flow__edge-text,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__edge-text{
   font-size:12px !important;}
 .ra-scope .rf-canvas-surface .react-flow__edge:not(.rf-fire-edge) .react-flow__edge-path,
-.ra-scope .rf-canvas-surface .react-flow__connection-path{
+.ra-scope .rf-canvas-surface .react-flow__connection-path,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__edge:not(.rf-fire-edge) .react-flow__edge-path,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__connection-path{
   stroke-width:3px !important;}
 /* Branch labels (true/false): mid-curve chip — green true / coral false. */
-.ra-scope .rf-canvas-surface .rf-edge-branch-label{
+.ra-scope .rf-canvas-surface .rf-edge-branch-label,
+.rf-canvas-fullscreen .rf-canvas-surface .rf-edge-branch-label{
   background:#736766 !important;
   color:#EEE8E8 !important;
   font-size:12px !important;
@@ -543,16 +595,25 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   padding:2px 6px !important;
   border-radius:2px !important;
   white-space:nowrap;}
-.ra-scope .rf-canvas-surface .rf-edge-branch-label--true{background:#007E27 !important;}
-.ra-scope .rf-canvas-surface .rf-edge-branch-label--false{background:#D9582B !important;}
-/* Match Tools pills (.rf-tool-btn 8px) — node shells use the same radius. */
+.ra-scope .rf-canvas-surface .rf-edge-branch-label--true,
+.rf-canvas-fullscreen .rf-canvas-surface .rf-edge-branch-label--true{background:#007E27 !important;}
+.ra-scope .rf-canvas-surface .rf-edge-branch-label--false,
+.rf-canvas-fullscreen .rf-canvas-surface .rf-edge-branch-label--false{background:#D9582B !important;}
+/* Node shells: 8px radius (same as the docked sidebar canvas). */
 .ra-scope .rf-canvas-surface .react-flow__node,
-.ra-scope .rf-canvas-surface .react-flow__node > div{
+.ra-scope .rf-canvas-surface .react-flow__node > div,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node,
+.rf-canvas-fullscreen .rf-canvas-surface .react-flow__node > div{
   border-radius:8px !important;}
-/* Tools bar: same 14px / spacing as Model Setup · Knowledge nav chrome. */
-.ra-scope .rf-canvas-tools{padding:8px 16px !important;gap:0 !important;}
+/* Tools bar: same 14px / spacing as Model Setup · Knowledge nav chrome.
+   Also target .rf-canvas-fullscreen — that shell portals to document.body and
+   would otherwise miss these .ra-scope rules. */
+.ra-scope .rf-canvas-tools,
+.rf-canvas-fullscreen .rf-canvas-tools{padding:8px 16px !important;gap:0 !important;overflow:visible;}
 .ra-scope .rf-canvas-tools .rf-tool-btn,
-.ra-scope .rf-canvas-tools button.rf-tool-btn{
+.ra-scope .rf-canvas-tools button.rf-tool-btn,
+.rf-canvas-fullscreen .rf-canvas-tools .rf-tool-btn,
+.rf-canvas-fullscreen .rf-canvas-tools button.rf-tool-btn{
   font-family:inherit !important;
   font-size:14px !important;
   font-weight:400 !important;
@@ -562,6 +623,28 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   padding:6px 10px !important;
   border-radius:8px !important;
   white-space:nowrap;}
+/* Tools hover tips — short description under each toolbar control. */
+.ra-scope .rf-canvas-tools .rf-tool-tip-wrap,
+.rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip-wrap{
+  position:relative;display:inline-flex;align-items:center;}
+.ra-scope .rf-canvas-tools .rf-tool-tip,
+.rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{
+  position:absolute;left:50%;top:calc(100% + 7px);transform:translateX(-50%);
+  z-index:40;min-width:9.5rem;max-width:15rem;width:max-content;
+  padding:6px 9px;border-radius:8px !important;
+  background:#1f1d18;color:#f6f7f2;
+  font-family:inherit;font-size:12px;font-weight:400;line-height:1.35;
+  text-align:center;white-space:normal;
+  opacity:0;visibility:hidden;pointer-events:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);}
+.ra-scope .rf-canvas-tools .rf-tool-tip-wrap:hover > .rf-tool-tip,
+.ra-scope .rf-canvas-tools .rf-tool-tip-wrap:focus-within > .rf-tool-tip,
+.rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip-wrap:hover > .rf-tool-tip,
+.rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip-wrap:focus-within > .rf-tool-tip{
+  opacity:1;visibility:visible;}
+.ra-scope.ra-mono .rf-canvas-tools .rf-tool-tip,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{
+  background:#222;color:#f5f5f5;}
 /* fillHeight board + inspector: flush panels; only the drag split separates them. */
 .ra-scope .obs-docked .rf-canvas-body,
 .ra-scope .bottom-drawer .rf-canvas-body{gap:0;}
@@ -677,8 +760,14 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   0%,100%{box-shadow:0 0 0 3px #c2611f,0 0 14px 2px rgba(194,97,31,.35);}
   50%{box-shadow:0 0 0 4px #c2611f,0 0 22px 5px rgba(194,97,31,.6);}
 }
-.react-flow__edge.rf-fire-edge .react-flow__edge-path{stroke:#c2611f;stroke-width:2.4;}
-.react-flow__edge.rf-fire-edge .react-flow__edge-text{fill:#c2611f;font-weight:600;}
+/* Traced edges: neutrals stay grey; true/false keep branch colors.
+   Line weight is 2× idle (inline strokeWidth: 6) — don't override thinner. */
+.react-flow__edge.rf-fire-edge .react-flow__edge-path{stroke:#6b6b63;}
+.react-flow__edge.rf-fire-edge .react-flow__edge-text{fill:#6b6b63;font-weight:600;}
+.react-flow__edge.rf-fire-edge.rf-fire-edge--true .react-flow__edge-path{stroke:#007E27 !important;}
+.react-flow__edge.rf-fire-edge.rf-fire-edge--true .react-flow__edge-text{fill:#007E27 !important;}
+.react-flow__edge.rf-fire-edge.rf-fire-edge--false .react-flow__edge-path{stroke:#D9582B !important;}
+.react-flow__edge.rf-fire-edge.rf-fire-edge--false .react-flow__edge-text{fill:#D9582B !important;}
 /* Expert chat side drawer — reuses the observability panel shell (.obs-panel) */
 .ra-scope .expert-head-meta{display:flex;align-items:center;gap:11px;flex:1;min-width:0;}
 .ra-scope .expert-body{display:flex;flex-direction:column;gap:16px;}
@@ -799,8 +888,8 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   background:var(--accent, #c2611f);width:2px;}
 body.ra-resizing-v,body.ra-resizing-v *{cursor:row-resize !important;user-select:none !important;}
 body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select:none !important;}
-/* Drawers (side, bottom, mobile sheet, floated Model Setup window): square
-   corners on the shell and every nested control / canvas / inspector surface. */
+/* Drawers (side, bottom, mobile sheet, floated Model Setup window) + the
+   portaled fullscreen canvas: square corners on the shell and nested chrome. */
 .ra-scope .obs-panel,
 .ra-scope .obs-panel *,
 .ra-scope .bottom-drawer,
@@ -808,14 +897,70 @@ body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select
 .ra-scope .sidebar-sheet,
 .ra-scope .sidebar-sheet *,
 .sysconf .sc-modal.obs-float,
-.sysconf .sc-modal.obs-float *{
+.sysconf .sc-modal.obs-float *,
+.rf-canvas-fullscreen,
+.rf-canvas-fullscreen *{
   border-radius:0 !important;}
-/* Canvas nodes: same 8px as Tools pills — wins over the drawer square rule. */
+/* Canvas nodes keep an 8px shell — wins over the square chrome rule above. */
 .ra-scope .obs-panel .react-flow__node,
 .ra-scope .obs-panel .react-flow__node > div,
 .ra-scope .bottom-drawer .react-flow__node,
-.ra-scope .bottom-drawer .react-flow__node > div{
+.ra-scope .bottom-drawer .react-flow__node > div,
+.rf-canvas-fullscreen .react-flow__node,
+.rf-canvas-fullscreen .react-flow__node > div{
   border-radius:8px !important;}
+/* Branch label chips keep a slight radius in fullscreen too. */
+.rf-canvas-fullscreen .rf-edge-branch-label{border-radius:2px !important;}
+/* Fullscreen tabs / inspector nav match the docked canvas underline chrome. */
+.rf-canvas-fullscreen .rf-canvas-tabs,
+.rf-canvas-fullscreen .rf-inspector-tabs{
+  border-radius:0 !important;}
+.rf-canvas-fullscreen .rf-inspector-tabs button{
+  border-radius:0 !important;box-shadow:none !important;outline:none !important;
+  background:transparent !important;}
+/* Tab-bar trailing controls (Info / Fullscreen / Tools / Save / Close): shared
+   padding, 8px radius, and hover fill. Beats the drawer square-chrome rule.
+   Save arrives via tabBarTrailing as .obs-setup-action (outside .obs-setup). */
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-btn,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-btn,
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action,
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  margin:0;border:none;background:transparent;cursor:pointer;
+  padding:6px 8px;border-radius:8px !important;
+  font-family:inherit;font-size:14px;font-weight:400;line-height:1.25;
+  color:#1c1b16;white-space:nowrap;}
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-btn--icon,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-btn--icon{
+  padding:6px;}
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-actions,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-actions{
+  margin-left:0;display:flex;align-items:center;gap:4px;}
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-btn:hover,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-btn:hover,
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover{
+  background:var(--surface, #eceadd);}
+.ra-scope.ra-mono .rf-canvas-tabs .rf-canvas-tab-btn:hover,
+.ra-scope.ra-mono .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
+.ra-scope.ra-mono .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-btn:hover,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:hover,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .bottom-drawer-close:hover{
+  background:#f2f2f2 !important;}
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled{
+  opacity:.4;cursor:default;}
+.ra-scope .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled:hover,
+.rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled:hover{
+  background:transparent;}
+.ra-scope.ra-mono .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled:hover,
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tabs .rf-canvas-tab-trailing .obs-setup-action:disabled:hover{
+  background:transparent !important;}
 /* Same spacing model as the Knowledge/State/Policy nav (padding 0 2px + gap on
    the row) so the active underline hugs the label identically instead of
    spreading across wide tab padding. */

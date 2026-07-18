@@ -75,6 +75,7 @@ const input =
 export const WHILE: NodeKindDef = {
   kind: "while",
   toolbarLabel: "+ While",
+  toolbarDescription: "Repeat a body while a condition holds.",
   toolbarClassName:
     "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-orange-500 text-orange-900 bg-orange-50 hover:bg-orange-100 rounded-full",
   component: WhileNode,

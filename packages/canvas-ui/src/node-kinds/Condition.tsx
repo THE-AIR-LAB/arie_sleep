@@ -38,6 +38,7 @@ function ConditionNode({ data, selected }: NodeProps<CanvasNode>) {
 export const CONDITION: NodeKindDef = {
   kind: "condition",
   toolbarLabel: "+ Condition",
+  toolbarDescription: "Branch true or false based on a condition.",
   toolbarClassName:
     "border border-[#FFD100] text-[#3d3838] bg-[#FFD100] hover:bg-[#f0c400]",
   component: ConditionNode,

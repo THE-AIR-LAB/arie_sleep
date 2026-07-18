@@ -613,9 +613,9 @@ export const WORKFLOW_CANVAS_NODE_KINDS: NodeKindDef[] = [
 
 export const DEFAULT_POLICY_NODE_KINDS: NodeKindDef[] = [
   // Toolbar is pruned to only the node types this policy canvas actually uses:
-  // Control structure (IF/condition), Prompt, Expand (subtree reference), and
-  // Terminate. Every other kind stays registered — so existing nodes and loaded
-  // graphs still render — but is hidden from the add-node palette.
+  // Start, Control structure (IF/condition), Prompt, Expand (subtree reference),
+  // and Terminate. Every other kind stays registered — so existing nodes and
+  // loaded graphs still render — but is hidden from the add-node palette.
   START,
   CONDITION,
   hideFromToolbar(FOR),

@@ -242,6 +242,7 @@ function renderCodeInspectorExtra(
 export const PROMPT: NodeKindDef = {
   kind: "prompt",
   toolbarLabel: "+ Prompt",
+  toolbarDescription: "Ask the model to write a reply or transform text.",
   toolbarClassName:
     "border border-[#25C1FC] text-[#0a3a52] bg-[#25C1FC] hover:bg-[#14b0eb]",
   component: PromptNode,

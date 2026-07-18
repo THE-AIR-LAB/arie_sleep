@@ -587,6 +587,8 @@ export interface NodeKindDef {
   kind: string;
   /** Toolbar button text. */
   toolbarLabel: string;
+  /** Short hover tip shown under the Tools button. */
+  toolbarDescription?: string;
   /** Toolbar button styling (entire className string). */
   toolbarClassName: string;
   /** React component rendered for nodes of this kind. */

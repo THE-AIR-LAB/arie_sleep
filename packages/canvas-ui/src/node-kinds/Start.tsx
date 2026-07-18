@@ -27,11 +27,12 @@ function StartNode({ data, selected }: NodeProps<CanvasNode>) {
 export const START: NodeKindDef = {
   kind: "start",
   toolbarLabel: "+ Start",
+  toolbarDescription: "Entry point and system prompt for this canvas.",
   toolbarClassName:
-    "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-[#B0BEA5] text-[#3d4a35] bg-[#eef1eb] hover:bg-[#e0e6d9] rounded-full",
+    "border border-[#B0BEA5] text-[#1c1b16] bg-[#B0BEA5] hover:bg-[#9aab8f]",
   component: StartNode,
-  defaultLabel: "Start",
-  hideFromToolbar: true,
+  defaultLabel:
+    "You are a calm, helpful sleep assistant. You will be given the current conversation inputs plus an already-updated sleeper state. Use the updated state to decide the next assistant step.",
   singleton: true,
   inspector: {
     labelTitle: "Prompt",

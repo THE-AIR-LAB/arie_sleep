@@ -30,6 +30,7 @@ function TerminateNode({ data, selected }: NodeProps<CanvasNode>) {
 export const TERMINATE: NodeKindDef = {
   kind: "terminate",
   toolbarLabel: "+ Terminate",
+  toolbarDescription: "End the session with a final message.",
   toolbarClassName:
     "border border-[#F00E26] text-white bg-[#F00E26] hover:bg-[#d40c21]",
   component: TerminateNode,

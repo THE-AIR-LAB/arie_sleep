@@ -32,6 +32,7 @@ function ExpandNode({ data, selected }: NodeProps<CanvasNode>) {
 export const EXPAND: NodeKindDef = {
   kind: "expand",
   toolbarLabel: "+ Expand",
+  toolbarDescription: "Reference another canvas as a subtree.",
   toolbarClassName:
     "border border-[#445A1E] text-white bg-[#445A1E] hover:bg-[#364816]",
   component: ExpandNode,
