@@ -27,9 +27,6 @@ function renderStageHandoffInspector(
         value={readString(data, "nextStageId")}
         onChange={(event) => update({ nextStageId: event.currentTarget.value })}
       />
-      <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-        Optional. Leave blank when the state canvas already sets the stage field.
-      </p>
       <label className={inspectorFieldLabel}>Next stage name</label>
       <input
         className={inspectorInput}
@@ -95,8 +92,6 @@ export const TERMINATE_STAGE: NodeKindDef = {
   defaultLabel: "finish this stage; continue on the next turn",
   inspector: {
     labelTitle: "Stage handoff note",
-    helpText:
-      "Ends this stage after the current policy action. The next turn will be scoped to the next stage canvas.",
     textareaRows: 2,
     renderExtra: renderStageHandoffInspector,
   },
@@ -111,8 +106,6 @@ export const TERMINATE_STAGE_IMMEDIATE: NodeKindDef = {
   defaultLabel: "finish this stage; run the next state canvas now",
   inspector: {
     labelTitle: "Stage handoff note",
-    helpText:
-      "Ends this stage after the current policy action, then executes the next stage state canvas before the other agent acts.",
     textareaRows: 2,
     renderExtra: renderStageHandoffInspector,
   },

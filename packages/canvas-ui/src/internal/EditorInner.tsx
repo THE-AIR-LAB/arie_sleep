@@ -30,9 +30,9 @@ import {
   useNodes,
   useNodesInitialized,
   useReactFlow,
-  getSmoothStepPath,
+  getBezierPath,
   ConnectionLineType,
-  Position,
+  type EdgeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -53,33 +53,13 @@ import {
   normalizeCanvasDoc,
 } from "../types";
 import { uid } from "./id";
-import {
-  describeEdgeDataFlow,
-  describeNodeIo,
-  type EdgeIoEndpoint,
-  type NodeIoField,
-} from "@airlab/canvas-compiler/node-io";
+import { anchorBetweenRects } from "./edge-anchors";
+import { ShortestStepEdge } from "./ShortestStepEdge";
 import { collectCanvasNodeWarnings } from "@airlab/canvas-rules/node-warnings";
-import { readExplicitNodeExecutableStateCodeOps } from "@airlab/canvas-core/lib/canvas-node-code-ops";
-import {
-  readNodeCodeLocalOutputFields,
-  readNodeExecutableCodeSource,
-} from "@airlab/canvas-core/lib/canvas-node-code-script";
 import {
   collectStructuralPromptGroups,
-  parseStateActionLabel,
   type StructuralPromptGroup,
 } from "@airlab/canvas-planner/canvas-structural-planner";
-import type {
-  RuntimeStateField,
-  StateCodeOperation,
-  StateValueSource,
-} from "@airlab/canvas-planner/canvas-hybrid-runtime";
-import {
-  buildPromptGroupInspectorPreview,
-  buildPromptNodeInspectorPreview,
-  buildPromptTransformInspectorPreview,
-} from "../prompt-group-preview";
 import {
   getNodeActionSubtype,
   isPromptLikeNode,
@@ -185,66 +165,6 @@ function isCorpusCanvasNodes(nodes: CanvasNode[]): boolean {
     const d = (n.data ?? {}) as { toolName?: string; ref?: { server?: string } };
     return d.ref?.server === "corpus" || d.toolName === "search_documents";
   });
-}
-
-function formatLoweredCodeValue(value: unknown): string {
-  return typeof value === "string" ? JSON.stringify(value) : JSON.stringify(value);
-}
-
-function formatLoweredCodeSource(source: StateValueSource): string {
-  switch (source.kind) {
-    case "constant":
-      return formatLoweredCodeValue(source.value);
-    case "prompt_variable":
-      return `local ${source.name}`;
-    case "current_build_snapshot":
-      return "current_build";
-    case "conversation_turns":
-      return "conversation_turns";
-    case "latest_user_turn":
-      return "latest_user_turn";
-    case "latest_assistant_turn":
-      return "latest_assistant_turn";
-    case "latest_observation_event":
-      return "latest_observation_event";
-    case "latest_observation_and_reward_event":
-      return "latest_observation_and_reward_event";
-    case "latest_primary_action_event":
-      return "latest_primary_action_event";
-    case "agent_latest_observation":
-      return "agent_latest_observation";
-    case "extract_age":
-      return "extract_age(agent_latest_observation)";
-    case "extract_gender":
-      return "extract_gender(agent_latest_observation)";
-    case "regex_capture":
-      return `regex_capture(${JSON.stringify(source.pattern)})`;
-    case "boolean_from_regex":
-      return `boolean_from_regex(${JSON.stringify(source.pattern)})`;
-    default:
-      return "";
-  }
-}
-
-function describeLoweredCodeOperation(op: StateCodeOperation): string {
-  switch (op.kind) {
-    case "set_field":
-      return `${op.field} = ${formatLoweredCodeSource(op.source)}${
-        op.only_if_empty ? " if empty" : ""
-      }`;
-    case "set_local":
-      return `local ${op.name} = ${formatLoweredCodeSource(op.source)}${
-        op.only_if_empty ? " if empty" : ""
-      }`;
-    case "clear_field":
-      return `clear ${op.field}`;
-    case "append_list_item":
-      return `${op.field}.append(${
-        op.source ? formatLoweredCodeSource(op.source) : formatLoweredCodeValue(op.value ?? null)
-      })${op.unique ? " unique" : ""}`;
-    default:
-      return JSON.stringify(op);
-  }
 }
 
 interface PromptGroupBound {
@@ -1455,59 +1375,9 @@ function filterRenderablePromptGroups(
   }
 }
 
-function anchorBetweenRects(
-  sourceRect: { x: number; y: number; width: number; height: number },
-  targetRect: { x: number; y: number; width: number; height: number }
-) {
-  const sourceCenterX = sourceRect.x + sourceRect.width / 2;
-  const sourceCenterY = sourceRect.y + sourceRect.height / 2;
-  const targetCenterX = targetRect.x + targetRect.width / 2;
-  const targetCenterY = targetRect.y + targetRect.height / 2;
-  const dx = targetCenterX - sourceCenterX;
-  const dy = targetCenterY - sourceCenterY;
-
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    if (dx >= 0) {
-      return {
-        sourceX: sourceRect.x + sourceRect.width,
-        sourceY: sourceCenterY,
-        sourcePosition: Position.Right,
-        targetX: targetRect.x,
-        targetY: targetCenterY,
-        targetPosition: Position.Left,
-      };
-    }
-
-    return {
-      sourceX: sourceRect.x,
-      sourceY: sourceCenterY,
-      sourcePosition: Position.Left,
-      targetX: targetRect.x + targetRect.width,
-      targetY: targetCenterY,
-      targetPosition: Position.Right,
-    };
-  }
-
-  if (dy >= 0) {
-    return {
-      sourceX: sourceCenterX,
-      sourceY: sourceRect.y + sourceRect.height,
-      sourcePosition: Position.Bottom,
-      targetX: targetCenterX,
-      targetY: targetRect.y,
-      targetPosition: Position.Top,
-    };
-  }
-
-  return {
-    sourceX: sourceCenterX,
-    sourceY: sourceRect.y,
-    sourcePosition: Position.Top,
-    targetX: targetCenterX,
-    targetY: targetRect.y + targetRect.height,
-    targetPosition: Position.Bottom,
-  };
-}
+const CANVAS_EDGE_TYPES: EdgeTypes = {
+  shortestStep: ShortestStepEdge,
+};
 
 /** Same as Controls' fit-view (third button): center the graph when a canvas opens. */
 function FitViewOnOpen({
@@ -1595,8 +1465,7 @@ function PromptGroupOverlays({
         }
 
         const anchors = anchorBetweenRects(sourceRect, targetRect);
-        // borderRadius:0 → sharp orthogonal polyline (matches the edge style).
-        const [path] = getSmoothStepPath({ ...anchors, borderRadius: 0 });
+        const [path] = getBezierPath(anchors);
         return {
           id: edge.id,
           path,
@@ -1695,7 +1564,7 @@ function PromptGroupOverlays({
               d={edge.path}
               fill="none"
               stroke={selectedCollapsedEdgeId === edge.id ? "#2f2f2f" : "#6b6b63"}
-              strokeWidth={selectedCollapsedEdgeId === edge.id ? 2.4 : 1.8}
+              strokeWidth={3}
               strokeOpacity={0.9}
               markerEnd="url(#prompt-group-data-arrow)"
             />
@@ -1907,20 +1776,6 @@ function normalizeDoc(doc: CanvasDoc | null): CanvasDoc | null {
   return normalized;
 }
 
-function nodeHasEditablePromptOutputs(node: CanvasNode | null): boolean {
-  if (!node || !isPromptLikeNode(node)) {
-    return false;
-  }
-
-  const actionType = getNodeActionSubtype(node);
-
-  return (
-    actionType === "prompt" ||
-    actionType === "default" ||
-    actionType === "prompt_transform"
-  );
-}
-
 function describeSelectedNodeKind(node: CanvasNode | null): string {
   if (!node) {
     return "";
@@ -1933,59 +1788,11 @@ function describeSelectedNodeKind(node: CanvasNode | null): string {
   return node.type;
 }
 
-function isWorkflowStageNode(node: CanvasNode | null): boolean {
-  return node?.type === "stage";
-}
-
-function getInspectorIoLabels(node: CanvasNode | null) {
-  if (isWorkflowStageNode(node)) {
-    return {
-      inputs: "Inputs (consumed materials)",
-      outputs: "Outputs (produced materials)",
-      noInputs: "No consumed materials detected for this stage.",
-      noOutputs: "No produced materials detected for this stage.",
-    };
-  }
-
-  return {
-    inputs: "Inputs (consumed locals)",
-    outputs: "Outputs (declared locals)",
-    noInputs: "No consumed locals detected for this node.",
-    noOutputs:
-      "No declared locals yet. Add prompt output fields or a tool result variable to expose one.",
-  };
-}
-
 function markerEndForEdge() {
   return { type: MarkerType.ArrowClosed };
 }
 
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
-
-function renderIoFieldCards(fields: NodeIoField[]) {
-  return (
-    <div className="space-y-2 mt-2">
-      {fields.map((field) => (
-        <div
-          key={`${field.name}:${field.type}:${field.origin ?? ""}`}
-          className="border border-[#c0bdb0] rounded bg-[#e0dccc] px-2 py-1.5"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-mono text-gray-800 break-all">{field.name}</span>
-            <span className="shrink-0 text-[10px] uppercase tracking-widest text-gray-600 font-sans border border-[#c0bdb0] rounded bg-[#d6d3c4] px-1.5 py-0.5">
-              {field.type}
-            </span>
-          </div>
-          {field.origin && (
-            <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-              {field.origin}
-            </p>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function makeInitialCanvases(args: {
   doc: CanvasDoc | null;
@@ -2078,8 +1885,8 @@ export function EditorInner<TOutput>({
   const [splitDragging, setSplitDragging] = useState(false);
   // "How to use the canvas" help overlay.
   const [helpOpen, setHelpOpen] = useState(false);
-  // The node + canvas-action toolbar is collapsible to reclaim space; starts
-  // collapsed so the canvas gets the room (expand via the TOOLS header).
+  // Node + canvas-action toolbar (Control structure, Prompt, Expand, Terminate,
+  // Delete selected). Collapsed by default; expand via Tools.
   const [toolbarOpen, setToolbarOpen] = useState(false);
   const [isControlStructureMenuOpen, setIsControlStructureMenuOpen] = useState(false);
   const [copiedQuestion, setCopiedQuestion] = useState<string | null>(null);
@@ -2163,13 +1970,18 @@ export function EditorInner<TOutput>({
       let bottom: number;
       let bottomGap: number;
       if (host) {
-        bottom = host.getBoundingClientRect().bottom;
-        bottomGap = 4;
+        const hostRect = host.getBoundingClientRect();
+        const padBottom =
+          parseFloat(getComputedStyle(host).paddingBottom) || 0;
+        // Content-box bottom — stay inside the pinned Policy/State body so the
+        // outer pane does not grow and scroll the title nav away.
+        bottom = hostRect.bottom - padBottom;
+        bottomGap = 0;
       } else {
         bottom = window.innerHeight - reserve;
         bottomGap = reserve > 0 ? 36 : 8;
       }
-      setFillRowHeight(Math.max(260, Math.round(bottom - top - bottomGap)));
+      setFillRowHeight(Math.max(160, Math.round(bottom - top - bottomGap)));
     };
     // Measure after layout settles so the toolbars have their final height.
     raf = requestAnimationFrame(recompute);
@@ -2185,7 +1997,9 @@ export function EditorInner<TOutput>({
       window.removeEventListener("resize", onResize);
       ro?.disconnect();
     };
-  }, [fillHeight]);
+    // Remeasure when Tools opens/closes so Policy can still scroll the docked
+    // body instead of clipping under a stale fill height.
+  }, [fillHeight, toolbarOpen]);
 
   // Let Escape exit the fullscreen canvas overlay.
   useEffect(() => {
@@ -2551,16 +2365,6 @@ export function EditorInner<TOutput>({
   const selectedNodeNonEditable = isEditorNodeNonEditable(selectedNode);
   const selectedRuntimeManagedNodeInfo = getRuntimeManagedNodeInfo(selectedNode);
   const selectedKind = selectedNode ? kindByKey.get(selectedNode.type ?? "") : null;
-  const selectedNodeIoLabels = getInspectorIoLabels(selectedNode);
-  const selectedNodeIo = useMemo(() => {
-    if (!active || !selectedNode) {
-      return null;
-    }
-
-    return describeNodeIo(active.nodes, active.edges, selectedNode, liveDoc);
-  }, [active, liveDoc, selectedNode]);
-  const hideOutputSummaryCards = nodeHasEditablePromptOutputs(selectedNode);
-
   function updateSelectedNodeLabel(label: string) {
     if (!selectedNode || selectedNodeNonEditable) return;
     patchActive((c) => ({
@@ -2773,18 +2577,25 @@ export function EditorInner<TOutput>({
   }, [active, fireNodeClass]);
 
   const fireEdges = useMemo<Edge[]>(() => {
-    // Render every edge as a polyline (orthogonal "step") instead of a bezier
-    // curve. ReactFlow controlled edges keep their own `type`, so set it here.
+    // Shortest-side curved edges: side-by-side nodes attach left↔right instead of
+    // detouring through the default top/bottom handles.
     return visibleEdges.map((edge) => {
       const fireState = fireEdgeStateById.get(edge.id);
       if (!fireState) {
-        return { ...edge, type: "step" };
+        return {
+          ...edge,
+          type: "shortestStep",
+          style: {
+            ...(edge.style ?? {}),
+            strokeWidth: 3,
+          },
+        };
       }
 
       const color = fireState === "active" ? "#0f766e" : "#c2611f";
       return {
         ...edge,
-        type: "step",
+        type: "shortestStep",
         animated: true,
         className: [edge.className, "rf-fire-edge"].filter(Boolean).join(" "),
         markerEnd: {
@@ -2806,6 +2617,7 @@ export function EditorInner<TOutput>({
           ...(edge.labelStyle ?? {}),
           fill: color,
           fontWeight: 800,
+          fontSize: 12,
         },
         zIndex: fireState === "active" ? 25 : 20,
       };
@@ -3011,217 +2823,11 @@ export function EditorInner<TOutput>({
 
     setPromptGroupConnectTargetId(promptGroupConnectTargets[0]?.id ?? "");
   }, [promptGroupConnectTargetId, promptGroupConnectTargets, selectedPromptGroup]);
-  const promptGroupByKey = useMemo(
-    () => new Map(promptGroups.map((group) => [promptGroupKey(group), group])),
-    [promptGroups]
+  const collapsedEdgeDetails = useMemo(
+    () =>
+      promptGroupEdgePresentation.collapsedEdges.map((edge) => ({ edge })),
+    [promptGroupEdgePresentation.collapsedEdges]
   );
-  const activeEntryRecord = useMemo(() => {
-    if (!active) {
-      return null;
-    }
-
-    return {
-      id: active.id,
-      name: active.name,
-      freeText: active.freeText,
-      graph: {
-        nodes: active.nodes.map((node) => ({
-          id: node.id,
-          type: node.type ?? "",
-          position: node.position,
-          data: { ...(node.data ?? {}), label: node.data?.label ?? "" },
-        })),
-        edges: active.edges.map((edge) => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          sourceHandle: edge.sourceHandle ?? null,
-          targetHandle: edge.targetHandle ?? null,
-          label: typeof edge.label === "string" ? edge.label : undefined,
-        })),
-      },
-    };
-  }, [active]);
-  const selectedPromptGroupPreview = useMemo(() => {
-    if (!activeEntryRecord || !selectedPromptGroup) {
-      return null;
-    }
-
-    return buildPromptGroupInspectorPreview({
-      group: selectedPromptGroup,
-      entry: activeEntryRecord,
-      inspectorContext: inspectorContext ?? {},
-      promptContextDoc: liveDoc,
-    });
-  }, [activeEntryRecord, inspectorContext, liveDoc, selectedPromptGroup]);
-  const selectedPromptTransformPreview = useMemo(() => {
-    if (
-      !activeEntryRecord ||
-      !selectedNode ||
-      getNodeActionSubtype(selectedNode) !== "prompt_transform"
-    ) {
-      return null;
-    }
-
-    return buildPromptTransformInspectorPreview({
-      node: {
-        id: selectedNode.id,
-        type: selectedNode.type ?? "",
-        position: selectedNode.position,
-        data: { ...(selectedNode.data ?? {}), label: selectedNode.data?.label ?? "" },
-      },
-      entry: activeEntryRecord,
-      inspectorContext: inspectorContext ?? {},
-      promptContextDoc: liveDoc,
-    });
-  }, [activeEntryRecord, inspectorContext, liveDoc, selectedNode]);
-  const selectedPromptNodePreview = useMemo(() => {
-    if (!activeEntryRecord || !selectedNode) {
-      return null;
-    }
-
-    const phase = inspectorContext?.executionPhase;
-    if (!phase) {
-      return null;
-    }
-
-    const belongsToCombinedPrompt = promptGroups.some(
-      (group) =>
-        group.phase === phase &&
-        group.canvasId === activeEntryRecord.id &&
-        group.nodeIds.length > 1 &&
-        group.nodeIds.includes(selectedNode.id)
-    );
-    if (belongsToCombinedPrompt) {
-      return null;
-    }
-
-    return buildPromptNodeInspectorPreview({
-      node: {
-        id: selectedNode.id,
-        type: selectedNode.type ?? "",
-        position: selectedNode.position,
-        data: { ...(selectedNode.data ?? {}), label: selectedNode.data?.label ?? "" },
-      },
-      entry: activeEntryRecord,
-      inspectorContext: inspectorContext ?? {},
-      promptContextDoc: liveDoc,
-    });
-  }, [activeEntryRecord, inspectorContext, liveDoc, promptGroups, selectedNode]);
-  const selectedLoweredCodePreview = useMemo(() => {
-    if (
-      !selectedNode ||
-      getNodeActionSubtype(selectedNode) !== "code"
-    ) {
-      return null;
-    }
-
-    const stateSchema: RuntimeStateField[] = (
-      inspectorContext?.stateSchema ?? []
-    ).map((field) => ({
-      fieldName: field.fieldName,
-      type: field.type,
-      initialValue: field.initialValue,
-    }));
-    const ops =
-      readExplicitNodeExecutableStateCodeOps(selectedNode, stateSchema) ??
-      parseStateActionLabel(String(selectedNode.data?.label ?? ""), stateSchema);
-    const scriptSource = readNodeExecutableCodeSource(selectedNode);
-    const declaredLocalOutputs = readNodeCodeLocalOutputFields(selectedNode);
-    const phase = inspectorContext?.executionPhase ?? "state";
-
-    return {
-      phase,
-      ops,
-      scriptSource,
-      declaredLocalOutputs,
-      lines: ops ? ops.map(describeLoweredCodeOperation) : [],
-      stepJson: scriptSource
-        ? JSON.stringify(
-            {
-              type: "code",
-              language: "typescript",
-              script_source: "(full TypeScript source shown above)",
-              declared_local_outputs: declaredLocalOutputs,
-            },
-            null,
-            2
-          )
-        : ops
-        ? JSON.stringify(
-            {
-              type: "code",
-              rules: [{ when: { kind: "always" }, ops }],
-            },
-            null,
-            2
-          )
-        : null,
-    };
-  }, [inspectorContext, selectedNode]);
-  const collapsedEdgeDetails = useMemo(() => {
-    if (!active) {
-      return [];
-    }
-
-    return promptGroupEdgePresentation.collapsedEdges
-      .map((edge) => {
-        const source: EdgeIoEndpoint | null =
-          edge.source.kind === "group"
-            ? (() => {
-                const group = promptGroupByKey.get(edge.source.key);
-                return group
-                  ? {
-                      kind: "prompt_group" as const,
-                      phase: group.phase,
-                      nodeIds: group.nodeIds,
-                    }
-                  : null;
-              })()
-            : { kind: "node" as const, nodeId: edge.source.id };
-        const target: EdgeIoEndpoint | null =
-          edge.target.kind === "group"
-            ? (() => {
-                const group = promptGroupByKey.get(edge.target.key);
-                return group
-                  ? {
-                      kind: "prompt_group" as const,
-                      phase: group.phase,
-                      nodeIds: group.nodeIds,
-                    }
-                  : null;
-              })()
-            : { kind: "node" as const, nodeId: edge.target.id };
-
-        if (!source || !target) {
-          return null;
-        }
-
-        const dataFlow = describeEdgeDataFlow({
-          nodes: active.nodes,
-          source,
-          target,
-          doc: liveDoc,
-        });
-
-        return {
-          edge,
-          source,
-          target,
-          dataFlow,
-        };
-      })
-      .filter(
-        (
-          detail
-        ): detail is {
-          edge: PromptGroupCollapsedEdge;
-          source: EdgeIoEndpoint;
-          target: EdgeIoEndpoint;
-          dataFlow: NodeIoField[];
-        } => detail !== null
-      );
-  }, [active, liveDoc, promptGroupByKey, promptGroupEdgePresentation.collapsedEdges]);
   const selectedCollapsedEdge = useMemo(
     () =>
       selectedCollapsedEdgeId
@@ -3263,18 +2869,6 @@ export function EditorInner<TOutput>({
     return () => window.removeEventListener("keydown", handleDeleteKey);
   }, [selectedId, selectedCollapsedEdgeId]);
 
-  const selectedEdgeDataFlow = useMemo(() => {
-    if (!active || !selectedEdge) {
-      return [];
-    }
-
-    return describeEdgeDataFlow({
-      nodes: active.nodes,
-      source: { kind: "node", nodeId: selectedEdge.source },
-      target: { kind: "node", nodeId: selectedEdge.target },
-      doc: liveDoc,
-    });
-  }, [active, liveDoc, selectedEdge]);
   const nodeWarnings = useMemo(
     () =>
       active && inspectorContext?.stateSchema
@@ -3321,9 +2915,17 @@ export function EditorInner<TOutput>({
     return value ?? fallback;
   };
   const labelTitle = resolveInspectorValue(inspector.labelTitle, "Label");
-  const helpText = resolveInspectorValue(inspector.helpText, undefined);
   const textareaRows = resolveInspectorValue(inspector.textareaRows, 3);
   const showLabelField = resolveInspectorValue(inspector.showLabelField, true);
+  const inspectorSelectionLabel = selectedPromptGroup
+    ? `Selected combined prompt · ${selectedPromptGroup.phase}`
+    : selectedCollapsedEdge
+      ? "Selected combined edge"
+      : selectedNode
+        ? `Selected node · ${describeSelectedNodeKind(selectedNode)}`
+        : selectedEdge
+          ? "Selected edge"
+          : null;
   const describeNodeLabelById = (nodeId: string) => {
     const node = active.nodes.find((candidate) => candidate.id === nodeId);
     if (!node) {
@@ -3369,7 +2971,8 @@ export function EditorInner<TOutput>({
         onConnect={handleConnect}
         onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
-        connectionLineType={ConnectionLineType.Step}
+        edgeTypes={CANVAS_EDGE_TYPES}
+        connectionLineType={ConnectionLineType.Bezier}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         proOptions={REACT_FLOW_PRO_OPTIONS}
@@ -3466,7 +3069,7 @@ export function EditorInner<TOutput>({
             ? // No gap when Tools is collapsed — an empty toolbar wrapper used to
               // still sit in the flex column and gap-4 left a blank band under
               // the canvas tabs. Only space the rows when Tools is open.
-              `flex h-full min-h-0 flex-1 flex-col ${toolbarOpen ? "gap-2" : "gap-0"}`
+              `flex h-full min-h-0 flex-1 flex-col overflow-hidden ${toolbarOpen ? "gap-2" : "gap-0"}`
             : "flex flex-col gap-4"
       }
     >
@@ -3618,7 +3221,7 @@ export function EditorInner<TOutput>({
       {/* Toolbar — only mount when open so it can't leave a flex gap under the tabs. */}
       {toolbarOpen && (
         <div
-          className={`rf-canvas-tools ${fullscreen ? "flex" : "hidden lg:flex"} flex-col gap-2 border-b border-[#c8c4b4] px-4 py-3`}
+          className={`rf-canvas-tools ${fullscreen ? "flex" : "hidden lg:flex"} flex-col border-b border-[#c8c4b4] px-4 py-2`}
         >
           <div className="flex flex-wrap items-center gap-2">
             {controlStructureKinds.length > 0 && (
@@ -3626,7 +3229,7 @@ export function EditorInner<TOutput>({
                 <button
                   type="button"
                   onClick={() => setIsControlStructureMenuOpen((open) => !open)}
-                  className="text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-amber-500 text-amber-900 bg-amber-50 hover:bg-amber-100 rounded-full"
+                  className="rf-tool-btn border border-[#FFD100] text-[#3d3838] bg-[#FFD100] hover:bg-[#f0c400]"
                   aria-haspopup="menu"
                   aria-expanded={isControlStructureMenuOpen}
                 >
@@ -3634,10 +3237,10 @@ export function EditorInner<TOutput>({
                 </button>
                 {isControlStructureMenuOpen && (
                   <div
-                    className="absolute left-0 top-full z-20 mt-2 min-w-[14rem] rounded border border-[#c8c4b4] bg-[#f7f4e8] p-2 shadow-xl"
+                    className="absolute left-0 top-full z-20 mt-2 min-w-[14rem] rounded-lg border border-[#c8c4b4] bg-[#f7f4e8] p-2 shadow-xl"
                     role="menu"
                   >
-                    <div className="mb-2 px-2 text-[10px] font-sans uppercase tracking-widest text-gray-500">
+                    <div className="mb-2 px-2 text-[14px] font-sans text-gray-500">
                       Choose node type
                     </div>
                     <div className="space-y-1">
@@ -3646,11 +3249,11 @@ export function EditorInner<TOutput>({
                           key={k.kind}
                           type="button"
                           onClick={() => addNode(k)}
-                          className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-xs font-sans uppercase tracking-widest text-gray-700 hover:bg-[#ece7d6]"
+                          className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-[14px] font-sans text-gray-700 hover:bg-[#ece7d6]"
                           role="menuitem"
                         >
                           <span>{k.toolbarLabel.replace(/^\+\s*/, "")}</span>
-                          <span className="font-mono text-[10px] lowercase tracking-normal text-gray-500">
+                          <span className="font-mono text-[12px] lowercase text-gray-500">
                             {k.kind}
                           </span>
                         </button>
@@ -3665,12 +3268,12 @@ export function EditorInner<TOutput>({
                 key={k.kind}
                 type="button"
                 onClick={() => addNode(k)}
-                className={k.toolbarClassName}
+                className={`rf-tool-btn ${k.toolbarClassName}`}
               >
                 {k.toolbarLabel}
               </button>
             ))}
-            <div className="w-px h-6 bg-[#c8c4b4] mx-1" />
+            <div className="w-px h-5 bg-[#c8c4b4] mx-1" />
             <button
               type="button"
               disabled={
@@ -3678,7 +3281,7 @@ export function EditorInner<TOutput>({
                 (Boolean(selectedNode) && selectedNodeNonEditable)
               }
               onClick={deleteSelected}
-              className="text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-gray-400 text-gray-700 bg-transparent hover:bg-gray-100 rounded-full disabled:opacity-40"
+              className="rf-tool-btn border border-gray-400 text-gray-700 bg-transparent hover:bg-gray-100 disabled:opacity-40"
             >
               Delete selected
             </button>
@@ -3696,7 +3299,11 @@ export function EditorInner<TOutput>({
               ? `rf-canvas-body flex min-h-0 flex-1 ${splitPanels ? "flex-row" : "flex-col"}`
               : "rf-canvas-body flex flex-col gap-4 lg:flex-row"
         }
-        style={!fullscreen && fillHeight && fillRowHeight ? { height: fillRowHeight } : undefined}
+        style={
+          !fullscreen && fillHeight && fillRowHeight
+            ? { height: fillRowHeight, maxHeight: "100%" }
+            : undefined
+        }
       >
         {fillHeight && !fullscreen ? (
           <div
@@ -3797,36 +3404,22 @@ export function EditorInner<TOutput>({
                 {label}
               </button>
             ))}
+            {inspectorSelectionLabel ? (
+              <span className="ml-auto flex min-w-0 max-w-[55%] items-center truncate text-[14px] font-sans text-gray-500">
+                {inspectorSelectionLabel}
+              </span>
+            ) : null}
           </div>
 
           <div className="rf-inspector-body min-h-0 flex-1 overflow-auto">
           {inspectorTab === "inspector" && (
           <div className="space-y-3 px-4 py-3">
-          {selectedPromptGroup && selectedPromptGroupPreview ? (
+          {selectedPromptGroup ? (
             <>
-              <p className="text-xs text-gray-500 font-serif">
-                Selected combined prompt ·{" "}
-                <span className="font-mono">{selectedPromptGroup.phase}</span>
-              </p>
-              <p className="text-[11px] font-serif text-gray-500 leading-relaxed">
-                This dotted region is lowered as a single{" "}
-                <span className="font-medium font-mono">
-                  {selectedPromptGroupPreview.stepType}
-                </span>{" "}
-                step.
-              </p>
-              <div className="space-y-2 rounded border border-[#c0bdb0] bg-[#e0dccc] px-3 py-2">
-                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                  Connections
-                </p>
-                <p className="text-[11px] font-serif text-gray-600 leading-relaxed">
-                  Output:{" "}
-                  <span className="font-mono">
-                    {selectedPromptGroupOutputNode
-                      ? describeNodeLabelById(selectedPromptGroupOutputNode.id)
-                      : "(none)"}
-                  </span>
-                </p>
+              <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-widest text-gray-500 font-sans">
+                  Connect to
+                </label>
                 <select
                   value={promptGroupConnectTargetId}
                   onChange={(event) => setPromptGroupConnectTargetId(event.target.value)}
@@ -3851,95 +3444,12 @@ export function EditorInner<TOutput>({
                   Connect
                 </button>
               </div>
-              <div className="space-y-3 pt-2 border-t border-[#c0bdb0]">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                    Inputs (consumed locals)
-                  </p>
-                  {selectedPromptGroupPreview.inputs.length > 0 ? (
-                    renderIoFieldCards(selectedPromptGroupPreview.inputs)
-                  ) : (
-                    <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                      No consumed locals detected for this combined prompt.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                    Outputs (declared locals)
-                  </p>
-                  {selectedPromptGroupPreview.outputs.length > 0 ? (
-                    renderIoFieldCards(selectedPromptGroupPreview.outputs)
-                  ) : (
-                    <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                      No declared locals detected for this combined prompt.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                    Included nodes
-                  </p>
-                  <div className="space-y-2 mt-2">
-                    {selectedPromptGroupPreview.nodes.map((node) => (
-                      <div
-                        key={node.id}
-                        className="border border-[#c0bdb0] rounded bg-[#e0dccc] px-2 py-1.5"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-mono text-gray-800">{node.id}</span>
-                          <span className="shrink-0 text-[10px] uppercase tracking-widest text-gray-600 font-sans border border-[#c0bdb0] rounded bg-[#d6d3c4] px-1.5 py-0.5">
-                            {node.type}
-                          </span>
-                        </div>
-                        {node.label && (
-                          <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-                            {node.label}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                    System prompt
-                  </p>
-                  {selectedPromptGroupPreview.systemPrompt ? (
-                    <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedPromptGroupPreview.systemPrompt}
-                    </pre>
-                  ) : (
-                    <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                      No separate system prompt. This grouped step inlines its subtree context into the user prompt instead.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                    User prompt
-                  </p>
-                  <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedPromptGroupPreview.userPrompt}
-                  </pre>
-                </div>
-              </div>
             </>
           ) : selectedCollapsedEdge ? (
             <>
-              <p className="text-xs text-gray-500 font-serif">Selected combined edge</p>
               <p className="text-[11px] font-serif text-gray-500 leading-relaxed">
                 {describeCollapsedEndpointLabel(selectedCollapsedEdge.edge.source)} →{" "}
                 {describeCollapsedEndpointLabel(selectedCollapsedEdge.edge.target)}
-              </p>
-              <p className="text-[11px] font-serif text-gray-500 leading-relaxed">
-                This visual edge represents {selectedCollapsedEdge.edge.rawEdgeIds.length} folded
-                edge{selectedCollapsedEdge.edge.rawEdgeIds.length === 1 ? "" : "s"} around a
-                combined prompt region.
               </p>
               <button
                 type="button"
@@ -3948,107 +3458,9 @@ export function EditorInner<TOutput>({
               >
                 Delete combined edge
               </button>
-              <div className="space-y-3 pt-2 border-t border-[#c0bdb0]">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                    Available locals
-                  </p>
-                  {selectedCollapsedEdge.dataFlow.length > 0 ? (
-                    renderIoFieldCards(selectedCollapsedEdge.dataFlow)
-                  ) : (
-                    <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                      No local variables are definitely available at this point.
-                    </p>
-                  )}
-                </div>
-              </div>
             </>
           ) : selectedNode ? (
             <>
-              <p className="text-xs text-gray-500 font-serif">
-                Selected node ·{" "}
-                <span className="font-mono">{describeSelectedNodeKind(selectedNode)}</span>
-              </p>
-              {selectedPromptTransformPreview && (
-                <div className="space-y-3 pt-2 border-t border-[#c0bdb0]">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      Underlying model call
-                    </p>
-                    <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                      This node lowers as a single{" "}
-                      <span className="font-medium font-mono">
-                        {selectedPromptTransformPreview.stepType}
-                      </span>{" "}
-                      step.
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      System prompt
-                    </p>
-                    {selectedPromptTransformPreview.systemPrompt ? (
-                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedPromptTransformPreview.systemPrompt}
-                      </pre>
-                    ) : (
-                      <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                        No separate system prompt. This node&apos;s runtime call inlines its context into the user prompt instead.
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      User prompt
-                    </p>
-                    <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedPromptTransformPreview.userPrompt}
-                    </pre>
-                  </div>
-                </div>
-              )}
-              {selectedPromptNodePreview && (
-                <div className="space-y-3 pt-2 border-t border-[#c0bdb0]">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      Underlying model call
-                    </p>
-                    <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                      This node lowers as a single{" "}
-                      <span className="font-medium font-mono">
-                        {selectedPromptNodePreview.stepType}
-                      </span>{" "}
-                      step.
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      System prompt
-                    </p>
-                    {selectedPromptNodePreview.systemPrompt ? (
-                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedPromptNodePreview.systemPrompt}
-                      </pre>
-                    ) : (
-                      <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                        No separate system prompt. This node&apos;s runtime call inlines its context into the user prompt instead.
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      User prompt
-                    </p>
-                    <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedPromptNodePreview.userPrompt}
-                    </pre>
-                  </div>
-                </div>
-              )}
               {selectedNodeNonEditable && (
                 <div className="rounded border border-slate-300 bg-slate-100 px-3 py-2 text-[11px] font-serif leading-relaxed text-slate-700">
                   <p>
@@ -4083,9 +3495,6 @@ export function EditorInner<TOutput>({
                   ) : null}
                 </div>
               )}
-              {helpText && (
-                <p className="text-[11px] font-serif text-gray-500 leading-relaxed">{helpText}</p>
-              )}
               {selectedNodeWarnings.length > 0 && (
                 <div className="space-y-2">
                   {selectedNodeWarnings.map((warning, index) => (
@@ -4096,126 +3505,6 @@ export function EditorInner<TOutput>({
                       {warning.message}
                     </div>
                   ))}
-                </div>
-              )}
-              {selectedNodeIo && (
-                <div className="space-y-3 pt-2 border-t border-[#c0bdb0]">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      {selectedNodeIoLabels.inputs}
-                    </p>
-                    {selectedNodeIo.inputs.length > 0 ? (
-                      renderIoFieldCards(selectedNodeIo.inputs)
-                    ) : (
-                      <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                        {selectedNodeIoLabels.noInputs}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      {selectedNodeIoLabels.outputs}
-                    </p>
-                    {hideOutputSummaryCards ? (
-                      selectedNodeIo.outputs.length > 0 ? (
-                        <div className="mt-1 space-y-2">
-                          <p className="text-[11px] font-serif text-gray-500 leading-relaxed">
-                            Editable below in <span className="font-medium">Local output fields</span>.
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedNodeIo.outputs.map((field) => (
-                              <span
-                                key={`${field.name}:${field.type}:${field.origin ?? ""}`}
-                                className="inline-flex items-center gap-1 rounded border border-[#c0bdb0] bg-[#e0dccc] px-2 py-1 text-[10px] text-gray-700"
-                              >
-                                <span className="font-mono text-gray-800">{field.name}</span>
-                                <span className="uppercase tracking-widest text-gray-500">
-                                  {field.type}
-                                </span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                          Editable below in <span className="font-medium">Local output fields</span>.
-                        </p>
-                      )
-                    ) : selectedNodeIo.outputs.length > 0 ? (
-                      renderIoFieldCards(selectedNodeIo.outputs)
-                    ) : (
-                      <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                        {selectedNodeIoLabels.noOutputs}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-              {selectedLoweredCodePreview && (
-                <div className="space-y-3 pt-2 border-t border-[#c0bdb0]">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                      Lowered code
-                    </p>
-                    <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                      This node lowers as a deterministic{" "}
-                      <span className="font-medium font-mono">code</span> step in the{" "}
-                      <span className="font-medium">
-                        {selectedLoweredCodePreview.phase}
-                      </span>{" "}
-                      execution graph.
-                    </p>
-                  </div>
-
-                  {(selectedLoweredCodePreview.lines.length > 0 ||
-                    !selectedLoweredCodePreview.scriptSource) && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                        Deterministic ops
-                      </p>
-                      {selectedLoweredCodePreview.lines.length > 0 ? (
-                        <div className="mt-2 space-y-1.5">
-                          {selectedLoweredCodePreview.lines.map((line, index) => (
-                            <div
-                              key={`${index}:${line}`}
-                              className="rounded border border-[#c0bdb0] bg-[#e0dccc] px-3 py-2 text-[11px] font-mono leading-relaxed text-gray-800"
-                            >
-                              {line}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                          The current label does not parse into a supported deterministic
-                          code rule, so this node will not lower to a concrete code step
-                          from its present text.
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {selectedLoweredCodePreview.scriptSource && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                        Code
-                      </p>
-                      <pre className="mt-2 max-h-72 overflow-auto whitespace-pre rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedLoweredCodePreview.scriptSource}
-                      </pre>
-                    </div>
-                  )}
-
-                  {selectedLoweredCodePreview.stepJson && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                        Lowered step fragment
-                      </p>
-                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border border-[#c0bdb0] bg-[#d6d3c4] px-3 py-2 text-[11px] leading-relaxed text-gray-800">
-{selectedLoweredCodePreview.stepJson}
-                      </pre>
-                    </div>
-                  )}
                 </div>
               )}
               {showLabelField && (
@@ -4245,7 +3534,6 @@ export function EditorInner<TOutput>({
             </>
           ) : selectedEdge ? (
             <>
-              <p className="text-xs text-gray-500 font-serif">Selected edge</p>
               <p className="text-[11px] font-serif text-gray-500 leading-relaxed">
                 {describeNodeLabelById(selectedEdge.source)} →{" "}
                 {describeNodeLabelById(selectedEdge.target)}
@@ -4259,18 +3547,6 @@ export function EditorInner<TOutput>({
                 onChange={(e) => updateSelectedEdgeLabel(e.target.value)}
                 className="w-full border border-[#c0bdb0] rounded bg-[#cbc8b8] px-3 py-2 text-sm font-serif text-gray-800 focus:outline-none focus:border-gray-500"
               />
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-sans">
-                  Available locals
-                </p>
-                {selectedEdgeDataFlow.length > 0 ? (
-                  renderIoFieldCards(selectedEdgeDataFlow)
-                ) : (
-                  <p className="text-[11px] font-serif text-gray-500 mt-1 leading-relaxed">
-                    No local variables are definitely available at this point.
-                  </p>
-                )}
-              </div>
             </>
           ) : (
             <div className="space-y-3">
@@ -4386,7 +3662,13 @@ export function EditorInner<TOutput>({
   );
 
   return (
-    <div className="rf-canvas flex flex-col gap-4">
+    <div
+      className={
+        fillHeight
+          ? "rf-canvas flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+          : "rf-canvas flex flex-col gap-4"
+      }
+    >
       {!canvasFullscreen ? renderEditorWorkspace(false) : null}
 
       {canvasFullscreen && typeof document !== "undefined"

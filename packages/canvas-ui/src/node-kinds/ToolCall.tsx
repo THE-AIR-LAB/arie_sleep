@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { DEFAULT_OPENCLAW_BRIDGE_PATH } from "@airlab/openclaw-runtime";
 import {
-  NODE_LOCAL_INPUTS_DATA_KEY,
-} from "@airlab/canvas-core/lib/canvas-node-local-fields";
-import {
   readCanvasAsyncContinuationPolicy,
   type CanvasAsyncContinuationPolicy,
 } from "@airlab/canvas-core/lib/canvas-async-job-config";
@@ -15,10 +12,6 @@ import type {
   NodeKindDef,
 } from "../types";
 import { ClampedNodeText } from "./ClampedNodeText";
-import {
-  LocalInputsEditor,
-  updateLocalInputFields,
-} from "./LocalInputsEditor";
 
 export type ToolCallSourceType =
   | "http"
@@ -342,40 +335,34 @@ function ParametersEditor({
 
       {hadParseError && rows.length === 0 && (
         <p className="text-[10px] font-serif text-amber-700 mt-1 leading-snug">
-          Existing parameters JSON could not be parsed. Add fresh parameters below.
+          Could not parse parameters JSON.
         </p>
       )}
 
       {rows.length === 0 ? (
-        <>
-          <p className="text-[10px] font-serif text-gray-500 italic mt-2">
-            No parameters yet - the model will call this tool with no arguments.
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            <span className="text-[10px] font-serif text-gray-500 italic mr-1">Try:</span>
-            {PARAM_SAMPLES.map((sample) => (
-              <button
-                key={sample.name}
-                type="button"
-                onClick={() =>
-                  commit([
-                    ...rows,
-                    {
-                      id: makeParamId(),
-                      name: sample.name,
-                      type: sample.type,
-                      description: sample.description,
-                    },
-                  ])
-                }
-                className="text-[10px] font-mono border border-[#c0bdb0] bg-[#e0dccc] hover:bg-[#d4d0c0] text-gray-800 rounded px-1.5 py-0.5"
-                title={sample.description}
-              >
-                + {sample.name} ({sample.type})
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {PARAM_SAMPLES.map((sample) => (
+            <button
+              key={sample.name}
+              type="button"
+              onClick={() =>
+                commit([
+                  ...rows,
+                  {
+                    id: makeParamId(),
+                    name: sample.name,
+                    type: sample.type,
+                    description: sample.description,
+                  },
+                ])
+              }
+              className="text-[10px] font-mono border border-[#c0bdb0] bg-[#e0dccc] hover:bg-[#d4d0c0] text-gray-800 rounded px-1.5 py-0.5"
+              title={sample.description}
+            >
+              + {sample.name} ({sample.type})
+            </button>
+          ))}
+        </div>
       ) : (
         <div className="space-y-2 mt-2">
           {rows.map((r) => (
@@ -536,27 +523,8 @@ export function renderToolCallInspectorFields(
             <option value="openclaw">OpenClaw task backend</option>
           </select>
 
-          {sourceType === "page" && (
-            <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-              Fetch the page directly in the runtime without relying on an OpenAI tool call.
-            </p>
-          )}
-
-          {sourceType === "web_search" && (
-            <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-              Search is resolved server-side using WEB_SEARCH_PROVIDER and one of
-              TAVILY_API_KEY, BRAVE_SEARCH_API_KEY, or SERPAPI_API_KEY.
-            </p>
-          )}
-
           {sourceType === "mcp" && (
             <>
-              <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-                The tool is a reference, not an implementation. It names a logical{" "}
-                <span className="font-mono">server</span> (resolved against the servers
-                map) and the <span className="font-mono">tool</span> exposed by that public
-                MCP server, resolved and dispatched over MCP at runtime.
-              </p>
               <label className={fieldLabel}>Server (logical name)</label>
               <input
                 className={input}
@@ -572,14 +540,6 @@ export function renderToolCallInspectorFields(
                 onChange={(e) => update({ ref: { ...d.ref, tool: e.target.value } })}
               />
             </>
-          )}
-
-          {sourceType === "openclaw" && (
-            <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-              Delegates to an OpenClaw-compatible task endpoint. The built-in
-              bridge accepts task, goal, context, agentId, sessionKey, mode,
-              allowedSkills, allowedTools, and timeoutMs.
-            </p>
           )}
 
           {sourceType !== "web_search" && (
@@ -604,40 +564,12 @@ export function renderToolCallInspectorFields(
               />
             </>
           )}
-          {sourceType === "mcp" && (
-            <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-              Used only when no MCP server is configured for this logical name, so the
-              agent stays alive on a benign config gap.
-            </p>
-          )}
 
-          {sourceType === "page" ? (
-            <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-              The main runtime fetches this configured URL directly.
-            </p>
-          ) : (
-            <>
-              <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-                {sourceType === "web_search" ? (
-                  "The dispatcher returns normalized search results. The model should aggregate across sources and cite URLs from the result payload."
-                ) : (
-                  <>
-                    Use <span className="font-mono">{"{paramName}"}</span> to interpolate
-                    arguments from the model.
-                  </>
-                )}
-              </p>
-              <ParametersEditor
-                schemaJson={d.paramsSchema}
-                onChange={(next) => update({ paramsSchema: next })}
-              />
-              <details className="mt-2 text-[10px] font-mono text-gray-500">
-                <summary className="cursor-pointer">JSON schema (advanced)</summary>
-                <pre className="mt-1 whitespace-pre-wrap text-gray-700">
-                  {d.paramsSchema?.trim() || "{}"}
-                </pre>
-              </details>
-            </>
+          {sourceType !== "page" && (
+            <ParametersEditor
+              schemaJson={d.paramsSchema}
+              onChange={(next) => update({ paramsSchema: next })}
+            />
           )}
 
           <label className="mt-3 flex items-start gap-2 text-xs font-sans text-gray-800 cursor-pointer">
@@ -649,9 +581,6 @@ export function renderToolCallInspectorFields(
             />
             <span>Also save result to Domain Knowledge</span>
           </label>
-          <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-            When the fetch succeeds, append a Domain Knowledge block with the result.
-          </p>
         </>
       ) : action === "read_dataset" ? (
         <>
@@ -677,12 +606,6 @@ export function renderToolCallInspectorFields(
               placeholder="Dataset name"
             />
           )}
-          <p className="text-[10px] font-serif text-gray-500 mt-2 leading-snug">
-            Returns matching records from this dataset. The model can always pass{" "}
-            <span className="font-mono">query</span> (substring across text columns) and{" "}
-            <span className="font-mono">limit</span>; parameters named after columns
-            become exact-match filters.
-          </p>
         </>
       ) : (
         <>
@@ -727,11 +650,6 @@ export function renderToolCallInspectorFields(
               )}
             </>
           )}
-
-          <p className="text-[10px] font-serif text-gray-500 mt-2 leading-snug">
-            The model fills in the parameters below, and the dispatcher saves them as{" "}
-            {saveTarget === "dataset" ? "a new dataset record." : "a new Domain Knowledge block."}
-          </p>
         </>
       )}
 
@@ -743,9 +661,6 @@ export function renderToolCallInspectorFields(
         value={d.toolName ?? ""}
         onChange={(e) => update({ toolName: e.target.value })}
       />
-      <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-        If left blank, the runtime derives a safe tool name from the instruction text.
-      </p>
 
       <label className={fieldLabel}>Description (for the model)</label>
       <textarea
@@ -764,15 +679,6 @@ export function renderToolCallInspectorFields(
         value={d.resultVariable ?? ""}
         onChange={(e) => update({ resultVariable: e.target.value })}
       />
-      <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-        Optional local variable name for the tool result. If left blank, downstream
-        steps can reference it by the tool name.
-      </p>
-
-      <LocalInputsEditor
-        value={(d as Record<string, unknown>)[NODE_LOCAL_INPUTS_DATA_KEY]}
-        onChange={(next) => updateLocalInputFields(update, next)}
-      />
 
       <label className={fieldLabel}>Node execution mode</label>
       <select
@@ -785,11 +691,6 @@ export function renderToolCallInspectorFields(
         <option value="sync">Sync</option>
         <option value="async">Async job</option>
       </select>
-      <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-        Sync waits for the real tool result before continuing. Async queues a
-        persisted Airlab job and returns a job handle immediately so later nodes
-        can inspect or await it.
-      </p>
 
       {(d.executionMode ?? "sync") === "async" && (
         <>
@@ -809,27 +710,14 @@ export function renderToolCallInspectorFields(
             <option value="detach">Detach background job</option>
             <option value="await_now">Await in this turn</option>
           </select>
-          <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-            Attached jobs keep the run logically waiting for the result. Detached
-            jobs are fire-and-forget. Fork and end turn returns a response now
-            and leaves the job handle for a later read or await node.
-          </p>
         </>
       )}
 
       {(action === "post" || action === "read_dataset") && (
-        <>
-          <ParametersEditor
-            schemaJson={d.paramsSchema}
-            onChange={(next) => update({ paramsSchema: next })}
-          />
-          <details className="mt-2 text-[10px] font-mono text-gray-500">
-            <summary className="cursor-pointer">JSON schema (advanced)</summary>
-            <pre className="mt-1 whitespace-pre-wrap text-gray-700">
-              {d.paramsSchema?.trim() || "{}"}
-            </pre>
-          </details>
-        </>
+        <ParametersEditor
+          schemaJson={d.paramsSchema}
+          onChange={(next) => update({ paramsSchema: next })}
+        />
       )}
     </div>
   );
@@ -851,8 +739,6 @@ export const TOOL_CALL: NodeKindDef = {
   ],
   inspector: {
     labelTitle: "When to call (natural language)",
-    helpText:
-      'Hint that appears in the system prompt, e.g. "when the user asks about trending topics".',
     textareaRows: 2,
     renderExtra: (data, update, context: CanvasInspectorContext) => {
       const d = data as ToolCallData;

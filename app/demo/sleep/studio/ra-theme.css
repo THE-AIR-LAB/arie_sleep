@@ -421,7 +421,11 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
 .ra-scope .obs-docked .obs-docked-bar .sc-lbl{font-size:14px;font-weight:400;color:var(--sc-ink);
   font-family:var(--serif);letter-spacing:0;}
 .ra-scope .obs-docked .obs-docked-bar .sc-close{font-size:14px;font-weight:400;color:var(--sc-ink);}
-.ra-scope .obs-docked .obs-docked-body{flex:1;min-height:0;overflow:auto;padding:18px 14px 16px;}
+/* Knowledge (text) keeps body scroll. Canvas sections (State/Policy) pin the
+   window — only .rf-inspector-body scrolls, so Knowledge/State/Policy + Main +
+   Inspector/Compiler tabs stay put. */
+.ra-scope .obs-docked .obs-docked-body{
+  flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;padding:18px 14px 16px;}
 .ra-scope .obs-docked .obs-docked-body .sc-pane-inner{max-width:none;}
 .ra-scope .obs-docked .obs-docked-body .sc-pane-head{display:none;}
 .ra-scope .obs-docked .obs-docked-body .sc-pane-fill{min-height:100%;display:flex;flex-direction:column;}
@@ -431,7 +435,14 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
    top/bottom): the previous 14px side inset stacked on the tab bar's own px-4
    and pushed "Main" right of Knowledge / Model Setup. Text panes (Knowledge)
    keep the 18px/14px breathing room. */
-.ra-scope .obs-docked .obs-docked-body:has(.sc-canvas-host){padding:0;}
+.ra-scope .obs-docked .obs-docked-body:has(.sc-canvas-host){
+  padding:0;overflow:hidden;}
+/* Flex chain: canvas host fills the pinned body without growing it. */
+.ra-scope .obs-docked .obs-docked-body:has(.sc-canvas-host) .sc-pane-fill,
+.ra-scope .obs-docked .obs-docked-body:has(.sc-canvas-host) .sc-canvas-host,
+.ra-scope .obs-docked .obs-docked-body:has(.sc-canvas-host) .sc-canvas-host > .rf-canvas{
+  flex:1 1 auto;min-height:0;max-height:100%;overflow:hidden;
+  display:flex;flex-direction:column;}
 /* Knowledge guideline rows: full-bleed, stacked with hairline separators only. */
 .ra-scope .obs-docked .sc-guidelines{
   margin-left:-14px;margin-right:-14px;width:calc(100% + 28px);gap:0 !important;}
@@ -483,8 +494,74 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
    (flex-basis %). Slot + aside fill their assigned share. */
 .ra-scope .obs-docked .rf-canvas-slot{min-height:0;}
 .ra-scope .obs-docked .rf-canvas-slot .rf-canvas-surface{height:100%;min-height:0;max-height:none;}
-.ra-scope .obs-docked .rf-canvas-body > aside{
-  min-height:0;max-height:none;overflow:auto;border:none;}
+.ra-scope .obs-docked .rf-canvas-body > aside.rf-inspector,
+.ra-scope .obs-docked .rf-inspector{
+  min-height:0;max-height:none;overflow:hidden;border:none;
+  display:flex;flex-direction:column;}
+.ra-scope .obs-docked .rf-inspector-tabs{flex:0 0 auto;}
+/* Only this region scrolls — Inspector/Compiler title stays fixed. */
+.ra-scope .obs-docked .rf-inspector-body{
+  flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;}
+/* Canvas graph: true/false tags at 12px; node titles + descriptions match at 20px. */
+.ra-scope .rf-canvas-surface .react-flow__node,
+.ra-scope .rf-canvas-surface .react-flow__node *{
+  font-size:12px !important;
+  line-height:1.35 !important;}
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title,
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title *,
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-desc,
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-desc *{
+  font-size:20px !important;
+  line-height:1.35 !important;
+  letter-spacing:normal !important;
+  text-transform:none !important;
+  text-align:left !important;}
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title,
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title *{
+  font-weight:700 !important;}
+.ra-scope .rf-canvas-surface .react-flow__node .rf-node-title{
+  display:block !important;
+  width:100% !important;
+  padding-bottom:6px !important;
+  margin-bottom:6px !important;
+  border-bottom:1px solid currentColor !important;
+  opacity:1;}
+.ra-scope .rf-canvas-surface .react-flow__edge-text{
+  font-size:12px !important;}
+.ra-scope .rf-canvas-surface .react-flow__edge:not(.rf-fire-edge) .react-flow__edge-path,
+.ra-scope .rf-canvas-surface .react-flow__connection-path{
+  stroke-width:3px !important;}
+/* Branch labels (true/false): mid-curve chip — green true / coral false. */
+.ra-scope .rf-canvas-surface .rf-edge-branch-label{
+  background:#736766 !important;
+  color:#EEE8E8 !important;
+  font-size:12px !important;
+  font-weight:600 !important;
+  letter-spacing:normal !important;
+  text-transform:none !important;
+  line-height:1.2 !important;
+  padding:2px 6px !important;
+  border-radius:2px !important;
+  white-space:nowrap;}
+.ra-scope .rf-canvas-surface .rf-edge-branch-label--true{background:#007E27 !important;}
+.ra-scope .rf-canvas-surface .rf-edge-branch-label--false{background:#D9582B !important;}
+/* Match Tools pills (.rf-tool-btn 8px) — node shells use the same radius. */
+.ra-scope .rf-canvas-surface .react-flow__node,
+.ra-scope .rf-canvas-surface .react-flow__node > div{
+  border-radius:8px !important;}
+/* Tools bar: same 14px / spacing as Model Setup · Knowledge nav chrome. */
+.ra-scope .rf-canvas-tools{padding:8px 16px !important;gap:0 !important;}
+.ra-scope .rf-canvas-tools .rf-tool-btn,
+.ra-scope .rf-canvas-tools button.rf-tool-btn{
+  font-family:inherit !important;
+  font-size:14px !important;
+  font-weight:400 !important;
+  letter-spacing:normal !important;
+  text-transform:none !important;
+  line-height:1.25 !important;
+  padding:6px 10px !important;
+  border-radius:8px !important;
+  white-space:nowrap;}
 /* fillHeight board + inspector: flush panels; only the drag split separates them. */
 .ra-scope .obs-docked .rf-canvas-body,
 .ra-scope .bottom-drawer .rf-canvas-body{gap:0;}
@@ -733,6 +810,12 @@ body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select
 .sysconf .sc-modal.obs-float,
 .sysconf .sc-modal.obs-float *{
   border-radius:0 !important;}
+/* Canvas nodes: same 8px as Tools pills — wins over the drawer square rule. */
+.ra-scope .obs-panel .react-flow__node,
+.ra-scope .obs-panel .react-flow__node > div,
+.ra-scope .bottom-drawer .react-flow__node,
+.ra-scope .bottom-drawer .react-flow__node > div{
+  border-radius:8px !important;}
 /* Same spacing model as the Knowledge/State/Policy nav (padding 0 2px + gap on
    the row) so the active underline hugs the label identically instead of
    spreading across wide tab padding. */
@@ -748,7 +831,9 @@ body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select
   border-radius:5px;color:var(--text-3);font-size:10px;line-height:1;}
 .ra-scope .drawer-tab-x:hover{background:var(--surface-2);color:var(--text);}
 .ra-scope .drawer-pane-wrap{flex:1;min-height:0;flex-direction:column;}
-.ra-scope .drawer-pane{display:flex;flex-direction:column;flex:1;min-height:0;}
+.ra-scope .drawer-pane{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
+.ra-scope .drawer-pane > .obs-setup{flex:0 0 auto;}
+.ra-scope .drawer-pane > .obs-docked{flex:1 1 auto;min-height:0;overflow:hidden;}
 /* The sheet drag-handle is mobile-only; the media query re-shows it. */
 .ra-scope .drawer-grabber-wrap{display:none;}
 /* Chats/Account panes (unified mobile drawer): pad the body and let the

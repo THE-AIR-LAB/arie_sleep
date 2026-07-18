@@ -21,7 +21,7 @@ export function ClampedNodeText({
 }) {
   return (
     <div
-      className={className}
+      className={`rf-node-desc ${className}`.trim()}
       style={{
         ...clampBaseStyle,
         WebkitLineClamp: lines,

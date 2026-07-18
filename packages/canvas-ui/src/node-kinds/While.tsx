@@ -85,8 +85,6 @@ export const WHILE: NodeKindDef = {
   ],
   inspector: {
     labelTitle: "Condition",
-    helpText:
-      'WHILE uses the same condition syntax as a normal condition node, including "local value_name ..." for downstream local values, but it repeats the body branch only up to max iterations before exiting through done.',
     renderExtra: (data, update) => (
       <div className="pt-2 mt-2 border-t border-[#c0bdb0]">
         <label className={fieldLabel}>Max iterations</label>

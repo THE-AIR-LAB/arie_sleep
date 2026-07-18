@@ -131,10 +131,6 @@ export const DISPLAY: NodeKindDef = {
   },
   inspector: {
     labelTitle: "Display label",
-    helpText: (data) =>
-      getDisplayType(data as DisplayData) === "video"
-        ? "Embeds a video from the configured URL."
-        : "Displays a local value or state field in chat.",
     textareaRows: 2,
     renderExtra: renderDisplayInspectorExtra,
   },

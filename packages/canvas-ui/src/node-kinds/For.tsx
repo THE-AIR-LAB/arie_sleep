@@ -81,8 +81,6 @@ export const FOR: NodeKindDef = {
   ],
   inspector: {
     labelTitle: "Loop note",
-    helpText:
-      "FOR runs its body branch up to max iterations, then continues through the done branch. The label is descriptive only.",
     renderExtra: (data, update) => (
       <div className="pt-2 mt-2 border-t border-[#c0bdb0]">
         <label className={fieldLabel}>Max iterations</label>

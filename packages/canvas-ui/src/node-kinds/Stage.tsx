@@ -117,8 +117,6 @@ export const STAGE: NodeKindDef = {
   defaultLabel: "Stage: new workflow stage",
   inspector: {
     labelTitle: "Stage description",
-    helpText:
-      "A workflow-stage node for the Overall Workflow canvas. Use it for stage name, purpose, entry/completion conditions, participants, and stage notes.",
     textareaRows: 10,
   },
 };

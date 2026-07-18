@@ -3,19 +3,20 @@ import type { CanvasNode, NodeKindDef } from "../types";
 import { ClampedNodeText } from "./ClampedNodeText";
 
 const baseClass =
-  "relative px-3 py-2 text-sm font-sans border rounded shadow-sm min-w-[9rem] max-w-[16rem] text-center";
+  "relative px-3 py-2 text-sm font-sans border rounded-lg shadow-sm min-w-[9rem] max-w-[16rem] text-left";
 
 function ConditionNode({ data, selected }: NodeProps<CanvasNode>) {
   return (
     <div
-      className={`${baseClass} bg-amber-50 border-amber-400 text-amber-900 ${
-        selected ? "ring-2 ring-amber-500" : ""
+      className={`${baseClass} bg-[#FFD100] border-[#FFD100] text-[#3d3838] ${
+        selected ? "ring-2 ring-[#FFD100]" : ""
       }`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-amber-500" />
+      <Handle type="target" position={Position.Top} className="!bg-[#FFD100]" />
       <div>
-        <div className="text-[10px] uppercase tracking-widest text-amber-700 mb-0.5">If</div>
+        <div className="rf-node-title mb-0.5 text-left text-[#3d3838]">If</div>
         <ClampedNodeText
+          className="text-[12px]"
           lines={4}
           title={data.label || "condition?"}
         >
@@ -29,13 +30,7 @@ function ConditionNode({ data, selected }: NodeProps<CanvasNode>) {
         className="!bg-green-600"
         style={{ top: "40%" }}
       />
-      <span className="pointer-events-none absolute right-[-2.35rem] top-[40%] -translate-y-1/2 text-[9px] font-semibold uppercase tracking-wider text-green-700">
-        true
-      </span>
       <Handle id="false" type="source" position={Position.Bottom} className="!bg-red-500" />
-      <span className="pointer-events-none absolute bottom-[-1.15rem] left-1/2 -translate-x-1/2 text-[9px] font-semibold uppercase tracking-wider text-red-700">
-        false
-      </span>
     </div>
   );
 }
@@ -44,7 +39,7 @@ export const CONDITION: NodeKindDef = {
   kind: "condition",
   toolbarLabel: "+ Condition",
   toolbarClassName:
-    "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 rounded-full",
+    "border border-[#FFD100] text-[#3d3838] bg-[#FFD100] hover:bg-[#f0c400]",
   component: ConditionNode,
   defaultLabel: "new condition?",
   sourceHandles: [
@@ -53,7 +48,5 @@ export const CONDITION: NodeKindDef = {
   ],
   inspector: {
     labelTitle: "Condition",
-    helpText:
-      'Use plain field conditions like "status is ready" for state fields, and use "local value_name is true" when the branch depends on a downstream local value from an earlier prompt, tool, or runtime step.',
   },
 };

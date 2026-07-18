@@ -3,18 +3,18 @@ import type { CanvasNode, NodeKindDef } from "../types";
 import { ClampedNodeText } from "./ClampedNodeText";
 
 const baseClass =
-  "px-3 py-2 text-sm font-sans border rounded shadow-sm min-w-[9rem] max-w-[16rem] text-center";
+  "px-3 py-2 text-sm font-sans border rounded-lg shadow-sm min-w-[9rem] max-w-[16rem] text-left";
 
 function ExpandNode({ data, selected }: NodeProps<CanvasNode>) {
   return (
     <div
-      className={`${baseClass} bg-emerald-600 border-emerald-700 text-emerald-50 ${
-        selected ? "ring-2 ring-emerald-400" : ""
+      className={`${baseClass} bg-[#445A1E] border-[#445A1E] text-white ${
+        selected ? "ring-2 ring-[#B9C2B0]" : ""
       }`}
-      style={{ boxShadow: "inset 0 0 0 2px #ecfdf5" }}
+      style={{ boxShadow: "inset 0 0 0 2px rgba(185,194,176,0.35)" }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-emerald-700" />
-      <div className="text-[10px] uppercase tracking-widest text-emerald-100 mb-0.5">
+      <Handle type="target" position={Position.Top} className="!bg-[#445A1E]" />
+      <div className="rf-node-title mb-0.5 text-left text-white">
         Subtree reference
       </div>
       <ClampedNodeText
@@ -24,7 +24,7 @@ function ExpandNode({ data, selected }: NodeProps<CanvasNode>) {
       >
         {data.label || "(referenced canvas name)"}
       </ClampedNodeText>
-      <Handle type="source" position={Position.Bottom} className="!bg-emerald-700" />
+      <Handle type="source" position={Position.Bottom} className="!bg-[#445A1E]" />
     </div>
   );
 }
@@ -33,12 +33,11 @@ export const EXPAND: NodeKindDef = {
   kind: "expand",
   toolbarLabel: "+ Expand",
   toolbarClassName:
-    "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-emerald-700 text-emerald-50 bg-emerald-600 hover:bg-emerald-700 rounded-full",
+    "border border-[#445A1E] text-white bg-[#445A1E] hover:bg-[#364816]",
   component: ExpandNode,
   defaultLabel: "Referenced canvas name",
   inspector: {
-    labelTitle: "Referenced canvas name",
-    helpText: "Use the name of the canvas whose subtree should be inserted here.",
+    labelTitle: "Canvas name",
     textareaRows: 2,
   },
 };

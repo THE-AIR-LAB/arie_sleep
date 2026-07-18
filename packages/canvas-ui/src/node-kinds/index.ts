@@ -377,10 +377,7 @@ function makeRuntimeOperationNodeKind(kind: RuntimeOperationNodeKind): NodeKindD
     defaultLabel: chrome.defaultLabel,
     inspector: {
       showLabelField: kind === "raise_error",
-      helpText:
-        kind === "raise_error"
-          ? `${chrome.helpText} The node label is the error message that will be raised at runtime.`
-          : chrome.helpText,
+      labelTitle: kind === "raise_error" ? "Error message" : undefined,
       renderExtra: isAsyncJobInspectorKind
         ? (data, update) =>
             createElement(
@@ -399,11 +396,6 @@ function makeRuntimeOperationNodeKind(kind: RuntimeOperationNodeKind): NodeKindD
                   update({ jobSourceVariable: event.currentTarget.value }),
               }),
               createElement(
-                "p",
-                { className: "text-[10px] font-serif text-gray-500 mt-1 leading-snug" },
-                "Use a local variable that contains either the full async job handle or a plain job id string."
-              ),
-              createElement(
                 "label",
                 { className: inspectorFieldLabel },
                 "Output variable base"
@@ -415,11 +407,6 @@ function makeRuntimeOperationNodeKind(kind: RuntimeOperationNodeKind): NodeKindD
                 onChange: (event) =>
                   update({ resultVariable: event.currentTarget.value }),
               }),
-              createElement(
-                "p",
-                { className: "text-[10px] font-serif text-gray-500 mt-1 leading-snug" },
-                "Publishes fields like async_job, async_job_status, async_job_completed, and async_job_result."
-              ),
               kind === "await_async_job"
                 ? createElement(
                     "div",
@@ -506,15 +493,7 @@ function makeRuntimeOperationNodeKind(kind: RuntimeOperationNodeKind): NodeKindD
                         ),
                         onChange: (event) =>
                           update({ resultVariable: event.currentTarget.value }),
-                      }),
-                      createElement(
-                        "p",
-                        {
-                          className:
-                            "text-[10px] font-serif text-gray-500 mt-1 leading-snug",
-                        },
-                        `Publishes fields like ${asyncResultVariableFallback}, ${asyncResultVariableFallback}_status, ${asyncResultVariableFallback}_completed, and ${asyncResultVariableFallback}_result.`
-                      )
+                      })
                     )
                   : null
               )

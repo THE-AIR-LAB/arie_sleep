@@ -36,8 +36,6 @@ export const YIELD_TURN: NodeKindDef = {
   defaultLabel: "pause here; continue on the next event",
   inspector: {
     labelTitle: "Turn response",
-    helpText:
-      "Ends only the current visible turn. Use this when the run should remain resumable, for example while waiting on a user reply or an async job.",
     textareaRows: 2,
   },
 };

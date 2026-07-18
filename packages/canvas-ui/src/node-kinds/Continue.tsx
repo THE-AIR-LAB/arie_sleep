@@ -34,8 +34,6 @@ export const CONTINUE_STAGE: NodeKindDef = {
   defaultLabel: "continue this stage next turn",
   inspector: {
     labelTitle: "Continuation note",
-    helpText:
-      "Ends this turn after the current policy action while keeping control in the same stage canvas for the next turn.",
     textareaRows: 2,
   },
 };

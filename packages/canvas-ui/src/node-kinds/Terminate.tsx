@@ -3,17 +3,17 @@ import type { CanvasNode, NodeKindDef } from "../types";
 import { ClampedNodeText } from "./ClampedNodeText";
 
 const baseClass =
-  "px-3 py-2 text-sm font-sans border rounded shadow-sm min-w-[9rem] max-w-[15rem] text-center";
+  "px-3 py-2 text-sm font-sans border rounded-lg shadow-sm min-w-[9rem] max-w-[15rem] text-left";
 
 function TerminateNode({ data, selected }: NodeProps<CanvasNode>) {
   return (
     <div
-      className={`${baseClass} bg-stone-100 border-stone-600 text-stone-950 ${
-        selected ? "ring-2 ring-stone-500" : ""
+      className={`${baseClass} bg-[#F00E26] border-[#F00E26] text-white ${
+        selected ? "ring-2 ring-[#F00E26]" : ""
       }`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-stone-600" />
-      <div className="text-[10px] uppercase tracking-widest text-stone-700 mb-0.5">
+      <Handle type="target" position={Position.Top} className="!bg-[#F00E26]" />
+      <div className="rf-node-title mb-0.5 text-left text-white">
         Terminate
       </div>
       <ClampedNodeText
@@ -31,13 +31,11 @@ export const TERMINATE: NodeKindDef = {
   kind: "terminate",
   toolbarLabel: "+ Terminate",
   toolbarClassName:
-    "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-stone-600 text-stone-950 bg-stone-100 hover:bg-stone-200 rounded-full",
+    "border border-[#F00E26] text-white bg-[#F00E26] hover:bg-[#d40c21]",
   component: TerminateNode,
   defaultLabel: "task complete; no future turns",
   inspector: {
-    labelTitle: "Interaction termination result",
-    helpText:
-      "Ends the whole interaction, not just the turn. When an external connection id is configured on the node, it terminates that connection and resets its connection-local state instead.",
-    textareaRows: 2,
+    labelTitle: "Message",
+    textareaRows: 3,
   },
 };

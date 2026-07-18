@@ -5,11 +5,11 @@ import { ClampedNodeText } from "./ClampedNodeText";
 function StartNode({ data, selected }: NodeProps<CanvasNode>) {
   return (
     <div
-      className={`px-4 py-3 text-sm font-sans bg-emerald-50 border-2 border-emerald-400 text-emerald-950 rounded-lg shadow-sm w-[280px] ${
-        selected ? "ring-2 ring-emerald-500" : ""
+      className={`px-4 py-3 text-sm font-sans bg-[#eef1eb] border-2 border-[#B0BEA5] text-[#3d4a35] rounded-lg shadow-sm w-[280px] ${
+        selected ? "ring-2 ring-[#B0BEA5]" : ""
       }`}
     >
-      <div className="text-[10px] uppercase tracking-widest text-emerald-700 mb-1 text-center">
+      <div className="rf-node-title mb-1 text-left text-[#3d4a35]">
         Start
       </div>
       <ClampedNodeText
@@ -19,7 +19,7 @@ function StartNode({ data, selected }: NodeProps<CanvasNode>) {
       >
         {data.label || "Describe the starting point for this canvas..."}
       </ClampedNodeText>
-      <Handle type="source" position={Position.Bottom} className="!bg-emerald-500" />
+      <Handle type="source" position={Position.Bottom} className="!bg-[#B0BEA5]" />
     </div>
   );
 }
@@ -28,15 +28,13 @@ export const START: NodeKindDef = {
   kind: "start",
   toolbarLabel: "+ Start",
   toolbarClassName:
-    "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-emerald-400 text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-full",
+    "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-[#B0BEA5] text-[#3d4a35] bg-[#eef1eb] hover:bg-[#e0e6d9] rounded-full",
   component: StartNode,
   defaultLabel: "Start",
   hideFromToolbar: true,
   singleton: true,
   inspector: {
-    labelTitle: "General-purpose prompt",
-    helpText:
-      "This text is prepended to this canvas as the “General-purpose prompt” the model sees before the flow.",
+    labelTitle: "Prompt",
     textareaRows: 10,
   },
 };

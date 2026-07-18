@@ -79,10 +79,6 @@ function callAgentTypeLabel(type: CallAgentType): string {
   return "Default";
 }
 
-function defaultEndpointForType(type: CallAgentType): string {
-  return type === "openclaw" ? DEFAULT_OPENCLAW_BRIDGE_PATH : "";
-}
-
 function endpointPlaceholderForType(type: CallAgentType): string {
   if (type === "openclaw") {
     return DEFAULT_OPENCLAW_BRIDGE_PATH;
@@ -155,8 +151,6 @@ export const CALL_AGENT: NodeKindDef = {
   ],
   inspector: {
     labelTitle: "When to call",
-    helpText:
-      "Calls another agent by target agent ID. Internal calls activate a managed connection; external-agent turns are only valid inside the matching connection policy.",
     textareaRows: 3,
     renderExtra: (data, update) => {
       const type = readCallAgentType(data);
@@ -229,17 +223,6 @@ export const CALL_AGENT: NodeKindDef = {
           type !== "internal_connection" &&
           type !== "external_agent" && (
             <>
-              <p className="mt-2 text-[10px] font-serif leading-snug text-gray-500">
-                Delegates a JSON task envelope to the selected backend.
-                {defaultEndpointForType(type) ? (
-                  <>
-                    {" "}
-                    Leave the endpoint blank to use{" "}
-                    <span className="font-mono">{defaultEndpointForType(type)}</span>.
-                  </>
-                ) : null}
-              </p>
-
               <label className={inspectorFieldLabel}>
                 Endpoint URL (optional override)
               </label>

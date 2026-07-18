@@ -1,6 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import {
-  AGENT_LATEST_OBSERVATION_PROMPT_VALUE_NAME,
   CARRIED_OUTPUT_PROMPT_VALUE_NAME,
   FINALIZED_ASSISTANT_MESSAGE_PROMPT_VALUE_NAME,
 } from "@airlab/canvas-core/lib/canvas-flow-values";
@@ -10,18 +9,6 @@ import type {
   NodeKindDef,
 } from "../types";
 import {
-  PromptOutputFieldsEditor,
-  updatePromptOutputFields,
-} from "./PromptOutputFieldsEditor";
-import {
-  CodeLocalOutputsEditor,
-  updateCodeLocalOutputFields,
-} from "./CodeLocalOutputsEditor";
-import {
-  LocalInputsEditor,
-  updateLocalInputFields,
-} from "./LocalInputsEditor";
-import {
   normalizePromptNodeSubtype,
   type ActionSubtype,
   type PromptNodeSubtype,
@@ -29,16 +16,14 @@ import {
 import {
   NODE_EXECUTABLE_CODE_LANGUAGE_DATA_KEY,
   NODE_EXECUTABLE_CODE_SOURCE_DATA_KEY,
-  NODE_EXECUTABLE_CODE_LOCAL_OUTPUTS_DATA_KEY,
   readNodeCodeExecutionLanguage,
   readNodeExecutableCodeSource,
 } from "@airlab/canvas-core/lib/canvas-node-code-script";
-import { NODE_LOCAL_INPUTS_DATA_KEY } from "@airlab/canvas-core/lib/canvas-node-local-fields";
 import { ClampedNodeText } from "./ClampedNodeText";
 import type { ToolCallData } from "./ToolCall";
 
 const baseClass =
-  "px-3 py-2 text-sm font-sans border rounded shadow-sm min-w-[9rem] max-w-[16rem] text-center";
+  "px-3 py-2 text-sm font-sans border rounded-lg shadow-sm min-w-[9rem] max-w-[16rem] text-left";
 const fieldLabel =
   "block text-[10px] uppercase tracking-widest text-gray-500 font-sans mt-2";
 const input =
@@ -97,10 +82,10 @@ function PromptNode({ data, selected }: NodeProps<CanvasNode>) {
           title: "Prompt transform",
         }
       : {
-          container: "bg-sky-50 border-sky-400 text-sky-900",
-          ring: "ring-sky-500",
-          handle: "!bg-sky-500",
-          eyebrow: "text-sky-700",
+          container: "bg-[#25C1FC] border-[#25C1FC] text-[#0a3a52]",
+          ring: "ring-[#25C1FC]",
+          handle: "!bg-[#25C1FC]",
+          eyebrow: "text-[#0a3a52]",
           title: "Prompt",
         };
   const body =
@@ -115,7 +100,7 @@ function PromptNode({ data, selected }: NodeProps<CanvasNode>) {
       }`}
     >
       <Handle type="target" position={Position.Top} className={chrome.handle} />
-      <div className={`text-[10px] uppercase tracking-widest mb-0.5 ${chrome.eyebrow}`}>
+      <div className={`rf-node-title mb-0.5 text-left ${chrome.eyebrow}`}>
         {chrome.title}
       </div>
       <ClampedNodeText lines={4} title={body}>
@@ -161,7 +146,7 @@ function renderPromptInspectorExtra(
   const promptType = getPromptSubtype(promptData);
 
   return (
-    <div className="pt-2 mt-2 border-t border-[#c0bdb0]">
+    <div className="pt-2 mt-2 border-t border-[#c0bdb0] space-y-2">
       <label className={fieldLabel}>Prompt type</label>
       <select
         className={input}
@@ -194,45 +179,12 @@ function renderPromptInspectorExtra(
             value={getPromptTransformInputVariable(promptData)}
             onChange={(e) => update({ inputVariable: e.target.value })}
           />
-          <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-            Local variable or state field this transform reads. Defaults to{" "}
-            <span className="font-mono">{CARRIED_OUTPUT_PROMPT_VALUE_NAME}</span>.
-          </p>
-
           <label className={fieldLabel}>Output variable</label>
           <input
             className={input}
             placeholder="transformed_output"
             value={getPromptTransformOutputVariable(promptData)}
             onChange={(e) => update({ outputVariable: e.target.value })}
-          />
-          <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-            New local variable that receives the transformed result. Leaving it blank
-            keeps legacy behavior and writes to{" "}
-            <span className="font-mono">{CARRIED_OUTPUT_PROMPT_VALUE_NAME}</span>.
-          </p>
-        </>
-      )}
-
-      {promptType === "prompt" && (
-        <p className="mt-2 text-[10px] font-serif leading-relaxed text-gray-500">
-          {promptData.actionTypeSource === "auto"
-            ? "Auto-detected as a prompt-producing node."
-            : "Default prompt node. This lowers to a regular prompt step."}
-        </p>
-      )}
-
-      {(promptType === "prompt" || promptType === "prompt_transform") && (
-        <>
-          <LocalInputsEditor
-            value={
-              (promptData as Record<string, unknown>)[NODE_LOCAL_INPUTS_DATA_KEY]
-            }
-            onChange={(next) => updateLocalInputFields(update, next)}
-          />
-          <PromptOutputFieldsEditor
-            value={promptData.promptOutputFields}
-            onChange={(next) => updatePromptOutputFields(update, next)}
           />
         </>
       )}
@@ -247,15 +199,7 @@ function renderCodeInspectorExtra(
   const codeData = data as CodeData;
 
   return (
-    <div className="pt-2 mt-2 border-t border-[#c0bdb0]">
-      {codeData.actionTypeSource && (
-        <p className="mb-2 text-[10px] font-serif leading-relaxed text-gray-500">
-          {codeData.actionTypeSource === "auto"
-            ? "Auto-detected from a supported deterministic state rule."
-            : "Explicit code node. Automatic classification will preserve this node as code."}
-        </p>
-      )}
-
+    <div className="pt-2 mt-2 border-t border-[#c0bdb0] space-y-2">
       <label className={fieldLabel}>Code mode</label>
       <select
         className={input}
@@ -275,45 +219,19 @@ function renderCodeInspectorExtra(
         <option value="typescript">TypeScript</option>
       </select>
 
-      <LocalInputsEditor
-        value={(codeData as Record<string, unknown>)[NODE_LOCAL_INPUTS_DATA_KEY]}
-        onChange={(next) => updateLocalInputFields(update, next)}
-      />
-
       {isTypeScriptCodeNodeData(codeData) ? (
         <>
           <label className={fieldLabel}>TypeScript body</label>
-          <p className="text-[10px] font-serif text-gray-500 mt-1 leading-snug">
-            Write only the function body. The runtime provides
-            <span className="font-mono"> ctx.state</span>,
-            <span className="font-mono"> ctx.locals</span>. Read the latest
-            input from
-            <span className="font-mono"> ctx.locals.{AGENT_LATEST_OBSERVATION_PROMPT_VALUE_NAME}</span>.
-            Return an object
-            with optional <span className="font-mono">setState</span>,
-            <span className="font-mono">setLocals</span>, or
-            <span className="font-mono">clearLocals</span>. Returning a plain
-            object like <span className="font-mono">{`{ my_local: value }`}</span>
-            publishes locals directly.
-          </p>
           <textarea
             className={`${input} mt-2 min-h-[12rem] resize-y leading-relaxed`}
             rows={10}
-            placeholder={`const message = String(ctx.locals.${FINALIZED_ASSISTANT_MESSAGE_PROMPT_VALUE_NAME} ?? "").trim();\nif (!message) {\n  return {};\n}\n\nconst events = Array.isArray(ctx.state.new_events) ? [...ctx.state.new_events] : [];\nconst last = events[events.length - 1];\nif (last && typeof last === "object" && last && !Array.isArray(last) && !last.action) {\n  events[events.length - 1] = { ...last, action: message };\n} else {\n  events.push({ action: message, observation: "", reward: "" });\n}\n\nreturn { setState: { new_events: events } };`}
+            placeholder={`const message = String(ctx.locals.${FINALIZED_ASSISTANT_MESSAGE_PROMPT_VALUE_NAME} ?? "").trim();\nif (!message) {\n  return {};\n}\n\nreturn { setState: { /* … */ } };`}
             value={readNodeExecutableCodeSource({ data: codeData })}
             onChange={(e) =>
               update({
                 [NODE_EXECUTABLE_CODE_SOURCE_DATA_KEY]: e.target.value,
               })
             }
-          />
-          <CodeLocalOutputsEditor
-            value={
-              (codeData as Record<string, unknown>)[
-                NODE_EXECUTABLE_CODE_LOCAL_OUTPUTS_DATA_KEY
-              ]
-            }
-            onChange={(next) => updateCodeLocalOutputFields(update, next)}
           />
         </>
       ) : null}
@@ -325,7 +243,7 @@ export const PROMPT: NodeKindDef = {
   kind: "prompt",
   toolbarLabel: "+ Prompt",
   toolbarClassName:
-    "text-xs font-sans uppercase tracking-widest px-2.5 py-1 border border-sky-400 text-sky-900 bg-sky-50 hover:bg-sky-100 rounded-full",
+    "border border-[#25C1FC] text-[#0a3a52] bg-[#25C1FC] hover:bg-[#14b0eb]",
   component: PromptNode,
   defaultLabel: "new prompt",
   defaultData: {
@@ -338,15 +256,8 @@ export const PROMPT: NodeKindDef = {
       if (promptType === "prompt_transform") return "Transform rules";
       return "Prompt";
     },
-    helpText: (data) => {
-      const promptType = getPromptSubtype(data as PromptData);
-      if (promptType === "prompt_transform") {
-        return "Rules for how the selected source value should be rewritten or formatted into the output variable. In prompt-based flows this is rendered into the system prompt, and in hybrid flows it can run as a prompt_transform step.";
-      }
-      return "Default prompt node. This lowers to a regular prompt step.";
-    },
     textareaRows: (data) =>
-      getPromptSubtype(data as PromptData) === "prompt_transform" ? 4 : 3,
+      getPromptSubtype(data as PromptData) === "prompt_transform" ? 6 : 6,
     renderExtra: renderPromptInspectorExtra,
   },
 };
@@ -364,10 +275,6 @@ export const CODE: NodeKindDef = {
   },
   inspector: {
     labelTitle: "Code rule",
-    helpText: (data) =>
-      isTypeScriptCodeNodeData(data as CodeData)
-        ? `Constrained TypeScript code with full state and local-variable read access. Scripts can update state, define locals, and read reserved locals like ${CARRIED_OUTPUT_PROMPT_VALUE_NAME}, ${FINALIZED_ASSISTANT_MESSAGE_PROMPT_VALUE_NAME}, and ${AGENT_LATEST_OBSERVATION_PROMPT_VALUE_NAME}.`
-        : "Deterministic state mutation that lowers to a code step instead of a prompt step.",
     textareaRows: 3,
     renderExtra: renderCodeInspectorExtra,
   },
