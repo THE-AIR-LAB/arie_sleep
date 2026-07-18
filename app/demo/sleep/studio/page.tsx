@@ -12,6 +12,7 @@ import {
 } from "./sleep-data";
 import { RightDrawer, DRAWER_LABEL, type DrawerId } from "./RightDrawer";
 import { SetupBar } from "./config/page";
+import { SimulationPanel } from "./SimulationPanel";
 import { FeedbackControls, type FeedbackEntry, type FeedbackSignal } from "./FeedbackControls";
 import type { Turn, TimedTraceEvent } from "../../../components/trace/TraceView";
 import { AuthProvider, useAuth } from "../../../context/AuthContext";
@@ -46,6 +47,9 @@ function stripMarkdownForSpeech(text: string): string {
 interface Message {
   role: "user" | "ai";
   text: string;
+  /** Observability turn this reply belongs to — lets you click the bubble to
+   *  jump to its trace. Only set for replies produced this session. */
+  turnId?: string;
 }
 interface Conversation {
   id: string;
@@ -54,11 +58,11 @@ interface Conversation {
 
 // The function panels shown as drawer tabs on desktop. Opening any one of them
 // opens the whole set (see openDrawer) so all tabs are visible.
-const PANEL_TABS: DrawerId[] = ["modelsetup", "observability" /*, "expert", "upload" */];
+const PANEL_TABS: DrawerId[] = ["modelsetup", "observability", "simulation" /*, "expert", "upload" */];
 
 // Panels that expose internal wiring (model/prompt setup, step-by-step traces).
 // Only admins may see or open these; non-admins get the plain chat surface.
-const ADMIN_ONLY_DRAWERS: DrawerId[] = ["modelsetup", "observability"];
+const ADMIN_ONLY_DRAWERS: DrawerId[] = ["modelsetup", "observability", "simulation"];
 
 const ADMIN_ITEMS = [
   // { icon: "Grid", label: "Admin dashboard", href: "/demo/sleep/expert-dashboard" },
@@ -784,12 +788,29 @@ function VoiceReplyButton({
   );
 }
 
-function Bubble({ m }: { m: Message }) {
+function Bubble({ m, onOpenTrace }: { m: Message; onOpenTrace?: (turnId: string) => void }) {
   if (m.role === "user") return <div className="msg-user">{m.text}</div>;
+  const clickable = !!(onOpenTrace && m.turnId);
   return (
     <div className="msg-ai">
       <Avatar kind="assistant" size={28} mono="SA" />
-      <div className="bubble">
+      <div
+        className={"bubble" + (clickable ? " bubble-traceable" : "")}
+        {...(clickable
+          ? {
+              role: "button" as const,
+              tabIndex: 0,
+              title: "View this turn's trace",
+              onClick: () => onOpenTrace!(m.turnId!),
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenTrace!(m.turnId!);
+                }
+              },
+            }
+          : {})}
+      >
         {m.text}
       </div>
     </div>
@@ -805,6 +826,7 @@ function MessageRow({
   onToggle,
   onSave,
   onRemove,
+  onOpenTrace,
 }: {
   m: Message;
   index: number;
@@ -814,10 +836,11 @@ function MessageRow({
   onToggle: (index: number) => void;
   onSave: (index: number, entries: FeedbackEntry[]) => void;
   onRemove: (index: number) => void;
+  onOpenTrace?: (turnId: string) => void;
 }) {
   return (
     <div className="msg-block">
-      <Bubble m={m} />
+      <Bubble m={m} onOpenTrace={onOpenTrace} />
       <FeedbackControls
         mode={feedbackMode}
         entries={entries}
@@ -842,6 +865,7 @@ function Thread({
   onToggleFeedback,
   onSaveFeedback,
   onRemoveFeedback,
+  onOpenTrace,
 }: {
   messages: Message[];
   typing: boolean;
@@ -853,6 +877,7 @@ function Thread({
   onToggleFeedback: (index: number) => void;
   onSaveFeedback: (index: number, entries: FeedbackEntry[]) => void;
   onRemoveFeedback: (index: number) => void;
+  onOpenTrace?: (turnId: string) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   // Auto-scroll to the latest message as the conversation grows — but NOT when
@@ -876,6 +901,7 @@ function Thread({
             onToggle={onToggleFeedback}
             onSave={onSaveFeedback}
             onRemove={onRemoveFeedback}
+            onOpenTrace={onOpenTrace}
           />
         ))}
         {streaming && <Bubble m={{ role: "ai", text: streaming }} />}
@@ -1333,6 +1359,17 @@ function SleepStudioChat() {
   const [convosLoaded, setConvosLoaded] = useState(false);
   const [convos, setConvos] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Mirror of activeId that is safe to read from a long-lived closure (the
+  // Simulation loop reuses one captured send() across turns). Kept in sync
+  // below AND written synchronously in send() the moment a conversation is
+  // created, so back-to-back sends target the same conversation.
+  const activeIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+  // When set (by the Simulation panel), the next conversation send() creates is
+  // titled as a simulation instead of using the first user message.
+  const simulationTitleRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState("");
   const [input, setInput] = useState("");
@@ -1488,6 +1525,20 @@ function SleepStudioChat() {
     setActiveDrawer(null);
   }, []);
   const [turns, setTurns] = useState<Turn[]>([]); // observability trace, one per send
+  // Clicking an assistant bubble opens Observability and expands that turn's
+  // trace. `n` bumps on every click so re-clicking the same bubble re-focuses.
+  const [traceFocus, setTraceFocus] = useState<{ id: string; n: number }>({
+    id: "",
+    n: 0,
+  });
+  const focusTrace = useCallback(
+    (turnId: string) => {
+      if (!isAdmin) return; // Observability is admin-only.
+      setTraceFocus((prev) => ({ id: turnId, n: prev.n + 1 }));
+      openDrawer("observability");
+    },
+    [isAdmin, openDrawer]
+  );
   const [feedbackMode, setFeedbackMode] = useState(false); // per-bubble feedback
   const [feedbackByIdx, setFeedbackByIdx] = useState<Record<number, FeedbackEntry[]>>({});
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -1689,12 +1740,17 @@ function SleepStudioChat() {
         );
 
       try {
-        let conversationId = activeId;
+        let conversationId = activeIdRef.current;
         if (!conversationId) {
+          const simTitle = simulationTitleRef.current;
+          simulationTitleRef.current = null;
           const res = await fetch("/api/conversations", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: trimmed.slice(0, 60), topic: "sleep" }),
+            body: JSON.stringify({
+              title: simTitle ?? trimmed.slice(0, 60),
+              topic: "sleep",
+            }),
           });
           if (!res.ok) {
             throw new Error(`Couldn't start a conversation (HTTP ${res.status}).`);
@@ -1702,6 +1758,10 @@ function SleepStudioChat() {
           const { id } = await res.json();
           conversationId = id as string;
           setActiveId(conversationId);
+          // Write the ref synchronously so the next send() in a simulation loop
+          // (which reuses this same closure) targets this conversation instead
+          // of creating another one.
+          activeIdRef.current = conversationId;
           await loadConversations();
         }
 
@@ -1768,7 +1828,7 @@ function SleepStudioChat() {
           ...e,
           tMs: (e as { ts?: number }).ts ?? Date.now(),
         }));
-        setMessages((prev) => [...prev, { role: "ai", text: answer }]);
+        setMessages((prev) => [...prev, { role: "ai", text: answer, turnId }]);
         setStreaming("");
         loadConversations();
         finishTurn({
@@ -1777,12 +1837,13 @@ function SleepStudioChat() {
           state: data.state,
           nodeRefs: data.nodeRefs,
         });
+        return answer;
       } catch (err) {
         const message =
           err instanceof Error && err.message.trim()
             ? err.message.trim()
             : "Something went wrong while sending the message.";
-        setMessages((prev) => [...prev, { role: "ai", text: message }]);
+        setMessages((prev) => [...prev, { role: "ai", text: message, turnId }]);
         setStreaming("");
         finishTurn({
           error: message,
@@ -1797,6 +1858,7 @@ function SleepStudioChat() {
             },
           ],
         });
+        return message;
       } finally {
         setTyping(false);
         setTypingLabel("");
@@ -1817,6 +1879,22 @@ function SleepStudioChat() {
     stopSpeaking();
     setTimeout(() => inputRef.current?.focus(), 30);
   };
+  // Start a fresh, empty conversation for a simulation run. The actual
+  // conversation row is created lazily by the first send() (titled via
+  // simulationTitleRef), so the whole run flows through the real chat pipeline —
+  // messages land in the main window, the trace fills Observability, and the
+  // policy canvas animates, exactly like a hand-typed conversation.
+  const beginSimulation = useCallback(
+    (scenario: string) => {
+      onNew();
+      simulationTitleRef.current = `Simulation · ${scenario.trim().slice(0, 40) || "run"}`;
+    },
+    // onNew is a stable inline function defined every render; the values it
+    // touches are all setState/refs, so it's safe to omit from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const onSelect = (id: string) => {
     setActiveId(id);
     setStreaming("");
@@ -1998,6 +2076,7 @@ function SleepStudioChat() {
                 onToggleFeedback={onToggleFeedback}
                 onSaveFeedback={onSaveFeedback}
                 onRemoveFeedback={onRemoveFeedback}
+                onOpenTrace={isAdmin ? focusTrace : undefined}
               />
             ) : (
               <EmptyState onSuggest={send} compact={canvasOpen} />
@@ -2057,6 +2136,7 @@ function SleepStudioChat() {
             isAdmin={isAdmin}
             turns={turns}
             onClearTurns={() => setTurns([])}
+            traceFocus={traceFocus}
             width={obsWidth ?? undefined}
             onDismiss={closeAllDrawers}
             chatsContent={
@@ -2085,6 +2165,9 @@ function SleepStudioChat() {
               />
             }
             modelSetupContent={<div className="drawer-pane" ref={setModelSetupSlot} />}
+            simulationContent={
+              <SimulationPanel controller={{ begin: beginSimulation, send }} />
+            }
             activeConversationId={activeId}
           />
           {/* SetupBar is mounted here (page level), not inside the drawer, so its

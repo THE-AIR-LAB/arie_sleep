@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Shared trace viewer — the "step-by-step trace" UI first built inline on the
 // sandbox page, extracted so other surfaces (e.g. the Sleep observability
@@ -360,8 +360,26 @@ export function TurnEvents({
  * collapsible card per turn (with the per-turn events + raw JSON). Manages its
  * own open-turn state. Pass the accumulated `turns`.
  */
-export function TraceView({ turns }: { turns: Turn[] }) {
+export function TraceView({
+  turns,
+  focus,
+}: {
+  turns: Turn[];
+  /** External request to expand + scroll to a turn; `n` bumps per click. */
+  focus?: { id: string; n: number };
+}) {
   const [openTurnId, setOpenTurnId] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // When a chat bubble asks to see its trace, expand that turn and scroll it in.
+  useEffect(() => {
+    if (!focus || !focus.id) return;
+    if (!turns.some((t) => t.id === focus.id)) return;
+    setOpenTurnId(focus.id);
+    const el = cardRefs.current[focus.id];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.n, focus?.id]);
 
   return (
     <div className="space-y-2">
@@ -376,10 +394,17 @@ export function TraceView({ turns }: { turns: Turn[] }) {
         <div className="space-y-2">
           {turns.map((turn, idx) => {
             const open = openTurnId === turn.id;
+            const focused = focus?.id === turn.id;
             return (
               <div
                 key={turn.id}
-                className="border border-[#c8c4b4] rounded bg-[#f3f1e6] overflow-hidden"
+                ref={(el) => {
+                  cardRefs.current[turn.id] = el;
+                }}
+                className={
+                  "border rounded bg-[#f3f1e6] overflow-hidden " +
+                  (focused ? "border-[#385100]" : "border-[#c8c4b4]")
+                }
               >
                 <button
                   type="button"

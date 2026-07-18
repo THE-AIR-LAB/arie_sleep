@@ -20,6 +20,7 @@ import { UploadContent } from "./UploadPanel";
 export type DrawerId =
   | "observability"
   | "modelsetup"
+  | "simulation"
   | "expert"
   | "upload"
   | "chats"
@@ -29,6 +30,7 @@ export const DRAWER_LABEL: Record<DrawerId, string> = {
   chats: "Chats",
   observability: "Observability",
   modelsetup: "Model Setup",
+  simulation: "Simulation",
   expert: "Expert",
   upload: "Upload",
   account: "Account",
@@ -42,13 +44,14 @@ const ALL_TABS: DrawerId[] = [
   "chats",
   "observability",
   "modelsetup",
+  "simulation",
   // "expert",
   // "upload",
 ];
 
 // Panels that expose internal wiring (model/prompt setup, step-by-step traces).
 // Hidden from non-admins on every surface (desktop tabs and the mobile sheet).
-const ADMIN_ONLY_DRAWERS: DrawerId[] = ["observability", "modelsetup"];
+const ADMIN_ONLY_DRAWERS: DrawerId[] = ["observability", "modelsetup", "simulation"];
 
 function useIsMobile(): boolean {
   return useSyncExternalStore(
@@ -69,10 +72,12 @@ export function RightDrawer({
   onClose,
   turns,
   onClearTurns,
+  traceFocus,
   width,
   chatsContent,
   accountContent,
   modelSetupContent,
+  simulationContent,
   activeConversationId,
   onDismiss,
   isAdmin = false,
@@ -83,6 +88,8 @@ export function RightDrawer({
   onClose: (id: DrawerId) => void;
   turns: Turn[];
   onClearTurns: () => void;
+  /** When bumped, Observability expands and scrolls to trace turn `id`. */
+  traceFocus?: { id: string; n: number };
   width?: number;
   /** Mobile-only panes; on desktop these tabs are never opened. */
   chatsContent?: React.ReactNode;
@@ -93,6 +100,8 @@ export function RightDrawer({
    * floating window survives the drawer closing.
    */
   modelSetupContent?: React.ReactNode;
+  /** Simulation pane: run an automated therapist↔simulated-user conversation. */
+  simulationContent?: React.ReactNode;
   /** Active conversation id — the Upload pane attaches files to it. */
   activeConversationId?: string | null;
   /** Close the whole drawer (mobile: flick the sheet down past the threshold). */
@@ -226,9 +235,14 @@ export function RightDrawer({
         >
           {id === "chats" && chatsContent}
           {id === "observability" && (
-            <ObservabilityContent turns={turns} onClear={onClearTurns} />
+            <ObservabilityContent
+              turns={turns}
+              onClear={onClearTurns}
+              traceFocus={traceFocus}
+            />
           )}
           {id === "modelsetup" && modelSetupContent}
+          {id === "simulation" && simulationContent}
           {id === "expert" && <ExpertChatContent active={activeId === "expert"} />}
           {id === "upload" && <UploadContent conversationId={activeConversationId ?? null} />}
           {id === "account" && accountContent}

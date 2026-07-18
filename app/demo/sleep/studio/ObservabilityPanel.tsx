@@ -22,9 +22,12 @@ import { Ic } from "./ra-icons";
 export function ObservabilityContent({
   turns,
   onClear,
+  traceFocus,
 }: {
   turns: Turn[];
   onClear: () => void;
+  /** When bumped, expand + scroll to trace turn `id` (clicked from a bubble). */
+  traceFocus?: { id: string; n: number };
 }) {
   const [infoOpen, setInfoOpen] = useState(false);
 
@@ -51,7 +54,7 @@ export function ObservabilityContent({
       </div>
 
       <div className="obs-body">
-        <TraceView turns={turns} />
+        <TraceView turns={turns} focus={traceFocus} />
       </div>
 
       {infoOpen && <CompilationInfoModal onClose={() => setInfoOpen(false)} />}
