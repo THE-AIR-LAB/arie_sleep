@@ -1300,7 +1300,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .th-actions{display:flex;align-items:center;gap:4px;}
 
 .ra-scope .thread{flex:1;overflow-y:auto;padding:26px 26px 8px;display:flex;flex-direction:column;gap:22px;min-height:0;}
-.ra-scope .thread-inner{width:100%;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:22px;}
+.ra-scope .thread-inner{width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:22px;}
 .ra-scope .day-divider{display:flex;align-items:center;gap:14px;color:var(--text-4);font-size:11px;letter-spacing:1.6px;}
 .ra-scope .day-divider::before,.ra-scope .day-divider::after{content:"";flex:1;height:1px;background:var(--line-soft);}
 /* TODAY + Collapse all / Expand all on one row. */
@@ -1311,6 +1311,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   background:transparent;border:1px solid var(--line);border-radius:0;padding:3px 9px;
   cursor:pointer;white-space:nowrap;}
 .ra-scope .thread-collapse-all:hover{color:var(--text);background:var(--surface-2);border-color:var(--text-4);}
+.ra-scope .thread-collapse-all.on{color:var(--text);border-color:var(--text);}
+/* Narrow thread: drop Collapse all / Show·Hide controls so they don't crush TODAY. */
+@media (max-width:900px){
+  .ra-scope .thread-collapse-all{display:none;}
+}
 
 .ra-scope .msg-ai{display:flex;gap:13px;align-self:stretch;animation:ra-fadeUp .35s ease both;}
 .ra-scope .msg-ai .avatar{width:28px;height:28px;margin-top:2px;}
@@ -1324,17 +1329,20 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .msg-user{background:var(--surface-2);}
 .ra-scope .bubble-nav{
   flex:0 0 auto; display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:6px;
-  min-height:26px; padding:4px 8px; border:none;}
+  min-height:0; padding:2px 8px 0; border:none;}
 .ra-scope .bubble-nav .trace-actions{flex:1 1 auto; min-width:0;}
 .ra-scope .bubble-nav .bubble-collapse{flex:0 0 auto; margin-left:auto;}
 .ra-scope .bubble-body{
-  flex:1 1 auto; min-width:0; padding:10px 16px;
-  font-size:16.5px; line-height:1.62;}
+  flex:0 0 auto; min-width:0; padding:4px 12px;
+  font-size:16.5px; line-height:1.5;}
 .ra-scope .bubble-body.is-toggleable{cursor:pointer;}
 .ra-scope .bubble-foot{
-  flex:0 0 auto; min-height:28px; padding:4px 8px; border:none;}
+  flex:0 0 auto; min-height:0; padding:0 8px 2px; border:none;}
 .ra-scope .bubble-foot-actions{
   display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;}
+.ra-scope .bubble-foot-feedback{display:inline-flex; align-items:center; gap:8px; margin-left:auto;}
+.ra-scope .bubble-voice-fb.recording{color:var(--text); opacity:1;}
+.ra-scope .bubble-voice-fb.saved{color:var(--text);}
 .ra-scope .bubble-collapse{
   display:inline-flex; align-items:center; gap:4px;
   padding:2px 4px; border:none; border-radius:0; background:transparent;
@@ -1351,7 +1359,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 /* Inline code stays legible on the tinted bubble. */
 .ra-scope .msg-ai .bubble.has-feedback .bubble-body code{background:rgba(255,255,255,0.5);}
 /* Markdown in assistant bubbles (**bold**, lists, links). */
-.ra-scope .msg-ai .bubble .bubble-body p{margin:0 0 .65em;}
+.ra-scope .msg-ai .bubble .bubble-body p{margin:0 0 .35em;}
 .ra-scope .msg-ai .bubble .bubble-body p:last-child{margin-bottom:0;}
 .ra-scope .msg-ai .bubble .bubble-body strong,.ra-scope .msg-ai .bubble .bubble-body b{font-weight:600;color:var(--text);}
 .ra-scope .msg-ai .bubble .bubble-body em,.ra-scope .msg-ai .bubble .bubble-body i{font-style:italic;}
@@ -1381,7 +1389,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .mini-btn:hover{background:var(--surface);color:var(--text-2);}
 
 /* Patient (user) column. */
-.ra-scope .msg-user-col{align-self:flex-end;max-width:74%;display:flex;flex-direction:column;align-items:stretch;gap:0;}
+.ra-scope .msg-user-col{align-self:flex-end;max-width:85%;display:flex;flex-direction:column;align-items:stretch;gap:0;}
 .ra-scope .msg-user-col .trace-actions{justify-content:flex-start;}
 /* Fullscreen reply / feedback — flat chrome matching the inline feedback editor. */
 .ra-scope .bubble-fs-overlay,.bubble-fs-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
@@ -1472,10 +1480,24 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .sim-run-scenario{font-family:inherit;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ra-scope .sim-run-meta{display:flex;align-items:center;gap:6px;font-family:inherit;font-size:12px;color:var(--text-3);}
 .ra-scope .sim-run-dot{opacity:.6;}
-.ra-scope .sim-run-del{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:28px;height:28px;
+.ra-scope .sim-run-del,.ra-scope .sim-run-info{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:28px;height:28px;
   border:none;background:transparent;color:var(--text-4);border-radius:7px;cursor:pointer;opacity:0;transition:opacity .12s ease,background .12s ease,color .12s ease;}
-.ra-scope .sim-run:hover .sim-run-del{opacity:1;}
+.ra-scope .sim-run:hover .sim-run-del,.ra-scope .sim-run:hover .sim-run-info{opacity:1;}
 .ra-scope .sim-run-del:hover{background:var(--surface);color:var(--danger);}
+.ra-scope .sim-run-info:hover{background:var(--surface);color:var(--text);}
+/* Run scenario info modal. */
+.ra-scope .sim-info-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.5);padding:32px;animation:ra-fadeUp .16s ease both;}
+.ra-scope .sim-info{position:relative;width:min(560px,100%);max-height:calc(100vh - 64px);overflow:auto;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px 28px;box-shadow:0 24px 60px rgba(0,0,0,0.25);}
+.ra-scope .sim-info-close{position:absolute;top:12px;right:12px;display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border:none;background:transparent;color:var(--text-3);border-radius:8px;cursor:pointer;}
+.ra-scope .sim-info-close:hover{background:var(--surface-2);color:var(--text);}
+.ra-scope .sim-info-eyebrow{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-4);}
+.ra-scope .sim-info-title{margin:4px 0 2px;font-family:inherit;font-size:18px;font-weight:600;line-height:1.35;color:var(--text);padding-right:32px;}
+.ra-scope .sim-info-meta{font-family:inherit;font-size:13px;color:var(--text-3);margin-bottom:16px;}
+.ra-scope .sim-info-label{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-4);margin-bottom:6px;}
+.ra-scope .sim-info-scenario{font-family:var(--serif);font-size:15px;line-height:1.6;color:var(--text);white-space:pre-wrap;}
 
 /* empty state */
 .ra-scope .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;}

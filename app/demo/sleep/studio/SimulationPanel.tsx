@@ -7,7 +7,14 @@ import { Ic } from "./ra-icons";
 type SimMsg = { role: "user" | "ai"; text: string };
 
 /** A saved simulation conversation, shown in the panel's run history. */
-export type SimRun = { id: string; title: string; updatedAt?: string; turnCount?: number };
+export type SimRun = {
+  id: string;
+  title: string;
+  updatedAt?: string;
+  turnCount?: number;
+  /** The patient scenario that drove the run (repopulated when the run is selected). */
+  scenario?: string | null;
+};
 
 /** Split a simulation title into its parts. New runs are titled
  *  "Simulation · {n} turns · {scenario}"; legacy ones "Simulation · {scenario}". */
@@ -105,8 +112,17 @@ export function SimulationPanel({
   const [paused, setPaused] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  // The run whose scenario is shown in the info modal (null = closed).
+  const [infoRun, setInfoRun] = useState<SimRun | null>(null);
   const abortRef = useRef(false);
   const pausedRef = useRef(false);
+
+  useEffect(() => {
+    if (!infoRun) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setInfoRun(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [infoRun]);
 
   // Resolves once the run is un-paused (or aborted). Called between turns so the
   // trace for the turn that just finished stays put while you inspect it.
@@ -217,6 +233,21 @@ export function SimulationPanel({
   }, [running, paused, onRunControls]);
   useEffect(() => () => onRunControls?.(null), [onRunControls]);
 
+  // Selecting a past run repopulates the Patient scenario with the scenario that
+  // drove it (once per selection, and never mid-run so it can't clobber a live
+  // run's setup). Runs from before scenarios were saved (null) leave it untouched.
+  const populatedRunRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (running) return;
+    if (!activeRunId) { populatedRunRef.current = null; return; }
+    if (populatedRunRef.current === activeRunId) return;
+    const run = runs.find((r) => r.id === activeRunId);
+    if (run && typeof run.scenario === "string") {
+      setScenario(run.scenario);
+      populatedRunRef.current = activeRunId;
+    }
+  }, [activeRunId, runs, running]);
+
   // Run state lives at the page level; docked chrome only when the drawer slot exists.
   if (!slot) return null;
 
@@ -307,6 +338,18 @@ export function SimulationPanel({
                       {when && <span>{when}</span>}
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    className="sim-run-info"
+                    title="View this run's scenario"
+                    aria-label="View this run's scenario"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInfoRun(r);
+                    }}
+                  >
+                    <Ic.Info size={15} />
+                  </button>
                   {onDeleteRun && (
                     <button
                       type="button"
@@ -327,6 +370,41 @@ export function SimulationPanel({
           </div>
         )}
       </div>
+
+      {infoRun && (
+        <div className="sim-info-overlay" role="dialog" aria-modal="true" onClick={() => setInfoRun(null)}>
+          <div className="sim-info" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="sim-info-close"
+              aria-label="Close"
+              title="Close"
+              onClick={() => setInfoRun(null)}
+            >
+              <Ic.Close size={18} />
+            </button>
+            <div className="sim-info-eyebrow">Simulation run</div>
+            <h3 className="sim-info-title">{parseRunTitle(infoRun.title).scenario}</h3>
+            <div className="sim-info-meta">
+              {[
+                infoRun.turnCount && infoRun.turnCount > 0
+                  ? `${infoRun.turnCount} ${infoRun.turnCount === 1 ? "turn" : "turns"}`
+                  : parseRunTitle(infoRun.title).turns,
+                relativeTime(infoRun.updatedAt),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </div>
+            <div className="sim-info-label">Patient scenario</div>
+            <div className="sim-info-scenario">
+              {typeof infoRun.scenario === "string"
+                ? infoRun.scenario.trim() ||
+                  "Improvised patient — no scenario was provided; the patient improvised."
+                : "No scenario was saved for this run."}
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     slot
   );

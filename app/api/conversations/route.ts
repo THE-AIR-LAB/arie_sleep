@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("conversations")
-    .select("id, title, updated_at")
+    .select("id, title, updated_at, scenario")
     .eq("user_id", userUUID)
     .order("updated_at", { ascending: false });
 
@@ -74,9 +74,13 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const title = body.title ?? "New conversation";
   const topic = body.topic ?? null;
+  // Simulation runs pass the patient scenario that drove them so it can be
+  // repopulated when the run is later selected.
+  const scenario = typeof body.scenario === "string" ? body.scenario : null;
 
   const insertPayload: Record<string, unknown> = { user_id: userUUID, title };
   if (topic) insertPayload.topic = topic;
+  if (scenario !== null) insertPayload.scenario = scenario;
 
   let { data, error } = await supabase
     .from("conversations")
@@ -84,8 +88,9 @@ export async function POST(request: NextRequest) {
     .select("id")
     .single();
 
-  // If insert failed (e.g. topic column not yet in DB), retry without topic
-  if (error && topic) {
+  // If insert failed (e.g. topic/scenario column not yet in DB), retry with just
+  // the essentials so a schema lag never blocks creating a conversation.
+  if (error && (topic || scenario !== null)) {
     const fallback = await supabase
       .from("conversations")
       .insert({ user_id: userUUID, title })

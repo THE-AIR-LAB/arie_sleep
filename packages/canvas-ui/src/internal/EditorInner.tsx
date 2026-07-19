@@ -2267,22 +2267,16 @@ export function EditorInner<TOutput>({
     }
     if (firstEmitRef.current) {
       firstEmitRef.current = false;
-      // Skip the first-mount echo unless load repaired a missing singleton
-      // (e.g. Start was deleted from a saved Main canvas).
-      const source = normalizeDoc(docProp) ?? normalizeDoc(seedDoc ?? null);
-      const repairedMissingSingleton = Boolean(
-        source?.canvases.some((entry) =>
-          nodeKinds.some(
-            (kind) =>
-              kind.singleton &&
-              !entry.graph.nodes.some((node) => node.type === kind.kind)
-          )
-        )
-      );
-      if (!repairedMissingSingleton) {
-        lastEmittedDocRef.current = nextDocString;
-        return;
-      }
+      // Always notify the host on first mount so dirty-tracking can adopt the
+      // editor-normalized doc as its clean baseline. Skipping this made the
+      // first *edit* look like the baseline (Save stayed disabled).
+      // Still run immediately (no debounce) so adoption happens before typing.
+      const compilerGroups = collectPromptGroupsForCompiler(nextDoc, inspectorContext);
+      const compilerDoc = normalizePromptGroupsForCompiler(nextDoc, compilerGroups);
+      const result = compileRef.current(compilerDoc);
+      lastEmittedDocRef.current = nextDocString;
+      onChangeRef.current({ doc: nextDoc, result });
+      return;
     }
     const handle = setTimeout(() => {
       const compilerGroups = collectPromptGroupsForCompiler(nextDoc, inspectorContext);

@@ -64,6 +64,8 @@ interface Conversation {
   updatedAt?: string;
   /** Actual number of turns (assistant replies) — shown in the simulation run list. */
   turnCount?: number;
+  /** For simulation runs: the patient scenario that drove the run. */
+  scenario?: string | null;
 }
 
 // The function panels shown as drawer tabs on desktop. Opening any one of them
@@ -899,6 +901,72 @@ function VoiceReplyButton({
 }
 
 /**
+ * Mic next to Feedback: click to speak, stop to transcribe and save as the
+ * ideal-output feedback signal (same signal the fullscreen editor submits).
+ */
+function VoiceFeedbackButton({
+  existing,
+  onSubmit,
+}: {
+  existing: FeedbackEntry[];
+  onSubmit: (entries: FeedbackEntry[]) => void;
+}) {
+  const [hint, setHint] = useState("");
+  const { isRecording, isTranscribing, toggle } = useVoiceRecorder({
+    onTranscript: (text) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        setHint("No speech heard");
+        window.setTimeout(() => setHint(""), 1800);
+        return;
+      }
+      const kept = existing.filter((e) => e.signal !== "correct_output");
+      onSubmit([
+        ...kept,
+        { rating: null, signal: "correct_output", comment: trimmed },
+      ]);
+      setHint("Saved");
+      window.setTimeout(() => setHint(""), 1600);
+    },
+    onError: (message) => {
+      setHint(message);
+      window.setTimeout(() => setHint(""), 2200);
+    },
+  });
+
+  const label = isTranscribing
+    ? "Saving…"
+    : isRecording
+      ? "Listening…"
+      : hint || "Voice feedback";
+
+  return (
+    <button
+      type="button"
+      className={
+        "trace-act bubble-voice-fb" +
+        (isRecording ? " recording" : "") +
+        (hint === "Saved" ? " saved" : "")
+      }
+      title={
+        isRecording
+          ? "Stop recording — saves as ideal feedback"
+          : "Speak the ideal response; saves as ideal feedback"
+      }
+      aria-label={label}
+      aria-pressed={isRecording}
+      disabled={isTranscribing}
+      onClick={(e) => {
+        e.stopPropagation();
+        toggle();
+      }}
+    >
+      <Ic.Mic size={13} /> {label}
+    </button>
+  );
+}
+
+/**
  * Fullscreen overlay for a reply — mirrors the canvas full mode. It has its own
  * Feedback button: pressing it turns the reply into an editable input with a
  * Submit button; submitting saves the edited text as the "ideal output" feedback
@@ -1048,6 +1116,7 @@ function Bubble({
   onSubmitFeedback,
   collapsed = false,
   onToggleCollapse,
+  hideControls = false,
 }: {
   m: Message;
   onOpenTrace?: (turnId: string) => void;
@@ -1063,6 +1132,8 @@ function Bubble({
   /** When true the bubble is tucked to a single line. */
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  /** When true, hide the bubble nav and footer chrome. */
+  hideControls?: boolean;
 }) {
   const [fullscreen, setFullscreen] = useState(false);
   const isUser = m.role === "user";
@@ -1113,9 +1184,15 @@ function Bubble({
         <span />
       )}
       {showFeedback ? (
-        <button type="button" className="trace-act" title="Leave feedback on this message" onClick={() => onOpenFeedback!()}>
-          <Ic.Edit size={13} /> Feedback
-        </button>
+        <div className="bubble-foot-feedback">
+          <VoiceFeedbackButton
+            existing={feedbackEntries ?? []}
+            onSubmit={(entries) => onSubmitFeedback?.(entries)}
+          />
+          <button type="button" className="trace-act" title="Leave feedback on this message" onClick={() => onOpenFeedback!()}>
+            <Ic.Edit size={13} /> Feedback
+          </button>
+        </div>
       ) : (
         <span />
       )}
@@ -1177,18 +1254,20 @@ function Bubble({
     (collapsed ? " is-collapsed" : "");
 
   const shell = (
-    <div className={shellClass}>
-      <div className="bubble-nav">
-        {navActions}
-        {collapseBtn}
-      </div>
+    <div className={shellClass + (hideControls ? " hide-controls" : "")}>
+      {!hideControls && (
+        <div className="bubble-nav">
+          {navActions}
+          {collapseBtn}
+        </div>
+      )}
       <div
         className={"bubble-body" + (onToggleCollapse ? " is-toggleable" : "")}
         {...bodyToggleProps}
       >
         {collapsed ? collapsedPreview : isUser ? m.text : <ReactMarkdown>{m.text}</ReactMarkdown>}
       </div>
-      {footActions && <div className="bubble-foot">{footActions}</div>}
+      {!hideControls && footActions && <div className="bubble-foot">{footActions}</div>}
     </div>
   );
 
@@ -1227,6 +1306,7 @@ function MessageRow({
   allowFeedback,
   collapsed,
   onToggleCollapse,
+  hideControls,
 }: {
   m: Message;
   index: number;
@@ -1243,6 +1323,7 @@ function MessageRow({
   allowFeedback?: boolean;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  hideControls: boolean;
 }) {
   return (
     <div className="msg-block">
@@ -1260,6 +1341,7 @@ function MessageRow({
         onSubmitFeedback={allowFeedback ? (e) => onSave(index, e) : undefined}
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
+        hideControls={hideControls}
       />
       <FeedbackControls
         mode={feedbackMode}
@@ -1312,6 +1394,20 @@ function Thread({
   const endRef = useRef<HTMLDivElement>(null);
   // Per-bubble collapse; driven by each row's Collapse button or the top toggle.
   const [collapsedByIdx, setCollapsedByIdx] = useState<Record<number, boolean>>({});
+  // Hide per-bubble nav/footer chrome for a cleaner reading view.
+  // Narrow viewports start with controls hidden; "Show controls" can still reveal them.
+  const [hideBubbleControls, setHideBubbleControls] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 900px)").matches
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 900px)");
+    const sync = () => setHideBubbleControls(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const allCollapsed =
     messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i]);
   const toggleCollapseAll = () => {
@@ -1348,6 +1444,20 @@ function Thread({
             </button>
           )}
           <div className="day-divider">TODAY</div>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              className={"thread-collapse-all" + (hideBubbleControls ? " on" : "")}
+              onClick={() => setHideBubbleControls((v) => !v)}
+              title={
+                hideBubbleControls
+                  ? "Show bubble nav and footer"
+                  : "Hide bubble nav and footer"
+              }
+            >
+              {hideBubbleControls ? "Show controls" : "Hide controls"}
+            </button>
+          )}
         </div>
         {messages.map((m, i) => (
           <MessageRow
@@ -1369,6 +1479,7 @@ function Thread({
             onToggleCollapse={() =>
               setCollapsedByIdx((prev) => ({ ...prev, [i]: !prev[i] }))
             }
+            hideControls={hideBubbleControls}
           />
         ))}
         {streaming && <Bubble m={{ role: "ai", text: streaming }} />}
@@ -1836,6 +1947,9 @@ function SleepStudioChat() {
   // When set (by the Simulation panel), the next conversation send() creates is
   // titled as a simulation instead of using the first user message.
   const simulationTitleRef = useRef<string | null>(null);
+  // The patient scenario that drove that run, saved on the conversation so
+  // selecting the run later can repopulate the Patient scenario field.
+  const simulationScenarioRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState("");
   const [input, setInput] = useState("");
@@ -2157,13 +2271,14 @@ function SleepStudioChat() {
       const res = await fetch("/api/conversations?topic=sleep");
       if (!res.ok) { setConvos([]); return; }
       const { conversations } = (await res.json()) as {
-        conversations: Array<{ id: string; title: string; updated_at?: string; turn_count?: number }>;
+        conversations: Array<{ id: string; title: string; updated_at?: string; turn_count?: number; scenario?: string | null }>;
       };
       setConvos((conversations ?? []).map((c) => ({
         id: c.id,
         title: c.title,
         updatedAt: c.updated_at,
         turnCount: c.turn_count,
+        scenario: c.scenario,
       })));
     } catch {
       setConvos([]);
@@ -2306,12 +2421,16 @@ function SleepStudioChat() {
         if (!conversationId) {
           const simTitle = simulationTitleRef.current;
           simulationTitleRef.current = null;
+          const simScenario = simulationScenarioRef.current;
+          simulationScenarioRef.current = null;
           const res = await fetch("/api/conversations", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               title: simTitle ?? trimmed.slice(0, 60),
               topic: "sleep",
+              // Persist the scenario for simulation runs (null for hand-typed chats).
+              ...(simScenario !== null ? { scenario: simScenario } : {}),
             }),
           });
           if (!res.ok) {
@@ -2454,6 +2573,8 @@ function SleepStudioChat() {
       const label = scenario.trim().slice(0, 80) || "Improvised patient";
       const plural = turns === 1 ? "turn" : "turns";
       simulationTitleRef.current = `Simulation · ${turns} ${plural} · ${label}`;
+      // Save the exact scenario that drove the run (empty string for improvised).
+      simulationScenarioRef.current = scenario;
     },
     // onNew is a stable inline function defined every render; the values it
     // touches are all setState/refs, so it's safe to omit from deps.

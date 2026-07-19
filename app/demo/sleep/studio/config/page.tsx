@@ -1464,6 +1464,8 @@ export function useSleepSetup() {
   const configIdRef = React.useRef<string | null>(null);
   const preservedRef = React.useRef<Record<string, unknown>>({});
   const dirtyArmedRef = React.useRef(false);
+  // Mirrors `dirty` for mount-adoption logic (avoid stale closures).
+  const dirtyRef = React.useRef(false);
   // Fingerprint of last loaded/saved content. Save stays off unless the live
   // docs differ in structure or node description (not selection / position).
   const baselineRef = React.useRef<{
@@ -1483,6 +1485,7 @@ export function useSleepSetup() {
   stateDocRef.current = stateDoc;
   fieldsRef.current = fields;
   guidelinesRef.current = guidelineItems;
+  dirtyRef.current = dirty;
   const stateCompile = React.useMemo(
     () =>
       createStateExtractionCompiler(
@@ -1563,6 +1566,7 @@ export function useSleepSetup() {
     guidelines?: string[];
   }) => {
     if (!dirtyArmedRef.current || !baselineRef.current) {
+      dirtyRef.current = false;
       setDirty(false);
       return;
     }
@@ -1572,12 +1576,25 @@ export function useSleepSetup() {
     const nextFields = parts?.fields !== undefined ? parts.fields : fieldsRef.current;
     const nextGuidelines =
       parts?.guidelines !== undefined ? parts.guidelines : guidelinesRef.current;
-    setDirty(
+    const nextDirty =
       canvasFingerprint(policy ?? POLICY_SEED_DOC) !== b.policy ||
-        canvasFingerprint(state ?? STATE_SEED_DOC) !== b.state ||
-        JSON.stringify(nextFields) !== b.fields ||
-        JSON.stringify(nextGuidelines) !== b.guidelines
-    );
+      canvasFingerprint(state ?? STATE_SEED_DOC) !== b.state ||
+      JSON.stringify(nextFields) !== b.fields ||
+      JSON.stringify(nextGuidelines) !== b.guidelines;
+    dirtyRef.current = nextDirty;
+    setDirty(nextDirty);
+  };
+
+  // First emit after a canvas mount: absorb normalize-only churn into the
+  // baseline when clean. If there are already unsaved edits, keep the saved
+  // baseline so remounting (tab switch, dock) doesn't grey out Save.
+  const adoptCanvasBaselineIfClean = (
+    which: "policy" | "state",
+    nextFp: string
+  ) => {
+    if (!baselineRef.current) return;
+    if (dirtyRef.current) return;
+    baselineRef.current = { ...baselineRef.current, [which]: nextFp };
   };
 
   // Load the live configuration the chat runtime actually reads, so the studio
@@ -1745,6 +1762,10 @@ export function useSleepSetup() {
           fields: fieldsToSave,
           guidelines: guidelineItems,
         });
+        // Allow the next canvas emit to re-absorb normalize-only differences.
+        policyAdoptedRef.current = false;
+        stateAdoptedRef.current = false;
+        dirtyRef.current = false;
         setDirty(false);
         // The canvas rows saved, but the execution plan that actually drives the
         // runtime (and the policy-canvas trajectory) is regenerated separately and
@@ -1809,10 +1830,10 @@ export function useSleepSetup() {
             setStateDoc(doc);
             if (!dirtyArmedRef.current || !baselineRef.current) return;
             const nextFp = canvasFingerprint(doc);
-            // First emit after (re)mount: adopt editor-normalized doc as clean.
+            // First emit after (re)mount: absorb normalize churn when clean.
             if (!stateAdoptedRef.current) {
-              baselineRef.current = { ...baselineRef.current, state: nextFp };
               stateAdoptedRef.current = true;
+              adoptCanvasBaselineIfClean("state", nextFp);
             }
             syncDirty({ state: doc });
           }}
@@ -1836,8 +1857,8 @@ export function useSleepSetup() {
             if (!dirtyArmedRef.current || !baselineRef.current) return;
             const nextFp = canvasFingerprint(doc);
             if (!policyAdoptedRef.current) {
-              baselineRef.current = { ...baselineRef.current, policy: nextFp };
               policyAdoptedRef.current = true;
+              adoptCanvasBaselineIfClean("policy", nextFp);
             }
             syncDirty({ policy: doc });
           }}
