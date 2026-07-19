@@ -1547,31 +1547,33 @@ function Composer({
   return (
     <div className="composer-wrap">
       <div className="composer-inner">
-        <div className="action-chips">
-          {ACTION_CHIPS.map((a) => {
-            const I = Ic[a.icon as keyof typeof Ic];
-            return (
-              <button
-                key={a.label}
-                className="act-chip"
-                onClick={() => {
-                  if (a.label === "Chat with the expert") {
-                    onExpertChat();
-                    return;
-                  }
-                  if (a.label === "Upload sleep data") {
-                    onUpload();
-                    return;
-                  }
-                  setValue(a.prefill ?? (a.label === "Create" ? "Help me create " : a.label + ": "));
-                  inputRef.current?.focus();
-                }}
-              >
-                <span className="ic"><I size={15} /></span>{a.label}
-              </button>
-            );
-          })}
-        </div>
+        {ACTION_CHIPS.length > 0 && (
+          <div className="action-chips">
+            {ACTION_CHIPS.map((a) => {
+              const I = Ic[a.icon as keyof typeof Ic];
+              return (
+                <button
+                  key={a.label}
+                  className="act-chip"
+                  onClick={() => {
+                    if (a.label === "Chat with the expert") {
+                      onExpertChat();
+                      return;
+                    }
+                    if (a.label === "Upload sleep data") {
+                      onUpload();
+                      return;
+                    }
+                    setValue(a.prefill ?? (a.label === "Create" ? "Help me create " : a.label + ": "));
+                    inputRef.current?.focus();
+                  }}
+                >
+                  <span className="ic"><I size={15} /></span>{a.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {showThreadControls && (
           <div className="composer-thread-controls">
             <button

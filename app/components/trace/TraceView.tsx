@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 // Shared trace viewer — the "step-by-step trace" UI first built inline on the
 // sandbox page, extracted so other surfaces (e.g. the Sleep observability
 // panel) can render the exact same view. The shapes mirror the SSE events the
 // agentic chat route emits (app/api/chat/tools/route.ts).
+
+/** Render prompt / reply text with markdown (headers, bold, lists). */
+function TraceMarkdown({ children }: { children: string }) {
+  return (
+    <div className="trace-md text-gray-700 break-words [&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-[13px] [&_h1]:font-semibold [&_h1]:text-gray-900 [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-gray-900 [&_h3]:mt-1.5 [&_h3]:mb-0.5 [&_h3]:text-[12px] [&_h3]:font-semibold [&_h3]:text-gray-900 [&_p]:my-1 [&_p]:leading-relaxed [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5 [&_strong]:font-semibold [&_strong]:text-gray-900 [&_em]:italic [&_code]:rounded [&_code]:bg-[#ebe8dc] [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[11px] [&_pre]:my-1.5 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-[#ebe8dc] [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-[11px]">
+      <ReactMarkdown>{children}</ReactMarkdown>
+    </div>
+  );
+}
 
 export type TraceEvent =
   | {
@@ -201,7 +211,7 @@ export function TraceEventCard({
                 {m.toolCalls != null && (
                   <span className="text-amber-700 ml-1">[{m.toolCalls} tool call(s)]</span>
                 )}
-                <div className="text-gray-700 whitespace-pre-wrap break-words">{m.preview}</div>
+                <TraceMarkdown>{m.preview}</TraceMarkdown>
               </li>
             ))}
           </ul>
@@ -227,7 +237,9 @@ export function TraceEventCard({
           ) : (
             <div>
               <div className="text-gray-500">final answer:</div>
-              <div className="text-gray-700 whitespace-pre-wrap break-all mt-1">{event.content}</div>
+              <div className="mt-1">
+                <TraceMarkdown>{event.content}</TraceMarkdown>
+              </div>
             </div>
           )}
         </div>
@@ -281,8 +293,8 @@ export function TraceEventCard({
           )}
           <div>
             <span className="text-gray-500">preview:</span>
-            <div className="text-gray-700 whitespace-pre-wrap break-words mt-0.5">
-              {event.preview}
+            <div className="mt-0.5">
+              <TraceMarkdown>{event.preview}</TraceMarkdown>
             </div>
           </div>
           {event.error && (
