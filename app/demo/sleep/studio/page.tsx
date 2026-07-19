@@ -1820,12 +1820,6 @@ const BOTTOM_WORKFLOW_SEED: CanvasDoc = {
 // The Overall Workflow canvas (bottom drawer) mirrors the high-level sleep-care
 // stages. As the conversation runs, we derive which stage the turn belongs to
 // from its policy trace + state, and highlight that stage node in the workflow.
-const WORKFLOW_STAGE_NODE: Record<string, string> = {
-  intake: "wf-stage-intake",
-  assess: "wf-stage-assess",
-  guide: "wf-stage-guide",
-  followup: "wf-stage-followup",
-};
 // Which policy canvas each workflow stage opens (Model Setup → Policy). Each
 // stage now has its own canvas; clicking a workflow stage selects it.
 const WORKFLOW_STAGE_POLICY_CANVAS: Record<string, string> = {
