@@ -751,30 +751,238 @@ function SidebarRail({ onExpand, onNew }: { onExpand: () => void; onNew: () => v
   );
 }
 
+
+/* Shared Pause / Stop / collapse pill — used in the drawer tab bar and as the
+   floating control when the drawer is closed mid-run. */
+function SimControlsPill({
+  controls,
+  collapsed,
+  onToggleCollapsed,
+  floating = false,
+}: {
+  controls: SimRunControls;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  floating?: boolean;
+}) {
+  return (
+    <div
+      className={"sim-controls-pill" + (collapsed ? " is-collapsed" : "") + (floating ? " is-floating" : "")}
+      role="toolbar"
+      aria-label="Simulation controls"
+    >
+      {collapsed ? (
+        <button
+          type="button"
+          className="sim-controls-pill-btn"
+          title={controls.paused ? "Show simulation controls (paused)" : "Show simulation controls"}
+          aria-label={controls.paused ? "Show simulation controls (paused)" : "Show simulation controls"}
+          aria-expanded={false}
+          onClick={onToggleCollapsed}
+        >
+          <span>{controls.paused ? "Paused" : "Running"}</span>
+          <Ic.Chevron size={14} style={{ transform: "rotate(180deg)" }} />
+        </button>
+      ) : (
+        <>
+          {controls.paused ? (
+            <button type="button" className="sim-controls-pill-btn" onClick={controls.resume}>Resume</button>
+          ) : (
+            <button type="button" className="sim-controls-pill-btn" onClick={controls.pause}>Pause</button>
+          )}
+          <button type="button" className="sim-controls-pill-btn" onClick={controls.stop}>Stop</button>
+          <button
+            type="button"
+            className="sim-controls-pill-btn"
+            title="Collapse simulation controls"
+            aria-label="Collapse simulation controls"
+            aria-expanded={true}
+            onClick={onToggleCollapsed}
+          >
+            <Ic.Chevron size={14} />
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+
 /* ---------------- mobile-only top-right nav ---------------- */
 // On mobile the docked sidebar and rails are hidden, so a single hamburger
 // opens the bottom sheet (Chats / Account / admin tabs live inside it).
 function MobileNav({
   onOpen,
+  showThreadControls = false,
+  allCollapsed = false,
+  onToggleCollapseAll,
+  hideBubbleControls = true,
+  onToggleHideBubbleControls,
+  onOpenThreadFullscreen,
+  selectedModel = OPENAI_MODEL,
+  onSelectModel,
 }: {
   onOpen: (id: DrawerId) => void;
   isAdmin?: boolean;
+  showThreadControls?: boolean;
+  allCollapsed?: boolean;
+  onToggleCollapseAll?: () => void;
+  hideBubbleControls?: boolean;
+  onToggleHideBubbleControls?: () => void;
+  onOpenThreadFullscreen?: () => void;
+  selectedModel?: string;
+  onSelectModel?: (model: ChatModelId) => void;
 }) {
+  const [threadMenuOpen, setThreadMenuOpen] = useState(false);
+  const [v2ModalOpen, setV2ModalOpen] = useState(false);
+  const threadMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!threadMenuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (threadMenuRef.current && !threadMenuRef.current.contains(e.target as Node)) {
+        setThreadMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [threadMenuOpen]);
+
   return (
-    <nav className="mobile-railnav" aria-label="Menu">
-      <button
-        type="button"
-        className="mrail-btn"
-        title="Open menu"
-        aria-label="Open menu"
-        onClick={(e) => {
-          e.stopPropagation();
-          onOpen("chats");
-        }}
-      >
-        <Ic.Menu size={18} />
-      </button>
-    </nav>
+    <>
+      <nav className="mobile-railnav" aria-label="Menu">
+        {showThreadControls && (
+          <div className="mrail-thread-controls" ref={threadMenuRef}>
+            <button
+              type="button"
+              className={"mrail-btn" + (threadMenuOpen ? " on" : "")}
+              title="Thread actions"
+              aria-label="Thread actions"
+              aria-haspopup="menu"
+              aria-expanded={threadMenuOpen}
+              onClick={(e) => {
+                e.stopPropagation();
+                setThreadMenuOpen((v) => !v);
+              }}
+            >
+              <Ic.Sliders size={18} />
+            </button>
+            {threadMenuOpen && (
+              <div className="thread-mobile-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="thread-model-option"
+                  onClick={() => {
+                    onToggleHideBubbleControls?.();
+                    setThreadMenuOpen(false);
+                  }}
+                >
+                  {hideBubbleControls ? "Show controls" : "Hide controls"}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="thread-model-option"
+                  onClick={() => {
+                    onToggleCollapseAll?.();
+                    setThreadMenuOpen(false);
+                  }}
+                >
+                  {allCollapsed ? "Expand all" : "Collapse all"}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="thread-model-option"
+                  onClick={() => {
+                    onOpenThreadFullscreen?.();
+                    setThreadMenuOpen(false);
+                  }}
+                >
+                  Fullscreen
+                </button>
+                <div className="thread-mobile-menu-div" role="separator" />
+                <div className="thread-mobile-menu-label">Model</div>
+                {CHAT_MODEL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role={opt.kind === "action" ? "menuitem" : "menuitemradio"}
+                    aria-checked={opt.kind === "model" ? selectedModel === opt.id : undefined}
+                    className={
+                      "thread-model-option" +
+                      (opt.kind === "model" && selectedModel === opt.id ? " selected" : "")
+                    }
+                    onClick={() => {
+                      setThreadMenuOpen(false);
+                      if (opt.kind === "action") {
+                        setV2ModalOpen(true);
+                        return;
+                      }
+                      onSelectModel?.(opt.id);
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <button
+          type="button"
+          className="mrail-btn"
+          title="Open menu"
+          aria-label="Open menu"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen("chats");
+          }}
+        >
+          <Ic.Menu size={18} />
+        </button>
+      </nav>
+      {v2ModalOpen && (
+        <div
+          className="obs-info-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="thread-model-v2-title-mobile"
+          onClick={() => setV2ModalOpen(false)}
+        >
+          <div className="obs-info-card" onClick={(e) => e.stopPropagation()}>
+            <div className="obs-info-head">
+              <span id="thread-model-v2-title-mobile" className="obs-info-title">
+                Move to V2
+              </span>
+              <button
+                type="button"
+                className="obs-info-close"
+                aria-label="Close"
+                onClick={() => setV2ModalOpen(false)}
+              >
+                <Ic.Close size={16} />
+              </button>
+            </div>
+            <div className="obs-info-body">
+              <p>
+                All the information defined in the <b>policy</b> and <b>state</b>, and all
+                the feedback you have provided, will be used to train the V2 custom model.
+              </p>
+              <div className="obs-info-actions">
+                <button
+                  type="button"
+                  className="obs-info-btn primary"
+                  onClick={() => setV2ModalOpen(false)}
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -945,13 +1153,13 @@ function VoiceFeedbackButton({
         (isRecording ? " recording" : "") +
         (hint === "Saved" ? " saved" : "")
       }
-      title={
+      data-tip={
         hint
           ? hint
           : isTranscribing
             ? "Saving…"
             : isRecording
-              ? "Stop recording — saves as ideal feedback"
+              ? "Stop recording"
               : "Voice feedback"
       }
       aria-label={label}
@@ -1333,18 +1541,18 @@ function Bubble({
   const navActions = showNavActions ? (
     <div className="trace-actions">
       {showPolicy && (
-        <button type="button" className="trace-act" title="Policy trace" aria-label="Policy trace" onClick={() => onOpenPolicy!(turnId!)}>
+        <button type="button" className="trace-act" data-tip="Policy" aria-label="Policy" onClick={() => onOpenPolicy!(turnId!)}>
           <Ic.Sliders size={14} />
         </button>
       )}
-      {showTrace && (
-        <button type="button" className="trace-act" title="Observability" aria-label="Observability" onClick={() => onOpenTrace!(turnId!)}>
-          <Ic.Grid size={14} />
+      {showStateBtn && (
+        <button type="button" className="trace-act" data-tip="State" aria-label="State" onClick={() => onOpenState!(turnId!)}>
+          <Ic.List size={14} />
         </button>
       )}
-      {showStateBtn && (
-        <button type="button" className="trace-act" title="State" aria-label="State" onClick={() => onOpenState!(turnId!)}>
-          <Ic.List size={14} />
+      {showTrace && (
+        <button type="button" className="trace-act" data-tip="Observability" aria-label="Observability" onClick={() => onOpenTrace!(turnId!)}>
+          <Ic.Grid size={14} />
         </button>
       )}
     </div>
@@ -1358,7 +1566,7 @@ function Bubble({
           existing={feedbackEntries ?? []}
           onSubmit={(entries) => onSubmitFeedback?.(entries)}
         />
-        <button type="button" className="trace-act" title="Feedback" aria-label="Feedback" onClick={() => onOpenFeedback!()}>
+        <button type="button" className="trace-act" data-tip="Feedback" aria-label="Feedback" onClick={() => onOpenFeedback!()}>
           <Ic.Edit size={14} />
         </button>
       </div>
@@ -1369,7 +1577,7 @@ function Bubble({
     <button
       type="button"
       className="bubble-collapse"
-      title={collapsed ? "Expand" : "Collapse"}
+      data-tip={collapsed ? "Expand" : "Collapse"}
       aria-label={collapsed ? "Expand message" : "Collapse message"}
       onClick={(e) => {
         e.stopPropagation();
@@ -1384,7 +1592,7 @@ function Bubble({
     <button
       type="button"
       className="trace-act bubble-fullscreen"
-      title="Fullscreen"
+      data-tip="Fullscreen"
       aria-label="Fullscreen"
       onClick={(e) => {
         e.stopPropagation();
@@ -1760,10 +1968,8 @@ function Composer({
   onSelectModel?: (model: ChatModelId) => void;
 }) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [threadMenuOpen, setThreadMenuOpen] = useState(false);
   const [v2ModalOpen, setV2ModalOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
-  const threadMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!modelMenuOpen) return;
     const onDoc = (e: MouseEvent) => {
@@ -1774,16 +1980,6 @@ function Composer({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [modelMenuOpen]);
-  useEffect(() => {
-    if (!threadMenuOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (threadMenuRef.current && !threadMenuRef.current.contains(e.target as Node)) {
-        setThreadMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [threadMenuOpen]);
   const submit = () => {
     const v = value.trim();
     if (!v) return;
@@ -1912,80 +2108,6 @@ function Composer({
                   </div>
                 )}
               </div>
-            </div>
-            <div className="composer-thread-controls-mobile" ref={threadMenuRef}>
-              <button
-                type="button"
-                className={"thread-mobile-actions-btn" + (threadMenuOpen ? " on" : "")}
-                title="Thread actions"
-                aria-label="Thread actions"
-                aria-haspopup="menu"
-                aria-expanded={threadMenuOpen}
-                onClick={() => setThreadMenuOpen((v) => !v)}
-              >
-                <Ic.Sliders size={16} />
-              </button>
-              {threadMenuOpen && (
-                <div className="thread-mobile-menu" role="menu">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="thread-model-option"
-                    onClick={() => {
-                      onToggleHideBubbleControls?.();
-                      setThreadMenuOpen(false);
-                    }}
-                  >
-                    {hideBubbleControls ? "Show controls" : "Hide controls"}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="thread-model-option"
-                    onClick={() => {
-                      onToggleCollapseAll?.();
-                      setThreadMenuOpen(false);
-                    }}
-                  >
-                    {allCollapsed ? "Expand all" : "Collapse all"}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="thread-model-option"
-                    onClick={() => {
-                      onOpenThreadFullscreen?.();
-                      setThreadMenuOpen(false);
-                    }}
-                  >
-                    Fullscreen
-                  </button>
-                  <div className="thread-mobile-menu-div" role="separator" />
-                  <div className="thread-mobile-menu-label">Model</div>
-                  {CHAT_MODEL_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      role={opt.kind === "action" ? "menuitem" : "menuitemradio"}
-                      aria-checked={opt.kind === "model" ? selectedModel === opt.id : undefined}
-                      className={
-                        "thread-model-option" +
-                        (opt.kind === "model" && selectedModel === opt.id ? " selected" : "")
-                      }
-                      onClick={() => {
-                        setThreadMenuOpen(false);
-                        if (opt.kind === "action") {
-                          setV2ModalOpen(true);
-                          return;
-                        }
-                        onSelectModel?.(opt.id);
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -2586,6 +2708,19 @@ function SleepStudioChat() {
   // in the drawer tab bar (next to ×) while a run is in progress — or float when
   // the drawer is closed so the run stays controllable.
   const [simRunControls, setSimRunControls] = useState<SimRunControls | null>(null);
+  const [simControlsCollapsed, setSimControlsCollapsed] = useState(false);
+  useEffect(() => {
+    if (!simRunControls) setSimControlsCollapsed(false);
+  }, [simRunControls]);
+  // Closing the side drawer mid-run collapses the floating pill to "Running"/"Paused".
+  const prevOpenDrawersLenRef = useRef(0);
+  useEffect(() => {
+    const wasOpen = prevOpenDrawersLenRef.current > 0;
+    prevOpenDrawersLenRef.current = openDrawers.length;
+    if (wasOpen && openDrawers.length === 0 && simRunControls) {
+      setSimControlsCollapsed(true);
+    }
+  }, [openDrawers.length, simRunControls]);
   // The Model Setup pane's container inside the drawer. The page-level SetupBar
   // portals its docked view here; keeping SetupBar mounted at the page level (not
   // inside the drawer) lets its popped-out floating window survive drawer close.
@@ -3509,6 +3644,31 @@ function SleepStudioChat() {
             <MobileNav
               onOpen={openDrawer}
               isAdmin={isAdmin}
+              showThreadControls={messages.length > 0}
+              allCollapsed={
+                messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
+              }
+              onToggleCollapseAll={() => {
+                if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
+                  setCollapsedByIdx({});
+                  return;
+                }
+                const next: Record<number, boolean> = {};
+                for (let i = 0; i < messages.length; i++) next[i] = true;
+                setCollapsedByIdx(next);
+              }}
+              hideBubbleControls={hideBubbleControls}
+              onToggleHideBubbleControls={() => setHideBubbleControls((v) => !v)}
+              onOpenThreadFullscreen={() => setThreadFullscreen(true)}
+              selectedModel={selectedModel}
+              onSelectModel={(model) => {
+                setSelectedModel(model);
+                try {
+                  sessionStorage.setItem(CHAT_MODEL_PREF_KEY, model);
+                } catch {
+                  /* ignore */
+                }
+              }}
             />
           )}
           {openDrawers.length > 0 && (
@@ -3561,32 +3721,23 @@ function SleepStudioChat() {
             simulationContent={<div className="drawer-pane" ref={setSimulationSlot} />}
             tabBarControls={
               simRunControls ? (
-                <div className="sim-run-controls">
-                  {simRunControls.paused ? (
-                    <button type="button" className="sim-btn sim-btn-run" onClick={simRunControls.resume}>Resume</button>
-                  ) : (
-                    <button type="button" className="sim-btn" onClick={simRunControls.pause}>Pause</button>
-                  )}
-                  <button type="button" className="sim-btn" onClick={simRunControls.stop}>Stop</button>
-                </div>
+                <SimControlsPill
+                  controls={simRunControls}
+                  collapsed={simControlsCollapsed}
+                  onToggleCollapsed={() => setSimControlsCollapsed((v) => !v)}
+                />
               ) : null
             }
             activeConversationId={activeId}
           />
-          {/* Pause/Stop stay available while a run is in progress even if the
-              drawer is closed (the tab bar is gone in that case). */}
+          {/* Same pill, floated when the drawer is closed mid-run. */}
           {simRunControls && openDrawers.length === 0 && (
-            <div className="sim-run-controls-float" role="toolbar" aria-label="Simulation controls">
-              <span className="sim-run-controls-float-label">
-                {simRunControls.paused ? "Simulation paused" : "Simulation running"}
-              </span>
-              {simRunControls.paused ? (
-                <button type="button" className="sim-btn sim-btn-run" onClick={simRunControls.resume}>Resume</button>
-              ) : (
-                <button type="button" className="sim-btn" onClick={simRunControls.pause}>Pause</button>
-              )}
-              <button type="button" className="sim-btn" onClick={simRunControls.stop}>Stop</button>
-            </div>
+            <SimControlsPill
+              controls={simRunControls}
+              collapsed={simControlsCollapsed}
+              onToggleCollapsed={() => setSimControlsCollapsed((v) => !v)}
+              floating
+            />
           )}
           {/* SetupBar is mounted here (page level), not inside the drawer, so its
               popped-out floating window survives the drawer closing. It portals

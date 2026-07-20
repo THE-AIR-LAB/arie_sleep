@@ -2122,9 +2122,9 @@ export function SetupBar({
     };
   }, [focusedStateTurn, turns, extractedKeysByTurn]);
   const OPTS: { id: string; label: string; ico: IconName }[] = [
-    { id: "knowledge", label: "Knowledge", ico: "Book" },
-    { id: "state", label: "State", ico: "List" },
     { id: "policy", label: "Policy", ico: "Sliders" },
+    { id: "state", label: "State", ico: "List" },
+    { id: "knowledge", label: "Knowledge", ico: "Book" },
   ];
 
   const docked = active != null;
