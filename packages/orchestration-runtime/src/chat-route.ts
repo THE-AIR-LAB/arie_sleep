@@ -153,7 +153,20 @@ interface ChatRouteSupabaseClient {
   from(table: string): ChatRouteSupabaseFromBuilder;
 }
 
-const OPENAI_MODEL = "gpt-5.4";
+const DEFAULT_OPENAI_MODEL = "gpt-5.4";
+/** Models the studio Model menu may request; anything else falls back to default. */
+const ALLOWED_CHAT_MODELS = new Set(["gpt-5.4", "gpt-5.4-mini"]);
+const chatModelStore = new AsyncLocalStorage<string>();
+function resolveOpenAIModel(): string {
+  return chatModelStore.getStore() ?? DEFAULT_OPENAI_MODEL;
+}
+function resolveRequestChatModel(raw: unknown): string {
+  if (typeof raw === "string") {
+    const id = raw.trim();
+    if (ALLOWED_CHAT_MODELS.has(id)) return id;
+  }
+  return DEFAULT_OPENAI_MODEL;
+}
 // The pure structured-extraction stages (state update/extraction, policy extraction)
 // never produce user-facing text — their output is parsed straight into JSON state or
 // prompt values. gpt-5.4-mini runs those ~40% faster than gpt-5.4 at the same quality
@@ -2120,7 +2133,7 @@ async function runPromptBasedStateTransform(
 ): Promise<string> {
   return runPrompt(
     openai,
-    OPENAI_MODEL,
+    resolveOpenAIModel(),
     OPENAI_MAX_TOKENS,
     undefined,
     buildStateTransformPrompt(
@@ -2806,7 +2819,7 @@ async function runPromptBasedPolicy(
 ): Promise<string> {
   return runPrompt(
     openai,
-    OPENAI_MODEL,
+    resolveOpenAIModel(),
     OPENAI_MAX_TOKENS,
     promptConfig.policyExecutionSystemPrompt,
     buildPolicyExecutionPrompt(history, updatedState, promptConfig),
@@ -2832,7 +2845,7 @@ async function runExpandPolicyPrompt(
 
   return runPrompt(
     openai,
-    OPENAI_MODEL,
+    resolveOpenAIModel(),
     OPENAI_MAX_TOKENS,
     expandPrompt,
     buildExpansionPrompt(history, updatedState, promptConfig, expandLabel),
@@ -2849,7 +2862,7 @@ async function runPolicySubtreeDecisionPrompt(
 ): Promise<string> {
   return runPrompt(
     openai,
-    OPENAI_MODEL,
+    resolveOpenAIModel(),
     OPENAI_MAX_TOKENS,
     subtreePrompt,
     buildPolicySubtreeExecutionPrompt(history, updatedState, promptConfig),
@@ -2868,7 +2881,7 @@ async function runPolicySubtreeDecisionPromptWithExtraction(
 ): Promise<{ assistantReply: string; promptValues: PromptValueSnapshot | null }> {
   const reply = await runPrompt(
     openai,
-    OPENAI_MODEL,
+    resolveOpenAIModel(),
     OPENAI_MAX_TOKENS,
     subtreePrompt,
     buildPolicySubtreeExecutionAndExtractionPrompt(
@@ -2894,7 +2907,7 @@ async function runPolicyPromptTransform(
 ): Promise<string> {
   return runPrompt(
     openai,
-    OPENAI_MODEL,
+    resolveOpenAIModel(),
     OPENAI_MAX_TOKENS,
     undefined,
     buildPolicyTransformPrompt(
@@ -4103,6 +4116,7 @@ export function createChatPostHandler(options: CreateChatRouteOptions) {
       );
 
       const wantsTrace = body?.trace === true;
+      const requestModel = resolveRequestChatModel(body?.model);
       const traceSink: ChatTraceEvent[] = [];
       // Flipped to "policy" inside runStatefulAssistantTurn once the state update
       // finishes, so each traced model call is tagged with its turn stage.
@@ -4130,40 +4144,42 @@ export function createChatPostHandler(options: CreateChatRouteOptions) {
               );
             };
             try {
-              const turnResult = await stageEmitterStore.run(
-                (stageEvent) => sendEvent("stage", stageEvent),
-                () =>
-                  runStatefulAssistantTurn(
-                    openai,
-                    orderedHistory,
-                    trimmedUserMessage,
-                    knownState,
-                    promptConfig,
-                    conversationId,
-                    phaseRef
-                  )
-              );
-              const streamState = serializeStateSnapshotForStateUpdate(
-                turnResult.nextState,
-                promptConfig.stateSchema
-              );
-              await saveAssistantReply(
-                supabase,
-                conversationId,
-                turnResult.assistantReply,
-                turnResult.nextState,
-                promptConfig.stateSchema,
-                {
+              await chatModelStore.run(requestModel, async () => {
+                const turnResult = await stageEmitterStore.run(
+                  (stageEvent) => sendEvent("stage", stageEvent),
+                  () =>
+                    runStatefulAssistantTurn(
+                      openai,
+                      orderedHistory,
+                      trimmedUserMessage,
+                      knownState,
+                      promptConfig,
+                      conversationId,
+                      phaseRef
+                    )
+                );
+                const streamState = serializeStateSnapshotForStateUpdate(
+                  turnResult.nextState,
+                  promptConfig.stateSchema
+                );
+                await saveAssistantReply(
+                  supabase,
+                  conversationId,
+                  turnResult.assistantReply,
+                  turnResult.nextState,
+                  promptConfig.stateSchema,
+                  {
+                    trace: wantsTrace ? traceSink : [],
+                    nodeRefs: turnResult.nodeRefs,
+                    state: streamState,
+                  }
+                );
+                sendEvent("result", {
+                  content: turnResult.assistantReply,
                   trace: wantsTrace ? traceSink : [],
                   nodeRefs: turnResult.nodeRefs,
                   state: streamState,
-                }
-              );
-              sendEvent("result", {
-                content: turnResult.assistantReply,
-                trace: wantsTrace ? traceSink : [],
-                nodeRefs: turnResult.nodeRefs,
-                state: streamState,
+                });
               });
             } catch (err) {
               (options.logger ?? console).error("Chat route stream error:", err);
@@ -4184,14 +4200,16 @@ export function createChatPostHandler(options: CreateChatRouteOptions) {
         });
       }
 
-      const turnResult = await runStatefulAssistantTurn(
-        openai,
-        orderedHistory,
-        trimmedUserMessage,
-        knownState,
-        promptConfig,
-        conversationId,
-        phaseRef
+      const turnResult = await chatModelStore.run(requestModel, () =>
+        runStatefulAssistantTurn(
+          openai,
+          orderedHistory,
+          trimmedUserMessage,
+          knownState,
+          promptConfig,
+          conversationId,
+          phaseRef
+        )
       );
       const jsonState = serializeStateSnapshotForStateUpdate(
         turnResult.nextState,

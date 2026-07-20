@@ -28,10 +28,20 @@ import {
   WORKFLOW_OVERVIEW_CANVAS_MARKER,
   WORKFLOW_OVERVIEW_CANVAS_NAME,
 } from "@airlab/orchestration-core/general-orchestration";
+import {
+  CHAT_MODEL_OPTIONS,
+  CHAT_MODEL_PREF_KEY,
+  OPENAI_MODEL,
+  type ChatModelId,
+} from "../../../lib/openai-config";
 
 // Simulation conversations are titled "Simulation · …"; this prefix separates
 // them from hand-typed chats (they show in the Simulation panel, not the sidebar).
 const SIM_TITLE_PREFIX = "Simulation · ";
+
+function isChatModelId(value: string): value is ChatModelId {
+  return CHAT_MODEL_OPTIONS.some((opt) => opt.id === value);
+}
 
 const TTS_PREF_KEY = "sleep-studio-tts-autoplay";
 /* v2: black & white is the default; old key auto-wrote "0" for greige. */
@@ -1730,6 +1740,8 @@ function Composer({
   hideBubbleControls = true,
   onToggleHideBubbleControls,
   onOpenThreadFullscreen,
+  selectedModel = OPENAI_MODEL,
+  onSelectModel,
 }: {
   value: string;
   setValue: (v: string) => void;
@@ -1751,7 +1763,21 @@ function Composer({
   hideBubbleControls?: boolean;
   onToggleHideBubbleControls?: () => void;
   onOpenThreadFullscreen?: () => void;
+  selectedModel?: string;
+  onSelectModel?: (model: ChatModelId) => void;
 }) {
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!modelMenuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node)) {
+        setModelMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [modelMenuOpen]);
   const submit = () => {
     const v = value.trim();
     if (!v) return;
@@ -1762,6 +1788,8 @@ function Composer({
     : isTranscribing
       ? "Transcribing…"
       : "Speak your message";
+  const selectedModelLabel =
+    CHAT_MODEL_OPTIONS.find((opt) => opt.id === selectedModel)?.label ?? selectedModel;
   return (
     <div className="composer-wrap">
       <div className="composer-inner">
@@ -1806,7 +1834,14 @@ function Composer({
                     : "Hide bubble nav and footer"
                 }
               >
-                {hideBubbleControls ? "Show controls" : "Hide controls"}
+                <span className="thread-pill-swap">
+                  <span className={hideBubbleControls ? "is-active" : ""} aria-hidden={!hideBubbleControls}>
+                    Show controls
+                  </span>
+                  <span className={!hideBubbleControls ? "is-active" : ""} aria-hidden={hideBubbleControls}>
+                    Hide controls
+                  </span>
+                </span>
               </button>
               <button
                 type="button"
@@ -1816,15 +1851,55 @@ function Composer({
               >
                 Fullscreen
               </button>
+              <button
+                type="button"
+                className="thread-collapse-all"
+                onClick={onToggleCollapseAll}
+                title={allCollapsed ? "Expand every message" : "Collapse every message to one line"}
+              >
+                <span className="thread-pill-swap">
+                  <span className={allCollapsed ? "is-active" : ""} aria-hidden={!allCollapsed}>
+                    Expand all
+                  </span>
+                  <span className={!allCollapsed ? "is-active" : ""} aria-hidden={allCollapsed}>
+                    Collapse all
+                  </span>
+                </span>
+              </button>
             </div>
-            <button
-              type="button"
-              className="thread-collapse-all"
-              onClick={onToggleCollapseAll}
-              title={allCollapsed ? "Expand every message" : "Collapse every message to one line"}
-            >
-              {allCollapsed ? "Expand all" : "Collapse all"}
-            </button>
+            <div className="composer-thread-controls-right" ref={modelMenuRef}>
+              <button
+                type="button"
+                className={"thread-collapse-all" + (modelMenuOpen ? " on" : "")}
+                onClick={() => setModelMenuOpen((v) => !v)}
+                title={`Chat model: ${selectedModelLabel}`}
+                aria-haspopup="menu"
+                aria-expanded={modelMenuOpen}
+              >
+                Model
+              </button>
+              {modelMenuOpen && (
+                <div className="thread-model-menu" role="menu">
+                  {CHAT_MODEL_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={selectedModel === opt.id}
+                      className={
+                        "thread-model-option" + (selectedModel === opt.id ? " selected" : "")
+                      }
+                      onClick={() => {
+                        onSelectModel?.(opt.id);
+                        setModelMenuOpen(false);
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
         <div className="composer-row">
@@ -2284,6 +2359,15 @@ function SleepStudioChat() {
   const [collapsedByIdx, setCollapsedByIdx] = useState<Record<number, boolean>>({});
   const [hideBubbleControls, setHideBubbleControls] = useState(true);
   const [threadFullscreen, setThreadFullscreen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ChatModelId>(OPENAI_MODEL);
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(CHAT_MODEL_PREF_KEY);
+      if (stored && isChatModelId(stored)) setSelectedModel(stored);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   useEffect(() => {
     setHideBubbleControls(true);
     setCollapsedByIdx({});
@@ -2814,6 +2898,7 @@ function SleepStudioChat() {
           body: JSON.stringify({
             conversationId,
             userMessage: trimmed,
+            model: selectedModel,
             trace: true,
             stream: true,
           }),
@@ -2906,7 +2991,7 @@ function SleepStudioChat() {
         setTypingLabel("");
       }
     },
-    [activeId, typing, loadConversations, stopSpeaking]
+    [activeId, typing, loadConversations, stopSpeaking, selectedModel]
   );
 
   // Clears the thread + observability turns (which resets the policy-canvas trace
@@ -3257,6 +3342,15 @@ function SleepStudioChat() {
               hideBubbleControls={hideBubbleControls}
               onToggleHideBubbleControls={() => setHideBubbleControls((v) => !v)}
               onOpenThreadFullscreen={() => setThreadFullscreen(true)}
+              selectedModel={selectedModel}
+              onSelectModel={(model) => {
+                setSelectedModel(model);
+                try {
+                  sessionStorage.setItem(CHAT_MODEL_PREF_KEY, model);
+                } catch {
+                  /* ignore */
+                }
+              }}
             />
             {threadFullscreen && messages.length > 0 ? (
               <BubbleFullscreen

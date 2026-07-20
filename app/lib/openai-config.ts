@@ -1,4 +1,14 @@
-export const OPENAI_MODEL = "gpt-5.4";
+export const OPENAI_MODEL = "gpt-5.4" as const;
+
+/** Studio composer model picker — must stay in sync with chat-route allowlist. */
+export const CHAT_MODEL_OPTIONS = [
+  { id: "gpt-5.4", label: "GPT-5.4" },
+  { id: "gpt-5.4-mini", label: "GPT-5.4 Mini" },
+] as const;
+
+export type ChatModelId = (typeof CHAT_MODEL_OPTIONS)[number]["id"];
+
+export const CHAT_MODEL_PREF_KEY = "studio-chat-model";
 
 export function resolveOptionalOpenAiApiKey(): string | null {
   return (
