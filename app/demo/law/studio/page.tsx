@@ -988,6 +988,23 @@ function BubbleMarkdown({ children }: { children: string }) {
   );
 }
 
+/** One-line plain summary for collapsed bubbles (forms, tables, markdown). */
+function bubbleCollapseSummary(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^[-*+]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/\|/g, " ")
+    .replace(/[-_]{3,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /**
  * Fullscreen overlay for a reply — mirrors the canvas full mode. It has its own
  * Feedback button: pressing it turns the reply into an editable input with a
@@ -1025,6 +1042,31 @@ function BubbleFullscreen({
   const [rating, setRating] = useState<1 | -1 | null>(existingRating);
   const [saved, setSaved] = useState(false);
 
+  const turnMeta = useMemo(() => {
+    const turnIds: string[] = [];
+    const turnOfIndex: number[] = [];
+    const seen = new Map<string, number>();
+    for (let i = 0; i < messages.length; i++) {
+      const tid = messages[i].turnId;
+      if (tid) {
+        let n = seen.get(tid);
+        if (n == null) {
+          n = turnIds.length + 1;
+          seen.set(tid, n);
+          turnIds.push(tid);
+        }
+        turnOfIndex[i] = n;
+      } else {
+        const n = turnIds.length + 1;
+        turnIds.push(`__orphan_${i}`);
+        turnOfIndex[i] = n;
+      }
+    }
+    return { turnTotal: turnIds.length, turnOfIndex };
+  }, [messages]);
+
+  const turnPos = turnMeta.turnOfIndex[index] ?? (messages.length === 0 ? 0 : 1);
+  const turnTotal = turnMeta.turnTotal;
   const canPrev = index > 0;
   const canNext = index < messages.length - 1;
   const goPrev = () => setIndex((i) => Math.max(0, i - 1));
@@ -1101,7 +1143,7 @@ function BubbleFullscreen({
         <Ic.Chevron size={18} style={{ transform: "rotate(90deg)" }} />
       </button>
       <span className="bubble-fs-nav-count" aria-live="polite">
-        {messages.length === 0 ? "0 / 0" : `${index + 1} / ${messages.length}`}
+        {turnTotal === 0 ? "0 / 0" : `${turnPos} / ${turnTotal}`}
       </span>
       <button
         type="button"
@@ -1281,17 +1323,22 @@ function Bubble({
   // Fullscreen is available on both patient and assistant bubbles.
   const showFullscreen = !!turnId;
   const showCollapse = !!onToggleCollapse;
-  // Turn number + Policy/State in the top nav; Observability stays in the footer.
-  const showNavActions = showPolicy || showStateBtn;
+  // Turn number + Policy/Observability/State in the top nav; Feedback stays in the footer.
+  const showNavActions = showPolicy || showTrace || showStateBtn;
   const showTurnN = turnNumber != null;
   const showNav = showNavActions || showCollapse || showFullscreen || showTurnN;
-  const showFootActions = showFeedback || showTrace;
+  const showFootActions = showFeedback;
 
   const navActions = showNavActions ? (
     <div className="trace-actions">
       {showPolicy && (
         <button type="button" className="trace-act" title="Highlight this reply's path on the Policy canvas" onClick={() => onOpenPolicy!(turnId!)}>
           <Ic.Sliders size={13} /> Policy trace
+        </button>
+      )}
+      {showTrace && (
+        <button type="button" className="trace-act" title="Open the step-by-step Observability trace for this reply" onClick={() => onOpenTrace!(turnId!)}>
+          <Ic.Grid size={13} /> Observability
         </button>
       )}
       {showStateBtn && (
@@ -1304,27 +1351,16 @@ function Bubble({
 
   const footActions = showFootActions ? (
     <div className="bubble-foot-actions">
-      {showTrace ? (
-        <button type="button" className="trace-act" title="Open the step-by-step Observability trace for this reply" onClick={() => onOpenTrace!(turnId!)}>
-          <Ic.Grid size={13} />
-          Observability
+      <span />
+      <div className="bubble-foot-feedback">
+        <VoiceFeedbackButton
+          existing={feedbackEntries ?? []}
+          onSubmit={(entries) => onSubmitFeedback?.(entries)}
+        />
+        <button type="button" className="trace-act" title="Leave feedback on this message" onClick={() => onOpenFeedback!()}>
+          <Ic.Edit size={13} /> Feedback
         </button>
-      ) : (
-        <span />
-      )}
-      {showFeedback ? (
-        <div className="bubble-foot-feedback">
-          <VoiceFeedbackButton
-            existing={feedbackEntries ?? []}
-            onSubmit={(entries) => onSubmitFeedback?.(entries)}
-          />
-          <button type="button" className="trace-act" title="Leave feedback on this message" onClick={() => onOpenFeedback!()}>
-            <Ic.Edit size={13} /> Feedback
-          </button>
-        </div>
-      ) : (
-        <span />
-      )}
+      </div>
     </div>
   ) : null;
 
@@ -1369,38 +1405,37 @@ function Bubble({
     />
   ) : null;
 
-  // Body click: when chrome is hidden, toggle this bubble's controls;
-  // otherwise collapse/expand the message.
+  // Body click: collapsed → expand + show controls; expanded → collapse + hide controls.
   const bodyToggleProps =
     onToggleCollapse || hideControls
       ? {
           role: "button" as const,
           tabIndex: 0,
-          title: hideControls
-            ? revealControls
-              ? "Click to hide controls"
-              : "Click to show controls"
-            : collapsed
-              ? "Click to expand"
-              : "Click to collapse",
-          // Ignore clicks that finish a text selection so highlight-drag doesn't toggle.
+          title: collapsed
+            ? "Click to expand and show controls"
+            : "Click to collapse",
           onClick: () => {
             const sel = typeof window !== "undefined" ? window.getSelection() : null;
             if (sel && !sel.isCollapsed && (sel.toString() || "").length > 0) return;
-            if (hideControls) {
-              setRevealControls((v) => !v);
+            if (typeof window !== "undefined") window.getSelection()?.removeAllRanges();
+            if (collapsed) {
+              onToggleCollapse?.();
+              if (hideControls) setRevealControls(true);
               return;
             }
             onToggleCollapse?.();
+            setRevealControls(false);
           },
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              if (hideControls) {
-                setRevealControls((v) => !v);
+              if (collapsed) {
+                onToggleCollapse?.();
+                if (hideControls) setRevealControls(true);
                 return;
               }
               onToggleCollapse?.();
+              setRevealControls(false);
             }
           },
         }
@@ -1415,7 +1450,7 @@ function Bubble({
     <div className={shellClass + (!controlsVisible ? " hide-controls" : "")}>
       {controlsVisible && showNav && (
         <div className="bubble-nav">
-          {showTurnN ? <span className="trace-turn-n">{turnNumber}.</span> : null}
+          {showTurnN && !collapsed ? <span className="trace-turn-n">{turnNumber}.</span> : null}
           {navActions}
           <div className="bubble-nav-end">
             {collapseBtn}
@@ -1430,7 +1465,18 @@ function Bubble({
         }
         {...bodyToggleProps}
       >
-        {isUser ? m.text : <BubbleMarkdown>{m.text}</BubbleMarkdown>}
+            {collapsed ? (
+          <>
+            {isUser && showTurnN ? (
+              <span className="bubble-collapse-turn">{turnNumber}. </span>
+            ) : null}
+            {bubbleCollapseSummary(m.text)}
+          </>
+        ) : isUser ? (
+          m.text
+        ) : (
+          <BubbleMarkdown>{m.text}</BubbleMarkdown>
+        )}
       </div>
       {controlsVisible && footActions && <div className="bubble-foot">{footActions}</div>}
     </div>

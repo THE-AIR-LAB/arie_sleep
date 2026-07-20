@@ -1404,29 +1404,13 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   color:var(--text-3); font-family:inherit; font-size:12px; font-weight:400;
   line-height:1.2; cursor:pointer; white-space:nowrap;}
 .ra-scope .bubble-collapse:hover{color:var(--text); background:transparent;}
-/* Collapsed: body is one line; nav/footer stay. Markdown stays rendered. */
+/* Collapsed: always a single ellipsized line — plain text summary, never markdown/forms. */
 .ra-scope .msg-user.is-collapsed .bubble-body,
 .ra-scope .msg-ai .bubble.is-collapsed .bubble-body{
-  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body > *,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body p,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h1,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h2,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h3,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h4,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body ul,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body ol,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body li,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body pre,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body blockquote{
-  display:inline; margin:0; padding:0; font-size:inherit; font-weight:inherit;
-  line-height:inherit; white-space:nowrap; list-style:none;}
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h1,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h2,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h3,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body h4{font-weight:600;}
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body > * + *::before{content:" ";}
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body li + li::before{content:" · ";}
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  line-height:1.5; display:block; max-height:none;
+  padding-top:10px; padding-bottom:10px;}
+.ra-scope .bubble-collapse-turn{font-weight:600; color:var(--text-2); margin-right:2px;}
 /* A message that has feedback left on it gets tinted. */
 .ra-scope .msg-ai .bubble.has-feedback{background:#D1E7F3;border-color:#b7d4e6;}
 .ra-scope .msg-user.has-feedback{background:#D1E7F3;border-color:#b7d4e6;}
