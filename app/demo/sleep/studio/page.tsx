@@ -43,6 +43,9 @@ const SIM_TITLE_PREFIX = "Simulation · ";
 const TTS_PREF_KEY = "sleep-studio-tts-autoplay";
 /* v2: black & white is the default; old key auto-wrote "0" for greige. */
 const MONO_PREF_KEY = "sleep-studio-mono-theme-v2";
+// Mobile bottom-sheet: which tab to reopen the drawer on. Remembered across
+// opens/reloads; defaults to Model Setup the very first time.
+const MOBILE_DRAWER_TAB_KEY = "sleep-studio-mobile-drawer-tab";
 
 /** Strip common markdown so the TTS voice reads clean sentences instead of asterisks and backticks. */
 function stripMarkdownForSpeech(text: string): string {
@@ -822,7 +825,7 @@ function MobileNav({
   selectedModel = OPENAI_MODEL,
   onSelectModel,
 }: {
-  onOpen: (id: DrawerId) => void;
+  onOpen: () => void;
   isAdmin?: boolean;
   showThreadControls?: boolean;
   allCollapsed?: boolean;
@@ -936,7 +939,7 @@ function MobileNav({
           aria-label="Open menu"
           onClick={(e) => {
             e.stopPropagation();
-            onOpen("chats");
+            onOpen();
           }}
         >
           <Ic.Menu size={18} />
@@ -2760,6 +2763,34 @@ function SleepStudioChat() {
     setOpenDrawers([]);
     setActiveDrawer(null);
   }, []);
+  // Mobile bottom-sheet: remember the last tab the user was on and reopen the
+  // sheet there. Defaults to Model Setup on the first ever open. Only the single
+  // mobile hamburger uses this; desktop still opens a specific panel per click.
+  const rememberedMobileTabRef = useRef<DrawerId>("modelsetup");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(MOBILE_DRAWER_TAB_KEY) as DrawerId | null;
+      if (saved) rememberedMobileTabRef.current = saved;
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    // Only remember tabs that actually exist in the mobile sheet.
+    if (!activeDrawer || activeDrawer === "expert" || activeDrawer === "upload") return;
+    rememberedMobileTabRef.current = activeDrawer;
+    try {
+      localStorage.setItem(MOBILE_DRAWER_TAB_KEY, activeDrawer);
+    } catch {
+      /* ignore */
+    }
+  }, [activeDrawer]);
+  const openMobileDrawer = useCallback(() => {
+    let target = rememberedMobileTabRef.current;
+    // Non-admins never get the internal panels; fall back to Chats.
+    if (!isAdmin && ADMIN_ONLY_DRAWERS.includes(target)) target = "chats";
+    openDrawer(target);
+  }, [openDrawer, isAdmin]);
   const [turns, setTurns] = useState<Turn[]>([]); // observability trace, one per send
   // Turn ids that extracted at least one piece of state this turn — drives which
   // replies show a "State" button (and it highlights those exact fields).
@@ -3639,7 +3670,7 @@ function SleepStudioChat() {
           />
           {openDrawers.length === 0 && (
             <MobileNav
-              onOpen={openDrawer}
+              onOpen={openMobileDrawer}
               isAdmin={isAdmin}
               showThreadControls={messages.length > 0}
               allCollapsed={

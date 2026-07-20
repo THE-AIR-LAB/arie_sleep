@@ -989,10 +989,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{
    share one top edge so the row stays aligned when sim controls appear. */
 .ra-scope .drawer-tabbar{flex:0 0 auto;height:var(--studio-head-h,60px);display:flex;align-items:flex-start;
   padding-top:18px;border-bottom:1px solid var(--line-soft);overflow:visible;box-sizing:border-box;}
-/* Close button: same 8px right inset as .obs-setup / canvas tabs (pr-2) so the
-   × stacks with the (i) icons below. */
+/* Close button: the 28px box is centered on a 16px icon, so margin-right:10px
+   lands the ×'s optical right edge on the 16px drawer-subhead content column
+   (info (i), Copy all / Fullscreen, Examples, Run simulation all right-align there). */
 .ra-scope .drawer-tabbar .drawer-close-btn{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-  align-self:flex-start;width:28px;height:calc(1.2em + 4px);margin-left:auto;margin-right:8px;margin-top:0;padding:0;border:none;background:transparent;color:var(--text-2);
+  align-self:flex-start;width:28px;height:calc(1.2em + 4px);margin-left:auto;margin-right:10px;margin-top:0;padding:0;border:none;background:transparent;color:var(--text-2);
   cursor:pointer;border-radius:0;line-height:1.2;font-size:14px;}
 .ra-scope .drawer-tabbar .drawer-close-btn:hover{background:transparent;color:var(--text);}
 /* Live simulation controls (Pause/Stop) docked in the tab bar, left of the ×. */
@@ -1307,9 +1308,12 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .drawer-subhead .obs-clear{font-size:14px;font-weight:400;letter-spacing:normal;text-transform:none;
   border:none;border-radius:0;padding:0;color:var(--text);}
 .ra-scope .drawer-subhead .obs-clear:hover{background:none;color:var(--text);}
-.ra-scope .obs-info-btn{display:flex;align-items:center;justify-content:center;width:auto;height:auto;
-  border-radius:0;color:var(--text-3);cursor:pointer;padding:0;}
-.ra-scope .obs-info-btn:hover{background:none;color:var(--text);}
+/* Scoped to .drawer-subhead so the modal action-button rule below (which shares
+   the .obs-info-btn class and sets padding:8px 14px + a border) can't bleed onto
+   the subhead info icon and shove it ~14px off the ×'s right-edge column. */
+.ra-scope .drawer-subhead .obs-info-btn{display:flex;align-items:center;justify-content:center;width:auto;height:auto;
+  border:none;border-radius:0;color:var(--text-3);cursor:pointer;padding:0;}
+.ra-scope .drawer-subhead .obs-info-btn:hover{background:none;color:var(--text);}
 
 /* "How each turn reaches the model" info modal (opened from the trace header). */
 .ra-scope .obs-info-overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;
@@ -1411,7 +1415,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 /* `button.thread-collapse-all` beats the global `button { border:none }` reset. */
 .ra-scope button.thread-collapse-all{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:5px;
   font-family:inherit;font-size:12px;font-weight:400;line-height:1;color:var(--text-2);
-  background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+  background:transparent;border:1px solid transparent;border-radius:999px;padding:6px 12px;
   box-sizing:border-box;cursor:pointer;white-space:nowrap;}
 /* Keep toggle pills the same width for both labels (Show/Hide, Expand/Collapse). */
 .ra-scope .thread-pill-swap{display:inline-grid;justify-items:center;align-items:center;}
@@ -1843,6 +1847,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
      list comes up from the bottom as a sheet when triggered */
   .ra-scope .body > .sidebar{display:none !important;}
   .ra-scope .main{min-width:0;}
+  /* Mobile: hairline under the chat header, matching the composer input's
+     top border color (var(--line)). */
+  .ra-scope .thread-head{border-bottom:1px solid var(--line);}
+  /* Tighter tab spacing in the mobile bottom-sheet (all tabs shown at once). */
+  .ra-scope .drawer-tabs{gap:14px;padding:0 12px;}
 
   /* no collapsed right rail on mobile — its actions move to the navbar */
   .ra-scope .right-rail{display:none;}
