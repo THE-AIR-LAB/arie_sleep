@@ -392,7 +392,7 @@ function KnowledgePane({
       </div>
 
       <div className="sc-list-head sc-knowledge-head" style={{ marginTop: 0 }}>
-        <span className="sc-lbl">
+        <span className="sc-lbl sc-knowledge-dataset">
           Dataset: {GUIDELINE_ITEMS_DATASET_NAME} · {guidelineItems.length} rows
         </span>
         <div className="sc-knowledge-actions">
@@ -416,7 +416,7 @@ function KnowledgePane({
         onChange={(e) => e.target.files && add(e.target.files)}
       />
       <div
-        className={"sc-drop sc-drop--compact" + (drag ? " drag" : "")}
+        className={"sc-drop sc-drop--compact sc-knowledge-drop" + (drag ? " drag" : "")}
         onDragOver={(e) => {
           e.preventDefault();
           setDrag(true);
@@ -1567,8 +1567,9 @@ export function useSleepSetup() {
     return value;
   };
 
-  // Meaningful canvas content only: add/remove nodes & edges, rename canvases,
-  // edit node data (description). Ignore position, selection, and active tab.
+  // Canvas content that should prompt Save: nodes/edges, names, node data,
+  // and node positions (so dragging components is persistable). Ignore
+  // selection and which canvas tab is active.
   const canvasFingerprint = (doc: CanvasDoc | null) => {
     if (!doc) return "";
     return JSON.stringify({
@@ -1582,6 +1583,11 @@ export function useSleepSetup() {
             .map((n) => ({
               id: n.id,
               type: n.type,
+              // Round so sub-pixel drag noise doesn't flicker dirty.
+              position: {
+                x: Math.round(n.position?.x ?? 0),
+                y: Math.round(n.position?.y ?? 0),
+              },
               data: stableValue(n.data ?? {}),
             }))
             .sort((a, b) => a.id.localeCompare(b.id)),

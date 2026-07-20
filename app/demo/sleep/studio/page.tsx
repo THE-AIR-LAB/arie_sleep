@@ -751,40 +751,29 @@ function SidebarRail({ onExpand, onNew }: { onExpand: () => void; onNew: () => v
   );
 }
 
-/* ---------------- mobile-only right-edge nav ---------------- */
-// On mobile the docked sidebar and rails are hidden, so this floating vertical
-// bar on the right edge is the only launcher for the bottom drawer. Each icon
-// opens the sheet with its tab active; admin-only panels are filtered out.
-const MOBILE_NAV: Array<{ id: DrawerId; icon: IconName }> = [
-  { id: "chats", icon: "Chat" },
-  { id: "account", icon: "User" },
-];
-
+/* ---------------- mobile-only top-right nav ---------------- */
+// On mobile the docked sidebar and rails are hidden, so a single hamburger
+// opens the bottom sheet (Chats / Account / admin tabs live inside it).
 function MobileNav({
   onOpen,
-  isAdmin,
 }: {
   onOpen: (id: DrawerId) => void;
-  isAdmin: boolean;
+  isAdmin?: boolean;
 }) {
   return (
-    <nav className="mobile-railnav" aria-label="Panels">
-      {MOBILE_NAV.filter(
-        (n) => isAdmin || !ADMIN_ONLY_DRAWERS.includes(n.id)
-      ).map((n) => {
-        const I = Ic[n.icon];
-        return (
-          <button
-            key={n.id}
-            className="mrail-btn"
-            title={DRAWER_LABEL[n.id]}
-            aria-label={DRAWER_LABEL[n.id]}
-            onClick={(e) => { e.stopPropagation(); onOpen(n.id); }}
-          >
-            <I size={15} />
-          </button>
-        );
-      })}
+    <nav className="mobile-railnav" aria-label="Menu">
+      <button
+        type="button"
+        className="mrail-btn"
+        title="Open menu"
+        aria-label="Open menu"
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpen("chats");
+        }}
+      >
+        <Ic.Menu size={18} />
+      </button>
     </nav>
   );
 }
@@ -957,9 +946,13 @@ function VoiceFeedbackButton({
         (hint === "Saved" ? " saved" : "")
       }
       title={
-        isRecording
-          ? "Stop recording — saves as ideal feedback"
-          : "Speak the ideal response; saves as ideal feedback"
+        hint
+          ? hint
+          : isTranscribing
+            ? "Saving…"
+            : isRecording
+              ? "Stop recording — saves as ideal feedback"
+              : "Voice feedback"
       }
       aria-label={label}
       aria-pressed={isRecording}
@@ -969,7 +962,7 @@ function VoiceFeedbackButton({
         toggle();
       }}
     >
-      <Ic.Mic size={13} /> {label}
+      <Ic.Mic size={14} />
     </button>
   );
 }
@@ -1173,6 +1166,7 @@ function BubbleFullscreen({
             <div className="bubble-fs-title-block">
               <div className="bubble-fs-title">{roleTitle}</div>
             </div>
+            <div className="bubble-fs-nav-slot bubble-fs-nav-slot--head">{nav}</div>
           </div>
           <div className="bubble-fs-head-right">
             <button
@@ -1243,15 +1237,15 @@ function BubbleFullscreen({
             </>
           ) : (
             <>
-              <div className="bubble-fs-foot-left">{nav}</div>
+              <div className="bubble-fs-foot-left bubble-fs-nav-slot bubble-fs-nav-slot--foot">{nav}</div>
               {canFeedback ? (
                 <div className="bubble-fs-foot-right">
                   <VoiceFeedbackButton
                     existing={initialEntries}
                     onSubmit={(entries) => onSubmitFeedbackAt?.(index, entries)}
                   />
-                  <button type="button" className="bubble-fs-fb" onClick={() => setEditing(true)}>
-                    <Ic.Edit size={15} /> Feedback
+                  <button type="button" className="bubble-fs-fb" title="Feedback" aria-label="Feedback" onClick={() => setEditing(true)}>
+                    <Ic.Edit size={15} />
                   </button>
                 </div>
               ) : null}
@@ -1339,18 +1333,18 @@ function Bubble({
   const navActions = showNavActions ? (
     <div className="trace-actions">
       {showPolicy && (
-        <button type="button" className="trace-act" title="Highlight this reply's path on the Policy canvas" onClick={() => onOpenPolicy!(turnId!)}>
-          <Ic.Sliders size={13} /> Policy trace
+        <button type="button" className="trace-act" title="Policy trace" aria-label="Policy trace" onClick={() => onOpenPolicy!(turnId!)}>
+          <Ic.Sliders size={14} />
         </button>
       )}
       {showTrace && (
-        <button type="button" className="trace-act" title="Open the step-by-step Observability trace for this reply" onClick={() => onOpenTrace!(turnId!)}>
-          <Ic.Grid size={13} /> Observability
+        <button type="button" className="trace-act" title="Observability" aria-label="Observability" onClick={() => onOpenTrace!(turnId!)}>
+          <Ic.Grid size={14} />
         </button>
       )}
       {showStateBtn && (
-        <button type="button" className="trace-act" title="Show the state extracted from this turn, highlighted in the State panel" onClick={() => onOpenState!(turnId!)}>
-          <Ic.List size={13} /> State
+        <button type="button" className="trace-act" title="State" aria-label="State" onClick={() => onOpenState!(turnId!)}>
+          <Ic.List size={14} />
         </button>
       )}
     </div>
@@ -1364,8 +1358,8 @@ function Bubble({
           existing={feedbackEntries ?? []}
           onSubmit={(entries) => onSubmitFeedback?.(entries)}
         />
-        <button type="button" className="trace-act" title="Leave feedback on this message" onClick={() => onOpenFeedback!()}>
-          <Ic.Edit size={13} /> Feedback
+        <button type="button" className="trace-act" title="Feedback" aria-label="Feedback" onClick={() => onOpenFeedback!()}>
+          <Ic.Edit size={14} />
         </button>
       </div>
     </div>
@@ -1382,8 +1376,7 @@ function Bubble({
         onToggleCollapse?.();
       }}
     >
-      <Ic.Chevron size={13} style={collapsed ? undefined : { transform: "rotate(180deg)" }} />
-      {collapsed ? "Expand" : "Collapse"}
+      <Ic.Chevron size={14} style={collapsed ? undefined : { transform: "rotate(180deg)" }} />
     </button>
   ) : null;
 
@@ -1391,13 +1384,14 @@ function Bubble({
     <button
       type="button"
       className="trace-act bubble-fullscreen"
-      title="View this message full screen"
+      title="Fullscreen"
+      aria-label="Fullscreen"
       onClick={(e) => {
         e.stopPropagation();
         setFullscreen(true);
       }}
     >
-      <Ic.Expand size={13} /> Fullscreen
+      <Ic.Expand size={14} />
     </button>
   ) : null;
 
@@ -1763,8 +1757,10 @@ function Composer({
   onSelectModel?: (model: ChatModelId) => void;
 }) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [threadMenuOpen, setThreadMenuOpen] = useState(false);
   const [v2ModalOpen, setV2ModalOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
+  const threadMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!modelMenuOpen) return;
     const onDoc = (e: MouseEvent) => {
@@ -1775,6 +1771,16 @@ function Composer({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [modelMenuOpen]);
+  useEffect(() => {
+    if (!threadMenuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (threadMenuRef.current && !threadMenuRef.current.contains(e.target as Node)) {
+        setThreadMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [threadMenuOpen]);
   const submit = () => {
     const v = value.trim();
     if (!v) return;
@@ -1820,63 +1826,139 @@ function Composer({
         <div className="composer-stack">
         {showThreadControls && (
           <div className="composer-thread-controls">
-            <div className="composer-thread-controls-left">
-              <button
-                type="button"
-                className={"thread-collapse-all" + (hideBubbleControls ? " on" : "")}
-                onClick={onToggleHideBubbleControls}
-                title={
-                  hideBubbleControls
-                    ? "Show bubble nav and footer"
-                    : "Hide bubble nav and footer"
-                }
-              >
-                <span className="thread-pill-swap">
-                  <span className={hideBubbleControls ? "is-active" : ""} aria-hidden={!hideBubbleControls}>
-                    Show controls
+            <div className="composer-thread-controls-desktop">
+              <div className="composer-thread-controls-left">
+                <button
+                  type="button"
+                  className={"thread-collapse-all" + (hideBubbleControls ? " on" : "")}
+                  onClick={onToggleHideBubbleControls}
+                  title={
+                    hideBubbleControls
+                      ? "Show bubble nav and footer"
+                      : "Hide bubble nav and footer"
+                  }
+                >
+                  <span className="thread-pill-swap">
+                    <span className={hideBubbleControls ? "is-active" : ""} aria-hidden={!hideBubbleControls}>
+                      Show controls
+                    </span>
+                    <span className={!hideBubbleControls ? "is-active" : ""} aria-hidden={hideBubbleControls}>
+                      Hide controls
+                    </span>
                   </span>
-                  <span className={!hideBubbleControls ? "is-active" : ""} aria-hidden={hideBubbleControls}>
-                    Hide controls
+                </button>
+                <button
+                  type="button"
+                  className="thread-collapse-all"
+                  onClick={onToggleCollapseAll}
+                  title={allCollapsed ? "Expand every message" : "Collapse every message to one line"}
+                >
+                  <span className="thread-pill-swap">
+                    <span className={allCollapsed ? "is-active" : ""} aria-hidden={!allCollapsed}>
+                      Expand all
+                    </span>
+                    <span className={!allCollapsed ? "is-active" : ""} aria-hidden={allCollapsed}>
+                      Collapse all
+                    </span>
                   </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="thread-collapse-all"
-                onClick={onToggleCollapseAll}
-                title={allCollapsed ? "Expand every message" : "Collapse every message to one line"}
-              >
-                <span className="thread-pill-swap">
-                  <span className={allCollapsed ? "is-active" : ""} aria-hidden={!allCollapsed}>
-                    Expand all
-                  </span>
-                  <span className={!allCollapsed ? "is-active" : ""} aria-hidden={allCollapsed}>
-                    Collapse all
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="thread-collapse-all"
-                onClick={onOpenThreadFullscreen}
-                title="View conversation full screen from the first message"
-              >
-                Fullscreen
-              </button>
+                </button>
+                <button
+                  type="button"
+                  className="thread-collapse-all"
+                  onClick={onOpenThreadFullscreen}
+                  title="View conversation full screen from the first message"
+                >
+                  Fullscreen
+                </button>
+              </div>
+              <div className="composer-thread-controls-right" ref={modelMenuRef}>
+                <button
+                  type="button"
+                  className={"thread-collapse-all" + (modelMenuOpen ? " on" : "")}
+                  onClick={() => setModelMenuOpen((v) => !v)}
+                  title={`Chat model: ${selectedModelLabel}`}
+                  aria-haspopup="menu"
+                  aria-expanded={modelMenuOpen}
+                >
+                  Model
+                </button>
+                {modelMenuOpen && (
+                  <div className="thread-model-menu" role="menu">
+                    {CHAT_MODEL_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        role={opt.kind === "action" ? "menuitem" : "menuitemradio"}
+                        aria-checked={opt.kind === "model" ? selectedModel === opt.id : undefined}
+                        className={
+                          "thread-model-option" +
+                          (opt.kind === "model" && selectedModel === opt.id ? " selected" : "")
+                        }
+                        onClick={() => {
+                          setModelMenuOpen(false);
+                          if (opt.kind === "action") {
+                            setV2ModalOpen(true);
+                            return;
+                          }
+                          onSelectModel?.(opt.id);
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="composer-thread-controls-right" ref={modelMenuRef}>
+            <div className="composer-thread-controls-mobile" ref={threadMenuRef}>
               <button
                 type="button"
-                className={"thread-collapse-all" + (modelMenuOpen ? " on" : "")}
-                onClick={() => setModelMenuOpen((v) => !v)}
-                title={`Chat model: ${selectedModelLabel}`}
+                className={"thread-mobile-actions-btn" + (threadMenuOpen ? " on" : "")}
+                title="Thread actions"
+                aria-label="Thread actions"
                 aria-haspopup="menu"
-                aria-expanded={modelMenuOpen}
+                aria-expanded={threadMenuOpen}
+                onClick={() => setThreadMenuOpen((v) => !v)}
               >
-                Model
+                <Ic.Sliders size={16} />
               </button>
-              {modelMenuOpen && (
-                <div className="thread-model-menu" role="menu">
+              {threadMenuOpen && (
+                <div className="thread-mobile-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="thread-model-option"
+                    onClick={() => {
+                      onToggleHideBubbleControls?.();
+                      setThreadMenuOpen(false);
+                    }}
+                  >
+                    {hideBubbleControls ? "Show controls" : "Hide controls"}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="thread-model-option"
+                    onClick={() => {
+                      onToggleCollapseAll?.();
+                      setThreadMenuOpen(false);
+                    }}
+                  >
+                    {allCollapsed ? "Expand all" : "Collapse all"}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="thread-model-option"
+                    onClick={() => {
+                      onOpenThreadFullscreen?.();
+                      setThreadMenuOpen(false);
+                    }}
+                  >
+                    Fullscreen
+                  </button>
+                  <div className="thread-mobile-menu-div" role="separator" />
+                  <div className="thread-mobile-menu-label">Model</div>
                   {CHAT_MODEL_OPTIONS.map((opt) => (
                     <button
                       key={opt.id}
@@ -1888,7 +1970,7 @@ function Composer({
                         (opt.kind === "model" && selectedModel === opt.id ? " selected" : "")
                       }
                       onClick={() => {
-                        setModelMenuOpen(false);
+                        setThreadMenuOpen(false);
                         if (opt.kind === "action") {
                           setV2ModalOpen(true);
                           return;

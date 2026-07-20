@@ -3606,11 +3606,6 @@ export function EditorInner<TOutput>({
               </button>
             )}
           </div>
-          {tabBarTrailing ? (
-            <div className="rf-canvas-chrome rf-canvas-chrome--save absolute bottom-3 right-3 z-20 flex max-w-[calc(100%-6rem)] flex-wrap items-center justify-end rounded-none border border-[#c8c4b4] bg-white p-0">
-              <div className="rf-canvas-tab-trailing flex items-center">{tabBarTrailing}</div>
-            </div>
-          ) : null}
         </>
       )}
     </div>
@@ -3687,6 +3682,9 @@ export function EditorInner<TOutput>({
           </div>
         </div>
         <div className="rf-canvas-tab-end ml-1 flex h-[46px] shrink-0 items-center gap-0.5">
+          {tabBarTrailing ? (
+            <div className="rf-canvas-tab-trailing flex items-center pr-1">{tabBarTrailing}</div>
+          ) : null}
           <button
             type="button"
             onClick={addCanvas}
