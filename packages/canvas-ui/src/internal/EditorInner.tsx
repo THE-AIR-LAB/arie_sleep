@@ -12,6 +12,7 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 import { createPortal } from "react-dom";
+import ReactMarkdown from "react-markdown";
 import {
   ReactFlow,
   Background,
@@ -1897,6 +1898,10 @@ function ToolTipWrap({
   );
 }
 
+/** Compact markdown styles shared by inspector label + compiler preview. */
+const inspectorMdClassName =
+  "rf-inspector-md [&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-[1.05em] [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-[1.05em] [&_h2]:font-semibold [&_h3]:mt-1.5 [&_h3]:mb-0.5 [&_h3]:font-semibold [&_p]:my-1.5 [&_p]:leading-relaxed [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_strong]:font-semibold [&_em]:italic [&_code]:rounded [&_code]:bg-black/5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-black/5 [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-[12px]";
+
 /** Fullscreen inspector: grow the prompt box to fit its text. */
 function InspectorAutoTextarea({
   autoHeight,
@@ -1950,6 +1955,80 @@ function InspectorAutoTextarea({
       className={`${className ?? ""} ${
         autoHeight ? "resize-none overflow-hidden" : ""
       }`.trim()}
+    />
+  );
+}
+
+/**
+ * Inspector label field: render markdown by default; click to edit the source.
+ * Read-only nodes stay as a rendered preview.
+ */
+function InspectorMarkdownField({
+  value,
+  onChange,
+  readOnly,
+  className,
+  rows,
+  autoHeight,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  readOnly?: boolean;
+  className?: string;
+  rows?: number;
+  autoHeight?: boolean;
+}) {
+  const [editing, setEditing] = useState(() => !readOnly && !value.trim());
+
+  useEffect(() => {
+    if (readOnly) {
+      setEditing(false);
+      return;
+    }
+    if (!value.trim()) setEditing(true);
+  }, [readOnly, value]);
+
+  const showPreview = Boolean(readOnly || (!editing && value.trim()));
+
+  if (showPreview) {
+    return (
+      <div
+        className={`${className ?? ""} ${inspectorMdClassName} min-h-[2.5rem]`.trim()}
+        onClick={() => {
+          if (!readOnly) setEditing(true);
+        }}
+        onKeyDown={(e) => {
+          if (readOnly) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setEditing(true);
+          }
+        }}
+        role={readOnly ? undefined : "button"}
+        tabIndex={readOnly ? undefined : 0}
+        title={readOnly ? undefined : "Click to edit markdown source"}
+      >
+        {value.trim() ? (
+          <ReactMarkdown>{value}</ReactMarkdown>
+        ) : (
+          <span className="text-gray-500 italic">Empty</span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <InspectorAutoTextarea
+      autoFocus
+      autoHeight={autoHeight ?? true}
+      value={value}
+      rows={rows}
+      readOnly={readOnly}
+      className={className}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={() => {
+        if (value.trim()) setEditing(false);
+      }}
     />
   );
 }
@@ -3914,14 +3993,15 @@ export function EditorInner<TOutput>({
                   <label className="block text-xs uppercase tracking-widest text-gray-500 font-sans">
                     {labelTitle}
                   </label>
-                  <InspectorAutoTextarea
+                  <InspectorMarkdownField
+                    key={selectedNode.id}
                     autoHeight
                     value={
                       typeof selectedNode.data.label === "string"
                         ? selectedNode.data.label
                         : ""
                     }
-                    onChange={(e) => updateSelectedNodeLabel(e.target.value)}
+                    onChange={(next) => updateSelectedNodeLabel(next)}
                     rows={textareaRows}
                     readOnly={selectedNodeNonEditable}
                     className={`w-full border border-[#c0bdb0] rounded-none px-3 py-2 text-sm font-serif text-gray-800 focus:outline-none focus:border-gray-500 leading-relaxed ${
@@ -4048,9 +4128,15 @@ export function EditorInner<TOutput>({
           )}
 
           {inspectorTab === "compiler" && (
-            <pre className="rf-compiler-output m-0 h-full min-h-0 w-full overflow-auto border-0 bg-transparent p-4 text-[14px] font-mono text-gray-800 whitespace-pre-wrap leading-relaxed">
-{preview}
-            </pre>
+            <div
+              className={`rf-compiler-output m-0 h-full min-h-0 w-full overflow-auto border-0 bg-transparent p-4 text-[14px] font-serif text-gray-800 leading-relaxed ${inspectorMdClassName}`}
+            >
+              {preview.trim() ? (
+                <ReactMarkdown>{preview}</ReactMarkdown>
+              ) : (
+                <span className="text-gray-500 italic">No compiler output yet.</span>
+              )}
+            </div>
           )}
 
           {(inspectorExtraTabs ?? []).map(

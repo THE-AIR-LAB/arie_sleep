@@ -43,6 +43,50 @@ function relativeTime(iso?: string): string {
   return new Date(then).toLocaleDateString();
 }
 
+/** Ready-made client scenarios shown in the Examples modal. */
+const SCENARIO_EXAMPLES: { title: string; text: string }[] = [
+  {
+    title: "Wrongful termination",
+    text: "A 34-year-old software engineer in California was fired two weeks after reporting sexual harassment to HR. They believe it was retaliation, have their offer letter and a few emails, and want to know if they have a wrongful-termination claim and what the deadline to act is.",
+  },
+  {
+    title: "Landlord withholding a security deposit",
+    text: "A tenant in New York moved out 45 days ago and the landlord still hasn't returned the $2,400 security deposit or sent an itemized list of deductions. The apartment was left clean. They want to recover the deposit and know whether they can go to small claims court.",
+  },
+  {
+    title: "Unpaid invoice / breach of contract",
+    text: "A freelance graphic designer completed a $9,500 branding project under a signed contract, but the client has ignored invoices for three months and now claims the work was 'never approved.' They have the contract, deliverables, and email approvals, and want to get paid.",
+  },
+  {
+    title: "Divorce with young children",
+    text: "A parent of two children (ages 4 and 7) has decided to divorce their spouse after eight years of marriage. They're worried about custody, the family home, and child support, and want to understand the process and what to expect in their state.",
+  },
+  {
+    title: "Car accident injury",
+    text: "A driver was rear-ended at a red light three weeks ago and has ongoing neck and back pain plus $6,000 in medical bills. The other driver's insurer is pushing for a quick low settlement. They want to know their options and whether to accept.",
+  },
+  {
+    title: "Immigration / work visa",
+    text: "An H-1B holder's employer is being acquired and they're unsure whether their visa and pending green-card petition survive the transition. They want to understand their status, timing, and what happens if they're laid off.",
+  },
+  {
+    title: "First-time DUI",
+    text: "A 27-year-old was arrested for a first-offense DUI over the weekend, has a court date in three weeks, and no prior record. They want to understand the charges, possible penalties, effect on their license, and what to do before the hearing.",
+  },
+  {
+    title: "Estate / probate after a parent's death",
+    text: "A person's mother recently passed away leaving a house, some savings, and a handwritten will naming them executor. They have two siblings and aren't sure whether probate is required or how to handle the estate and debts.",
+  },
+  {
+    title: "Trademark / small-business IP",
+    text: "A small coffee-roaster owner just received a cease-and-desist letter claiming their brand name infringes a larger company's trademark. They've used the name for two years and have a small following. They want to know their risk and options.",
+  },
+  {
+    title: "Eviction notice dispute",
+    text: "A renter received a 30-day eviction notice they believe is retaliation for requesting repairs to a broken heater they'd reported in writing. Rent is current. They want to know if the eviction is lawful and how to respond before the deadline.",
+  },
+];
+
 /**
  * The live run controls, lifted out of the panel body so the drawer tab bar can
  * render Pause/Stop next to its × while a run is in progress. `null` when idle.
@@ -58,7 +102,7 @@ export type SimulationController = {
   /** Clear the thread and arm the next send() to open a titled simulation conversation. */
   begin: (scenario: string, turns: number) => void;
   /**
-   * Send one user message through the REAL sleep-therapist pipeline and resolve
+   * Send one user message through the REAL council pipeline and resolve
    * with the assistant's reply. Drives the main chat window, the observability
    * trace and the policy-canvas animation — same path a hand-typed message takes.
    */
@@ -69,9 +113,9 @@ export type SimulationController = {
 
 /**
  * Simulation tab: set up an automated run and watch a simulated patient talk to
- * the real sleep-therapist pipeline. Each turn is:
- *   /api/chat/sleep/simulate-user  → the patient's next message
- *   controller.send(message)       → the therapist's reply (your current setup)
+ * the real council pipeline. Each turn is:
+ *   /api/chat/law/simulate-user  → the patient's next message
+ *   controller.send(message)       → the council's reply (your current setup)
  *
  * The conversation is driven through the main chat's send(), so it appears in the
  * regular chat window, is saved as a "Simulation · …" conversation, and its
@@ -116,19 +160,23 @@ export function SimulationPanel({
   const [infoRun, setInfoRun] = useState<SimRun | null>(null);
   // How-to-use modal for the Simulation tab (same pattern as Observability).
   const [helpOpen, setHelpOpen] = useState(false);
+  // Examples modal: pick a ready-made client scenario. `openExample` = expanded row.
+  const [examplesOpen, setExamplesOpen] = useState(false);
+  const [openExample, setOpenExample] = useState<number | null>(null);
   const abortRef = useRef(false);
   const pausedRef = useRef(false);
 
   useEffect(() => {
-    if (!infoRun && !helpOpen) return;
+    if (!infoRun && !helpOpen && !examplesOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (infoRun) setInfoRun(null);
+      else if (examplesOpen) setExamplesOpen(false);
       else setHelpOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [infoRun, helpOpen]);
+  }, [infoRun, helpOpen, examplesOpen]);
 
   // Resolves once the run is un-paused (or aborted). Called between turns so the
   // trace for the turn that just finished stays put while you inspect it.
@@ -164,7 +212,7 @@ export function SimulationPanel({
         if (abortRef.current) break;
 
         setStatus(`Turn ${t + 1}/${turnCount} · simulating the patient…`);
-        const uRes = await fetch("/api/chat/sleep/simulate-user", {
+        const uRes = await fetch("/api/chat/law/simulate-user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scenario, history }),
@@ -177,7 +225,7 @@ export function SimulationPanel({
         if (abortRef.current) break;
         history.push({ role: "user", text: userMessage });
 
-        setStatus(`Turn ${t + 1}/${turnCount} · sleep therapist replying…`);
+        setStatus(`Turn ${t + 1}/${turnCount} · council replying…`);
         const reply = await controller.send(userMessage);
         history.push({ role: "ai", text: reply ?? "" });
       }
@@ -191,7 +239,7 @@ export function SimulationPanel({
       // run list shows e.g. "45yo woman, 3am waking" instead of "Improvised patient".
       if (history.length > 0 && controller.renameCurrent) {
         try {
-          const sRes = await fetch("/api/chat/sleep/summarize-scenario", {
+          const sRes = await fetch("/api/chat/law/summarize-scenario", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ scenario, history }),
@@ -275,11 +323,22 @@ export function SimulationPanel({
       </div>
 
       <div className="sim-setup">
-        <label className="sim-label" htmlFor="sim-scenario">Patient scenario</label>
+        <div className="sim-scenario-head">
+          <label className="sim-label" htmlFor="sim-scenario">Client scenario</label>
+          <button
+            type="button"
+            className="sim-examples-btn"
+            onClick={() => setExamplesOpen(true)}
+            disabled={running}
+            title="Pick from example client scenarios"
+          >
+            <Ic.Book size={13} /> Examples
+          </button>
+        </div>
         <textarea
           id="sim-scenario"
           className="sim-textarea"
-          placeholder="e.g. A 45-year-old woman with insomnia who wakes at 3am and can't fall back asleep; it started after a stressful job change. Leave blank to let the patient improvise."
+          placeholder="e.g. A 34-year-old software engineer in California fired two weeks after reporting harassment to HR; wants to know if they have a wrongful-termination claim and what the deadline is. Leave blank to let the client improvise."
           value={scenario}
           onChange={(e) => setScenario(e.target.value)}
           disabled={running}
@@ -421,6 +480,60 @@ export function SimulationPanel({
           </div>
         </div>
       )}
+
+      {examplesOpen && (
+        <div className="sim-examples-overlay" role="dialog" aria-modal="true" onClick={() => setExamplesOpen(false)}>
+          <div className="sim-examples" onClick={(e) => e.stopPropagation()}>
+            <div className="sim-examples-head">
+              <h3 className="sim-examples-title">Example client scenarios</h3>
+              <button
+                type="button"
+                className="sim-info-close"
+                aria-label="Close"
+                title="Close"
+                onClick={() => setExamplesOpen(false)}
+              >
+                <Ic.Close size={18} />
+              </button>
+            </div>
+            <p className="sim-examples-sub">Pick a scenario, then use it to fill the Client scenario field.</p>
+            <div className="sim-examples-list">
+              {SCENARIO_EXAMPLES.map((ex, i) => {
+                const open = openExample === i;
+                return (
+                  <div key={i} className={"sim-acc" + (open ? " open" : "")}>
+                    <button
+                      type="button"
+                      className="sim-acc-head"
+                      aria-expanded={open}
+                      onClick={() => setOpenExample((o) => (o === i ? null : i))}
+                    >
+                      <span className="sim-acc-num">{i + 1}</span>
+                      <span className="sim-acc-title">{ex.title}</span>
+                      <Ic.Chevron size={16} />
+                    </button>
+                    {open && (
+                      <div className="sim-acc-body">
+                        <p className="sim-acc-text">{ex.text}</p>
+                        <button
+                          type="button"
+                          className="sim-btn sim-btn-run"
+                          onClick={() => {
+                            setScenario(ex.text);
+                            setExamplesOpen(false);
+                          }}
+                        >
+                          Use this scenario
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     slot
   );
@@ -451,7 +564,7 @@ function SimulationInfoModal({ onClose }: { onClose: () => void }) {
 
         <div className="obs-info-body">
           <p>
-            Simulation runs a fake patient against your <b>real</b> sleep-therapist
+            Simulation runs a fake patient against your <b>real</b> council
             pipeline — the same path a hand-typed chat takes — so you can stress-test
             State, Policy, and prompts without typing every turn yourself.
           </p>
@@ -463,7 +576,7 @@ function SimulationInfoModal({ onClose }: { onClose: () => void }) {
               <p>
                 Describe who the patient is and what they&apos;re dealing with
                 (age, symptoms, recent events). Leave it blank to let the patient
-                improvise from a generic sleeper profile.
+                improvise from a generic client profile.
               </p>
             </div>
           </div>

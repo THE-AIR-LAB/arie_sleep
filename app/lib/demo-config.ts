@@ -22,6 +22,11 @@ export const DEMO_SETUP: Record<DemoKey, DemoSetupConfig> = {
     filesBucket: "sleep-input-files",
     endpoint: "/demo/sleep/input",
   },
+  law: {
+    setupTable: "law_inputs",
+    filesBucket: "law-input-files",
+    endpoint: "/demo/law/input",
+  },
   dnd: {
     setupTable: "dnd_inputs",
     filesBucket: "dnd-input-files",

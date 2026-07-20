@@ -268,7 +268,7 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   font-size:11px;letter-spacing:.4px;}
 
 /* compact rail (collapsed sidebar) — first icon centered on the 60px header
-   band with the Sleep Assistant title (same math as .right-rail.floating). */
+   band with the Council title (same math as .right-rail.floating). */
 .ra-scope .sidebar.rail{width:64px;flex:0 0 64px;align-items:center;
   padding:calc((var(--studio-head-h,60px) - 44px) / 2) 0 14px;gap:8px;}
 /* collapsed right drawer rail — mirror of .sidebar.rail, docked on the right */
@@ -1592,12 +1592,34 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .sim-info-label{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-4);margin-bottom:6px;}
 .ra-scope .sim-info-scenario{font-family:var(--serif);font-size:15px;line-height:1.6;color:var(--text);white-space:pre-wrap;}
 
-/* Patient scenario label row + Examples button — match .sim-btn typography. */
+/* Client scenario label row + Examples button — match .sim-btn typography. */
 .ra-scope .sim-scenario-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .ra-scope .sim-examples-btn{display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:14px;font-weight:400;
   color:var(--text-2);background:transparent;border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap;}
 .ra-scope .sim-examples-btn:hover{color:var(--text);background:var(--surface-2);border-color:var(--text-4);}
 .ra-scope .sim-examples-btn:disabled{opacity:.5;cursor:default;}
+/* Examples modal — fullscreen sheet with expandable scenario accordions. */
+.ra-scope .sim-examples-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.5);padding:24px;animation:ra-fadeUp .16s ease both;}
+.ra-scope .sim-examples{position:relative;display:flex;flex-direction:column;width:min(720px,100%);max-height:calc(100vh - 48px);
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px 26px 20px;box-shadow:0 24px 60px rgba(0,0,0,0.25);}
+.ra-scope .sim-examples-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:0 0 auto;}
+.ra-scope .sim-examples-title{margin:0;font-family:inherit;font-size:18px;font-weight:600;color:var(--text);}
+.ra-scope .sim-examples-sub{margin:2px 0 16px;font-family:inherit;font-size:13px;color:var(--text-3);}
+.ra-scope .sim-examples-list{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.ra-scope .sim-acc{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);}
+.ra-scope .sim-acc.open{border-color:var(--text-4);}
+.ra-scope .sim-acc-head{width:100%;display:flex;align-items:center;gap:10px;padding:11px 13px;border:none;background:transparent;
+  cursor:pointer;text-align:left;font-family:inherit;font-size:14.5px;color:var(--text);}
+.ra-scope .sim-acc-head:hover{background:var(--surface-2);}
+.ra-scope .sim-acc-num{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+  border-radius:50%;background:var(--surface-2);color:var(--text-3);font-size:11px;font-weight:600;}
+.ra-scope .sim-acc-title{flex:1;min-width:0;}
+.ra-scope .sim-acc-head svg{flex:0 0 auto;color:var(--text-4);transition:transform .15s ease;}
+.ra-scope .sim-acc.open .sim-acc-head svg{transform:rotate(90deg);}
+.ra-scope .sim-acc-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;}
+.ra-scope .sim-acc-text{margin:0;font-family:var(--serif);font-size:14.5px;line-height:1.6;color:var(--text-2);}
+.ra-scope .sim-acc-body .sim-btn{align-self:flex-end;}
 
 /* empty state */
 .ra-scope .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;}
@@ -1662,7 +1684,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 
   /* mobile-only launcher: a horizontal bar across the top whose icons each open
      the bottom drawer (there's no docked rail/sidebar on mobile). */
-  /* float only the icons in the top-right so the Sleep Assistant header sits
+  /* float only the icons in the top-right so the Council header sits
      inline with them (no full-width bar, no background). */
   .ra-scope .mobile-railnav{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:2px;
     position:fixed;top:0;right:0;z-index:60;

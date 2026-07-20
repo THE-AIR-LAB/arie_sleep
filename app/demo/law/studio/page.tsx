@@ -468,7 +468,7 @@ function Sidebar({
     >
       <div className="side-head">
         <div>
-          <div className="side-title">Sleep Assistant</div>
+          <div className="side-title">Legal Assistant</div>
         </div>
         <button className="icon-btn side-close" title="Close sidebar" aria-label="Close sidebar" onClick={onClose}>
           <Ic.Close size={17} />
@@ -842,7 +842,7 @@ function ThreadHeader() {
     <div className="thread-head">
       <Avatar kind="assistant" size={18} ring mono="SA" />
       <div className="th-meta">
-        <div className="th-name">Sleep Assistant</div>
+        <div className="th-name">Legal Assistant</div>
       </div>
     </div>
   );
@@ -1533,8 +1533,9 @@ function EmptyState({ onSuggest, compact = false }: { onSuggest: (t: string) => 
         <>
           <div className="empty-title">Start a conversation</div>
           <div className="empty-sub">
-            Sleep Assistant can review your sleep logs, summarise guidance, and help you
-            build a routine that sticks.
+            Council can take down the facts of your matter, explain your options in
+            plain language, and help you get ready for a consultation. General information,
+            not legal advice.
           </div>
           <div className="suggests">
             {SUGGESTIONS.map((s) => {
@@ -1767,7 +1768,7 @@ const BOTTOM_WORKFLOW_SEED: CanvasDoc = {
       name: WORKFLOW_OVERVIEW_CANVAS_NAME,
       freeText: [
         WORKFLOW_OVERVIEW_CANVAS_MARKER,
-        "Primary agent: Sleep Assistant",
+        "Primary agent: Council",
         "Editable overview of the main sleep-care stages. Edit stages, add loops, or partition a stage into a child workflow.",
       ].join("\n"),
       graph: {
@@ -1778,7 +1779,7 @@ const BOTTOM_WORKFLOW_SEED: CanvasDoc = {
             position: { x: 80, y: 140 },
             data: {
               label:
-                "Editable overview of the main workflow stages. Describe the high-level turn-taking process shared with the sleeper.",
+                "Editable overview of the main workflow stages. Describe the high-level turn-taking process shared with the client.",
               workflowOverview: true,
               runtimeRole: "workflow_overview",
               workflowCanvasId: "overall-workflow",
@@ -1804,7 +1805,7 @@ const BOTTOM_WORKFLOW_SEED: CanvasDoc = {
             position: { x: 850, y: 120 },
             data: {
               label:
-                "Assess\nIdentify patterns (onset, maintenance, schedule, habits).\nEntry: intake complete.\nDone: working hypothesis shared with the sleeper.",
+                "Assess\nIdentify patterns (onset, maintenance, schedule, habits).\nEntry: intake complete.\nDone: working hypothesis shared with the client.",
               workflowOverview: true,
               runtimeRole: "workflow_overview",
               workflowCanvasId: "overall-workflow",
@@ -1832,7 +1833,7 @@ const BOTTOM_WORKFLOW_SEED: CanvasDoc = {
             position: { x: 1710, y: 120 },
             data: {
               label:
-                "Follow up\nCheck progress, adjust the plan, or loop back.\nEntry: plan in place.\nDone: sleeper is stable or returns to Assess.",
+                "Follow up\nCheck progress, adjust the plan, or loop back.\nEntry: plan in place.\nDone: client is stable or returns to Assess.",
               workflowOverview: true,
               runtimeRole: "workflow_overview",
               workflowCanvasId: "overall-workflow",
@@ -1901,18 +1902,18 @@ const WORKFLOW_STAGE_POLICY_CANVAS: Record<string, string> = {
 function deriveWorkflowStage(turn: Turn | null | undefined): string | null {
   if (!turn) return null;
   const refs = turn.nodeRefs ?? [];
-  // The Sleep Intake subtree ran this turn → still gathering history.
+  // The Legal Intake subtree ran this turn → still gathering the facts.
   if (refs.some((r) => r.canvasId === "intake")) return "intake";
   const state = (turn.state ?? {}) as Record<string, unknown>;
   const isEmpty = (v: unknown) =>
     v === null || v === undefined || (Array.isArray(v) ? v.length === 0 : String(v).trim() === "" || String(v) === "null");
-  // Emergency short-circuits into guidance (urgent advice).
+  // Emergency (imminent deadline) short-circuits into guidance/advice.
   if (!isEmpty(state.emergency) && String(state.emergency).toLowerCase() !== "false") return "guide";
-  // Once the core intake fields are captured, the assistant moves to guidance.
+  // Once the core intake fields are captured, the assistant moves to advice.
   const intakeCoreFilled =
-    !isEmpty(state.sleep_concern) &&
-    !isEmpty(state.bedtime_weeknight) &&
-    !isEmpty(state.wake_time);
+    !isEmpty(state.summary) &&
+    !isEmpty(state.matter_type) &&
+    !isEmpty(state.jurisdiction);
   if (intakeCoreFilled) return "guide";
   return "intake";
 }
@@ -2138,7 +2139,7 @@ function SleepStudioChat() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/admin/setup/sleep");
+        const res = await fetch("/api/admin/setup/law");
         if (!res.ok) return;
         const { workflowCanvases } = (await res.json()) as {
           workflowCanvases?: Array<{ canvas_id?: string; name?: string; sort_order?: number; canvas: CanvasDoc["canvases"][number] }>;
@@ -2159,7 +2160,7 @@ function SleepStudioChat() {
     setWorkflowSaving(true);
     try {
       // The PUT requires `config`; fetch the current one so we don't clobber it.
-      const cur = await fetch("/api/admin/setup/sleep");
+      const cur = await fetch("/api/admin/setup/law");
       const config = (cur.ok ? (await cur.json())?.config : null) ?? {};
       const workflowCanvases = canvasDoc.canvases.map((canvas, index) => ({
         canvas_id: canvas.id,
@@ -2167,7 +2168,7 @@ function SleepStudioChat() {
         sort_order: index,
         canvas,
       }));
-      const res = await fetch("/api/admin/setup/sleep", {
+      const res = await fetch("/api/admin/setup/law", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config, workflowCanvases }),
@@ -2457,7 +2458,7 @@ function SleepStudioChat() {
 
   const loadConversations = useCallback(async () => {
     try {
-      const res = await fetch("/api/conversations?topic=sleep");
+      const res = await fetch("/api/conversations?topic=law");
       if (!res.ok) { setConvos([]); return; }
       const { conversations } = (await res.json()) as {
         conversations: Array<{ id: string; title: string; updated_at?: string; turn_count?: number; scenario?: string | null }>;
@@ -2617,7 +2618,7 @@ function SleepStudioChat() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               title: simTitle ?? trimmed.slice(0, 60),
-              topic: "sleep",
+              topic: "law",
               // Persist the scenario for simulation runs (null for hand-typed chats).
               ...(simScenario !== null ? { scenario: simScenario } : {}),
             }),
@@ -2636,7 +2637,7 @@ function SleepStudioChat() {
         }
 
         setTypingLabel("Thinking…");
-        const res = await fetch("/api/chat/sleep/base", {
+        const res = await fetch("/api/chat/law/base", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -3241,7 +3242,7 @@ function SleepStudioChat() {
 function StudioLoading() {
   return (
     <div className="flex flex-1 items-center justify-center bg-white">
-      <SiteLogo size={120} href="/demo/sleep/studio" />
+      <SiteLogo size={120} href="/demo/law/studio" />
     </div>
   );
 }
@@ -3290,7 +3291,7 @@ function StudioSplash({ ready }: { ready: boolean }) {
           "transition-opacity duration-700 " + (entered ? "opacity-100" : "opacity-0")
         }
       >
-        <SiteLogo size={120} href="/demo/sleep/studio" />
+        <SiteLogo size={120} href="/demo/law/studio" />
       </div>
     </div>
   );

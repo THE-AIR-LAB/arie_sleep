@@ -181,6 +181,11 @@ const SLEEP_SETUP_SOURCE: SetupSource = {
   setupEndpoint: "/demo/sleep/input",
   setupEndpointAliases: ["/sleep/input"],
 };
+const LAW_SETUP_SOURCE: SetupSource = {
+  sourceTable: "law_inputs",
+  setupEndpoint: "/demo/law/input",
+  setupEndpointAliases: ["/law/input"],
+};
 const DND_SETUP_SOURCE: SetupSource = {
   sourceTable: "dnd_inputs",
   setupEndpoint: "/demo/dnd/input",
@@ -941,6 +946,10 @@ function resolveSetupSourceFromRequest(request: Request): SetupSource {
 
   if (referer.includes("/demo/sleep") || referer.includes("/sleep-assessment")) {
     return SLEEP_SETUP_SOURCE;
+  }
+
+  if (referer.includes("/demo/law")) {
+    return LAW_SETUP_SOURCE;
   }
 
   const publishedDemoSource = resolvePublishedDaemonSetupSource(referer);

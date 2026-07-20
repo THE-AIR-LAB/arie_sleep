@@ -15,6 +15,7 @@ export type Role = AdminAuthRole;
 export const KNOWN_DEMOS = [
   "nutrition",
   "sleep",
+  "law",
   "dnd",
   "research-assistant",
   "general-orchestration-daemon",
