@@ -7,9 +7,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { clerkAppearance } from "./components/AuthModal";
 import SiteLogo from "./components/SiteLogo";
 
-// Where a signed-in visitor lands. Sign-in redirects straight here so the
-// landing page doubles as the login screen (see HomeContent).
-const STUDIO_PATH = "/demo/sleep/studio";
+// Where a signed-in visitor lands after auth — the studio chooser.
+const AFTER_SIGN_IN_PATH = "/demo";
 
 // Shared width so the intro copy and the Clerk sign-in card line up exactly.
 const CONTENT_WIDTH = "25rem";
@@ -73,7 +72,7 @@ function HomeContent() {
   // it even if Clerk's OAuth flow drops the redirect param.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.sessionStorage.setItem("postSignInRedirect", STUDIO_PATH);
+    window.sessionStorage.setItem("postSignInRedirect", AFTER_SIGN_IN_PATH);
   }, []);
 
   return (
@@ -101,7 +100,7 @@ function HomeContent() {
         <p className="text-sm text-gray-400">Loading…</p>
       ) : user ? (
         <Link
-          href={STUDIO_PATH}
+          href={AFTER_SIGN_IN_PATH}
           className="rounded-full border border-black/20 bg-white px-6 py-3 text-center text-sm font-bold text-black transition hover:bg-black hover:text-white"
         >
           Open the studio
@@ -114,15 +113,15 @@ function HomeContent() {
           {mode === "signin" ? (
             <SignIn
               routing="hash"
-              forceRedirectUrl={STUDIO_PATH}
-              fallbackRedirectUrl={STUDIO_PATH}
+              forceRedirectUrl={AFTER_SIGN_IN_PATH}
+              fallbackRedirectUrl={AFTER_SIGN_IN_PATH}
               appearance={homeAppearance}
             />
           ) : (
             <SignUp
               routing="hash"
-              forceRedirectUrl={STUDIO_PATH}
-              fallbackRedirectUrl={STUDIO_PATH}
+              forceRedirectUrl={AFTER_SIGN_IN_PATH}
+              fallbackRedirectUrl={AFTER_SIGN_IN_PATH}
               appearance={homeAppearance}
             />
           )}
