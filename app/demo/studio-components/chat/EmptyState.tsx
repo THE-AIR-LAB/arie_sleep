@@ -14,7 +14,7 @@ export function EmptyState({
   onSuggest,
   compact = false,
 }: {
-  config: Pick<StudioChatConfig, "assistantMark" | "avatarMono" | "emptyStateHref" | "emptyStateBody" | "suggestions">;
+  config: Pick<StudioChatConfig, "assistantMark" | "avatarMono" | "emptyStateHref" | "emptyStateTitle" | "emptyStateBody" | "suggestions">;
   onSuggest: (t: string) => void;
   compact?: boolean;
 }) {
@@ -23,7 +23,7 @@ export function EmptyState({
       <AssistantMark variant="empty" config={config} />
       {!compact && (
         <>
-          <div className="empty-title">Start a conversation</div>
+          <div className="empty-title">{config.emptyStateTitle ?? "Start a conversation"}</div>
           <div className="empty-sub">{config.emptyStateBody}</div>
           <div className="suggests">
             {config.suggestions.map((s) => {

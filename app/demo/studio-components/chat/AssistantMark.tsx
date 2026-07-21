@@ -1,5 +1,4 @@
 import { Avatar } from "../ra-shared";
-import SiteLogo from "../../../components/SiteLogo";
 import type { StudioChatConfig } from "./types";
 
 const LOGO_DIV_CLASS = {
@@ -10,7 +9,7 @@ const LOGO_DIV_CLASS = {
 /**
  * The assistant's brand mark, rendered wherever the studio needs to show
  * "this came from the assistant" — thread header, bubbles, empty state.
- * `config.assistantMark` picks between the site's square logo (law, analyst)
+ * `config.assistantMark` picks between a solid color square (law, analyst)
  * and a photo/mono Avatar (sleep); everything else about the mark (size, ring)
  * is fixed per call-site variant.
  */
@@ -33,7 +32,9 @@ export function AssistantMark({
   if (variant === "empty") {
     return (
       <div className="empty-logo">
-        <SiteLogo size={96} href={config.emptyStateHref} />
+        <a href={config.emptyStateHref} aria-label="Home">
+          <div className="empty-logo-sq" aria-hidden="true" />
+        </a>
       </div>
     );
   }

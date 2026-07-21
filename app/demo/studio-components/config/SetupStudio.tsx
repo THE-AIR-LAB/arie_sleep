@@ -2313,8 +2313,8 @@ function buildSetupBar(useSleepSetup: () => SleepSetupReturn) {
         {compileInfoOpen && <CompilationInfoModal onClose={() => setCompileInfoOpen(false)} />}
 
         {/* Docked inline: the actual section component, embedded in the drawer.
-            For canvas sections, Save is docked into the canvas tab bar
-            (tabBarTrailing); otherwise it's on the nav bar above. */}
+            For canvas sections, Save is docked into the canvas bottom-right
+            chrome (tabBarTrailing); otherwise it's on the nav bar above. */}
         {active && (
           <div className="sysconf obs-docked">
             <div className="obs-docked-body">

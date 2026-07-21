@@ -521,7 +521,14 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
       const res = await fetch(`/api/conversations?topic=${config.apiTopic}`);
       if (!res.ok) { setConvos([]); return; }
       const { conversations } = (await res.json()) as {
-        conversations: Array<{ id: string; title: string; updated_at?: string; turn_count?: number; scenario?: string | null }>;
+        conversations: Array<{
+          id: string;
+          title: string;
+          updated_at?: string;
+          turn_count?: number;
+          scenario?: string | null;
+          has_feedback?: boolean;
+        }>;
       };
       setConvos((conversations ?? []).map((c) => ({
         id: c.id,
@@ -529,6 +536,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
         updatedAt: c.updated_at,
         turnCount: c.turn_count,
         scenario: c.scenario,
+        hasFeedback: !!c.has_feedback,
       })));
     } catch {
       setConvos([]);
@@ -967,6 +975,10 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error ?? `Feedback save failed (HTTP ${res.status}).`);
       }
+      // Tint this conversation in the sidebar / Runs list.
+      setConvos((prev) =>
+        prev.map((c) => (c.id === activeId ? { ...c, hasFeedback: true } : c))
+      );
     } catch (err) {
       console.error("[feedback] save failed", err);
       setFeedbackError(
@@ -976,11 +988,9 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   };
 
   const onRemoveFeedback = async (index: number) => {
-    setFeedbackByIdx((prev) => {
-      const next = { ...prev };
-      delete next[index];
-      return next;
-    });
+    const remaining = { ...feedbackByIdx };
+    delete remaining[index];
+    setFeedbackByIdx(remaining);
     setEditingIdx(null);
     if (!activeId) return;
     setFeedbackError(null);
@@ -992,6 +1002,12 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error ?? `Feedback delete failed (HTTP ${res.status}).`);
+      }
+      const stillHas = Object.values(remaining).some((e) => e.length > 0);
+      if (!stillHas) {
+        setConvos((prev) =>
+          prev.map((c) => (c.id === activeId ? { ...c, hasFeedback: false } : c))
+        );
       }
     } catch (err) {
       console.error("[feedback] delete failed", err);
@@ -1123,6 +1139,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
             )}
             <Composer
               actionChips={config.actionChips}
+              apiTopic={config.apiTopic}
               value={input}
               setValue={setInput}
               onSend={send}
@@ -1192,6 +1209,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
           {openDrawers.length === 0 && (
             <MobileNav
               onOpen={openMobileDrawer}
+              apiTopic={config.apiTopic}
               isAdmin={isAdmin}
               showThreadControls={messages.length > 0}
               allCollapsed={

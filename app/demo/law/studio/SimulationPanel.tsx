@@ -9,44 +9,44 @@ import {
 
 const SCENARIO_EXAMPLES: { title: string; text: string }[] = [
   {
-    title: "Wrongful termination",
-    text: "A 34-year-old software engineer in California was fired two weeks after reporting sexual harassment to HR. They believe it was retaliation, have their offer letter and a few emails, and want to know if they have a wrongful-termination claim and what the deadline to act is.",
+    title: "Stock purchase vs. asset purchase",
+    text: "A founder of a Series B SaaS company is negotiating a sale to a strategic buyer. The buyer wants an asset purchase; the founder prefers a stock purchase for tax and continuity reasons. They want to understand the tradeoffs, liability allocation, and what typically gets negotiated in the purchase agreement.",
   },
   {
-    title: "Landlord withholding a security deposit",
-    text: "A tenant in New York moved out 45 days ago and the landlord still hasn't returned the $2,400 security deposit or sent an itemized list of deductions. The apartment was left clean. They want to recover the deposit and know whether they can go to small claims court.",
+    title: "Letter of intent / exclusivity",
+    text: "A PE firm sent a non-binding LOI with a 60-day exclusivity period and a $2M break fee if the seller walks. The seller's board wants to know what is actually binding, whether the exclusivity is market, and what diligence and interim covenants they should expect before a definitive agreement.",
   },
   {
-    title: "Unpaid invoice / breach of contract",
-    text: "A freelance graphic designer completed a $9,500 branding project under a signed contract, but the client has ignored invoices for three months and now claims the work was 'never approved.' They have the contract, deliverables, and email approvals, and want to get paid.",
+    title: "Due diligence red flags",
+    text: "Buyer's counsel is mid-diligence on a manufacturing target and found customer concentration (one customer is 40% of revenue), an expired key IP license, and an open wage-and-hour claim. They want to know how these typically affect price, reps, indemnities, and whether to walk or restructure the deal.",
   },
   {
-    title: "Divorce with young children",
-    text: "A parent of two children (ages 4 and 7) has decided to divorce their spouse after eight years of marriage. They're worried about custody, the family home, and child support, and want to understand the process and what to expect in their state.",
+    title: "Earnout dispute risk",
+    text: "A founder sold their company with a $15M earnout tied to EBITDA over two years. Post-close, the buyer changed revenue recognition and cut the go-to-market budget. The founder believes the earnout was sabotaged and wants to understand contractual protections and remedies.",
   },
   {
-    title: "Car accident injury",
-    text: "A driver was rear-ended at a red light three weeks ago and has ongoing neck and back pain plus $6,000 in medical bills. The other driver's insurer is pushing for a quick low settlement. They want to know their options and whether to accept.",
+    title: "Working capital adjustment",
+    text: "A buyer and seller agreed on a $50M enterprise value with a pegged working capital target. At closing, the estimated net working capital was $3M below the peg. The seller disputes the buyer's calculation of accrued liabilities. They want to understand how pegs, true-ups, and dispute mechanisms usually work.",
   },
   {
-    title: "Immigration / work visa",
-    text: "An H-1B holder's employer is being acquired and they're unsure whether their visa and pending green-card petition survive the transition. They want to understand their status, timing, and what happens if they're laid off.",
+    title: "Series B preferred financing",
+    text: "A startup is raising a $40M Series B led by a growth fund. The term sheet includes a 1x non-participating liquidation preference, a broad-based weighted-average anti-dilution, a board seat, and pro rata rights. Founders want to know what is standard, what to push back on, and how this affects existing common and Option holders.",
   },
   {
-    title: "First-time DUI",
-    text: "A 27-year-old was arrested for a first-offense DUI over the weekend, has a court date in three weeks, and no prior record. They want to understand the charges, possible penalties, effect on their license, and what to do before the hearing.",
+    title: "Convertible note / SAFE stack",
+    text: "A company raised $8M on SAFEs (uncapped and $60M cap) and now has a priced round at a $45M pre-money. Early SAFE holders expect conversion economics that would heavily dilute the founders. They want to understand conversion math, most-favored-nation issues, and how to negotiate a clean-up with investors.",
   },
   {
-    title: "Estate / probate after a parent's death",
-    text: "A person's mother recently passed away leaving a house, some savings, and a handwritten will naming them executor. They have two siblings and aren't sure whether probate is required or how to handle the estate and debts.",
+    title: "Debt financing / credit agreement",
+    text: "A mid-market company is negotiating a $75M senior secured credit facility to fund an acquisition. The lender's draft has tight financial covenants, a sweeping change-of-control default, and broad events of default. Management wants to know which terms are negotiable and how they interact with the planned M&A timeline.",
   },
   {
-    title: "Trademark / small-business IP",
-    text: "A small coffee-roaster owner just received a cease-and-desist letter claiming their brand name infringes a larger company's trademark. They've used the name for two years and have a small following. They want to know their risk and options.",
+    title: "Rollover equity / management package",
+    text: "In a PE buyout, management is asked to roll 30% of after-tax proceeds into a new holdco and take a new equity incentive plan with a 4-year vest and double-trigger acceleration. They want to understand tax, governance, dilution, and what happens if they leave or the company is sold again.",
   },
   {
-    title: "Eviction notice dispute",
-    text: "A renter received a 30-day eviction notice they believe is retaliation for requesting repairs to a broken heater they'd reported in writing. Rent is current. They want to know if the eviction is lawful and how to respond before the deadline.",
+    title: "Representations, warranties & R&W insurance",
+    text: "On a $200M stock deal, the buyer wants a $20M indemnity escrow and broad knowledge qualifiers only for the seller. The seller proposes R&W insurance with a small retention. Both sides want to understand how R&W insurance changes escrow size, survival periods, and negotiation leverage on the reps schedule.",
   },
 ];
 
@@ -64,7 +64,7 @@ const CONFIG: SimulationPanelConfig = {
   improvisedInfoBlurb: "Improvised patient — no scenario was provided; the patient improvised.",
   drawerSubhead: "Run a simulated patient against your setup",
   scenarioPlaceholder:
-    "e.g. A 34-year-old software engineer in California fired two weeks after reporting harassment to HR; wants to know if they have a wrongful-termination claim and what the deadline is. Leave blank to let the client improvise.",
+    "e.g. A founder negotiating a stock vs. asset sale to a strategic buyer; wants to understand tax, liability allocation, and what typically gets negotiated in the purchase agreement. Leave blank to let the client improvise.",
   examplesButtonTitle: "Pick from example client scenarios",
   helpPipelineLabel: "council",
   helpImproviseProfile: "a generic client profile",

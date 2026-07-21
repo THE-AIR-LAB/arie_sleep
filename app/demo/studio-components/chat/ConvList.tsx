@@ -139,7 +139,8 @@ export function ConvList({
               className={
                 "conv-item" +
                 (c.id === activeId && !selecting ? " active" : "") +
-                (isChecked ? " selected" : "")
+                (isChecked ? " selected" : "") +
+                (c.hasFeedback ? " has-feedback" : "")
               }
               onClick={() => {
                 if (renamingId === c.id) return;

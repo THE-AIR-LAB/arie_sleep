@@ -19,6 +19,8 @@ export interface Conversation {
   turnCount?: number;
   /** For simulation runs: the scenario that drove the run. */
   scenario?: string | null;
+  /** True when the signed-in user has left feedback on at least one message. */
+  hasFeedback?: boolean;
 }
 
 export interface SuggestionChip {
@@ -69,13 +71,15 @@ export type StudioChatConfig = {
   /** e.g. "/demo/law/studio" — used for the brand-logo link (splash, loading, empty state). */
   studioPath: string;
   /** How the assistant mark is rendered in the header / bubbles / empty state.
-   *  "logo" → the site's square logo mark (law, analyst); "avatar" → a photo/mono Avatar (sleep). */
+   *  "logo" → a solid color square matching the chat mark (law, analyst); "avatar" → a photo/mono Avatar (sleep). */
   assistantMark: "logo" | "avatar";
   /** Mono fallback initials for the Avatar mark, e.g. "SA" for sleep. Only used when assistantMark === "avatar". */
   avatarMono?: string;
   /** Href for the empty-state brand mark. Usually the same as `studioPath`. */
   emptyStateHref: string;
-  /** Empty-state intro copy (paragraph under "Start a conversation"). */
+  /** Empty-state headline. Defaults to "Start a conversation". */
+  emptyStateTitle?: string;
+  /** Empty-state intro copy (paragraph under the title). */
   emptyStateBody: React.ReactNode;
   /** "Primary agent: …" line embedded in the Overall Workflow canvas seed. */
   emptyStatePrimaryAgent: string;

@@ -282,9 +282,9 @@ export const GUIDELINES: GuidelineTopic[] = [
 
 /* ── Chat copy (Sleep persona) ── */
 export const SUGGESTIONS: { icon: string; label: string }[] = [
-  { icon: "Memo", label: "Explain my legal options" },
-  { icon: "Book", label: "What documents should I gather?" },
-  { icon: "Edit", label: "Help me prepare for a consultation" },
+  { icon: "Memo", label: "Stock purchase vs. asset purchase" },
+  { icon: "Book", label: "What diligence docs should I gather?" },
+  { icon: "Edit", label: "Help me prep for a deal consult" },
 ];
 export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [
   // { icon: "Upload", label: "Upload sleep data" },

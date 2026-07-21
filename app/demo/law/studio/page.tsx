@@ -33,11 +33,12 @@ const studioChatConfig: StudioChatConfig = {
   studioPath: "/demo/law/studio",
   assistantMark: "logo",
   emptyStateHref: "/demo/law/studio",
+  emptyStateTitle: "Mergers and Acquisitions council",
   emptyStateBody: (
     <>
-      Council can take down the facts of your matter, explain your options in
-      plain language, and help you get ready for a consultation. General information,
-      not legal advice.
+      Council can take down the facts of your deal, walk through M&A and
+      financing options in plain language, and help you prepare for counsel.
+      General information, not legal advice.
     </>
   ),
   emptyStatePrimaryAgent: "Primary agent: Council",

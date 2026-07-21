@@ -5,7 +5,7 @@ import { Ic } from "../ra-icons";
 import type { FeedbackEntry } from "../FeedbackControls";
 import { AssistantMark } from "./AssistantMark";
 import { BubbleFullscreen } from "./BubbleFullscreen";
-import { BubbleMarkdown } from "./BubbleMarkdown";
+import { BubbleMarkdown, looksLikeWorksheet, worksheetSectionCount } from "./BubbleMarkdown";
 import { VoiceFeedbackButton } from "./VoiceFeedbackButton";
 import type { Message, StudioChatConfig } from "./types";
 
@@ -232,8 +232,8 @@ export function Bubble({
           {navActions}
           <div className="bubble-nav-end">
             {copyBtn}
-            {collapseBtn}
             {fullscreenBtn}
+            {collapseBtn}
           </div>
         </div>
       )}
@@ -249,7 +249,18 @@ export function Bubble({
             {isUser && showTurnN ? (
               <span className="bubble-collapse-turn">{turnNumber}. </span>
             ) : null}
-            {isUser ? m.text : <BubbleMarkdown>{m.text}</BubbleMarkdown>}
+            {isUser ? (
+              m.text
+            ) : looksLikeWorksheet(m.text) ? (
+              <span className="bubble-form-collapsed">
+                {(() => {
+                  const n = worksheetSectionCount(m.text);
+                  return n > 0 ? `Fill-in worksheet · ${n} sections` : "Fill-in worksheet";
+                })()}
+              </span>
+            ) : (
+              <BubbleMarkdown>{m.text}</BubbleMarkdown>
+            )}
           </>
         ) : isUser ? (
           m.text

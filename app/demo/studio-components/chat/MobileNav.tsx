@@ -7,12 +7,14 @@ import {
   OPENAI_MODEL,
   type ChatModelId,
 } from "../../../lib/openai-config";
+import { MoveToV2Modal } from "./MoveToV2Modal";
 
 /* ---------------- mobile-only top-right nav ---------------- */
 // On mobile the docked sidebar and rails are hidden, so a single hamburger
 // opens the bottom sheet (Chats / Account / admin tabs live inside it).
 export function MobileNav({
   onOpen,
+  apiTopic,
   showThreadControls = false,
   allCollapsed = false,
   onToggleCollapseAll,
@@ -23,6 +25,8 @@ export function MobileNav({
   onSelectModel,
 }: {
   onOpen: () => void;
+  /** Demo topic slug — used to load policy + feedback for Move to V2. */
+  apiTopic: string;
   isAdmin?: boolean;
   showThreadControls?: boolean;
   allCollapsed?: boolean;
@@ -143,44 +147,11 @@ export function MobileNav({
         </button>
       </nav>
       {v2ModalOpen && (
-        <div
-          className="obs-info-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="thread-model-v2-title-mobile"
-          onClick={() => setV2ModalOpen(false)}
-        >
-          <div className="obs-info-card" onClick={(e) => e.stopPropagation()}>
-            <div className="obs-info-head">
-              <span id="thread-model-v2-title-mobile" className="obs-info-title">
-                Move to V2
-              </span>
-              <button
-                type="button"
-                className="obs-info-close"
-                aria-label="Close"
-                onClick={() => setV2ModalOpen(false)}
-              >
-                <Ic.Close size={16} />
-              </button>
-            </div>
-            <div className="obs-info-body">
-              <p>
-                All the information defined in the <b>policy</b> and <b>state</b>, and all
-                the feedback you have provided, will be used to train the V2 custom model.
-              </p>
-              <div className="obs-info-actions">
-                <button
-                  type="button"
-                  className="obs-info-btn primary"
-                  onClick={() => setV2ModalOpen(false)}
-                >
-                  Got it
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MoveToV2Modal
+          apiTopic={apiTopic}
+          titleId="thread-model-v2-title-mobile"
+          onClose={() => setV2ModalOpen(false)}
+        />
       )}
     </>
   );

@@ -55,7 +55,27 @@ export async function GET(request: NextRequest) {
   const conversations = rows.map((c) => ({
     ...c,
     turn_count: turnCount.get(c.id) ?? 0,
+    has_feedback: false as boolean,
   }));
+
+  // Mark conversations that have at least one feedback row from this user.
+  if (ids.length > 0) {
+    const { data: fbRows, error: fbError } = await supabase
+      .from("message_feedback")
+      .select("conversation_id")
+      .eq("user_id", userUUID)
+      .in("conversation_id", ids);
+    if (fbError) {
+      console.error("[api/conversations] feedback flag error:", JSON.stringify(fbError));
+    } else {
+      const withFb = new Set(
+        ((fbRows ?? []) as Array<{ conversation_id: string }>).map((r) => r.conversation_id)
+      );
+      for (const c of conversations) {
+        c.has_feedback = withFb.has(c.id);
+      }
+    }
+  }
 
   return NextResponse.json({ conversations });
 }

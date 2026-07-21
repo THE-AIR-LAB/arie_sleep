@@ -8,10 +8,12 @@ import {
   type ChatModelId,
 } from "../../../lib/openai-config";
 import { VoiceReplyButton } from "./VoiceReplyButton";
+import { MoveToV2Modal } from "./MoveToV2Modal";
 import type { ActionChip } from "./types";
 
 export function Composer({
   actionChips,
+  apiTopic,
   value,
   setValue,
   onSend,
@@ -35,6 +37,8 @@ export function Composer({
   onSelectModel,
 }: {
   actionChips: ActionChip[];
+  /** Demo topic slug — used to load policy + feedback for Move to V2. */
+  apiTopic: string;
   value: string;
   setValue: (v: string) => void;
   onSend: (t: string) => void;
@@ -285,44 +289,7 @@ export function Composer({
         </div>
       </div>
       {v2ModalOpen && (
-        <div
-          className="obs-info-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="thread-model-v2-title"
-          onClick={() => setV2ModalOpen(false)}
-        >
-          <div className="obs-info-card" onClick={(e) => e.stopPropagation()}>
-            <div className="obs-info-head">
-              <span id="thread-model-v2-title" className="obs-info-title">
-                Move to V2
-              </span>
-              <button
-                type="button"
-                className="obs-info-close"
-                aria-label="Close"
-                onClick={() => setV2ModalOpen(false)}
-              >
-                <Ic.Close size={16} />
-              </button>
-            </div>
-            <div className="obs-info-body">
-              <p>
-                All the information defined in the <b>policy</b> and <b>state</b>, and all
-                the feedback you have provided, will be used to train the V2 custom model.
-              </p>
-              <div className="obs-info-actions">
-                <button
-                  type="button"
-                  className="obs-info-btn primary"
-                  onClick={() => setV2ModalOpen(false)}
-                >
-                  Got it
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MoveToV2Modal apiTopic={apiTopic} onClose={() => setV2ModalOpen(false)} />
       )}
       <style jsx>{`
         @keyframes voice-pulse {

@@ -14,6 +14,8 @@ export type SimRun = {
   turnCount?: number;
   /** The patient scenario that drove the run (repopulated when the run is selected). */
   scenario?: string | null;
+  /** True when the signed-in user has left feedback on at least one message. */
+  hasFeedback?: boolean;
 };
 
 export type SimulationPanelConfig = {
@@ -375,7 +377,11 @@ export function SimulationPanel({
               return (
                 <div
                   key={r.id}
-                  className={"sim-run" + (r.id === activeRunId ? " active" : "")}
+                  className={
+                    "sim-run" +
+                    (r.id === activeRunId ? " active" : "") +
+                    (r.hasFeedback ? " has-feedback" : "")
+                  }
                   role="button"
                   tabIndex={0}
                   title="Open this run in the chat window"
