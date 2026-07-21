@@ -1413,14 +1413,17 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
 /* Shared header band with the right-drawer Model Setup / Observability tabs. */
 .ra-scope{--studio-head-h:60px;}
-.ra-scope .thread-head{display:flex;align-items:center;gap:13px;height:var(--studio-head-h);padding:0 22px;box-sizing:border-box;border-bottom:none;}
+.ra-scope .thread-head{display:flex;align-items:center;gap:13px;height:var(--studio-head-h);padding:0 8px 0 22px;box-sizing:border-box;
+  width:max-content;max-width:100%;border-bottom:none;position:relative;}
+/* Underline hugs the title cluster, with a left gap so it doesn’t meet the open accordion. */
+.ra-scope .thread-head::after{content:"";position:absolute;left:22px;right:8px;bottom:0;height:1px;background:var(--line-soft);pointer-events:none;}
 .ra-scope .th-logo{flex:0 0 auto;width:28px;height:28px;object-fit:cover;display:block;border-radius:50%;background:#B0BEA5;}
-.ra-scope .th-meta{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;gap:16px;}
+.ra-scope .th-meta{flex:0 1 auto;min-width:0;overflow:hidden;display:flex;align-items:flex-end;gap:14px;}
 .ra-scope .th-name{font-family:var(--serif);font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px;white-space:nowrap;line-height:1.25;}
 .ra-scope .th-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;line-height:1.3;color:var(--text-3);font-style:italic;font-family:var(--serif);}
 .ra-scope .th-actions{display:flex;align-items:center;gap:4px;}
-/* Show controls / Expand all — to the right of the product title. */
-.ra-scope .thread-head-controls{display:flex;align-items:center;gap:12px;margin:0;padding:0;flex:0 0 auto;}
+/* Show controls / Expand all — plain text, bottom-aligned with the title. */
+.ra-scope .thread-head-controls{display:flex;align-items:baseline;gap:12px;margin:0;padding:0 0 1px;flex:0 0 auto;}
 @media (max-width:900px){
   .ra-scope .thread-head-controls{display:none;}
 }
@@ -1467,19 +1470,18 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   padding:8px 10px;cursor:pointer;}
 .ra-scope .thread-model-option:hover{color:var(--text);background:var(--surface-2);}
 .ra-scope .thread-model-option.selected{color:var(--text);font-weight:500;}
-/* `button.thread-collapse-all` beats the global `button { border:none }` reset. */
-.ra-scope button.thread-collapse-all{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:5px;
-  font-family:inherit;font-size:12px;font-weight:400;line-height:1;color:var(--text-2);
-  background:transparent;border:1px solid transparent;border-radius:999px;padding:6px 12px;
+/* Plain text toggles (no pill chrome). */
+.ra-scope button.thread-collapse-all{flex:0 0 auto;display:inline-flex;align-items:baseline;justify-content:center;gap:0;
+  font-family:inherit;font-size:12px;font-weight:400;line-height:1.25;color:var(--text-3);
+  background:transparent;border:none;border-radius:0;padding:0;
   box-sizing:border-box;cursor:pointer;white-space:nowrap;}
-/* Keep toggle pills the same width for both labels (Show/Hide, Expand/Collapse). */
-.ra-scope .thread-pill-swap{display:inline-grid;justify-items:center;align-items:center;}
+/* Keep toggle labels the same width for both states (Show/Hide, Expand/Collapse). */
+.ra-scope .thread-pill-swap{display:inline-grid;justify-items:start;align-items:baseline;}
 .ra-scope .thread-pill-swap > span{grid-area:1/1;visibility:hidden;}
 .ra-scope .thread-pill-swap > span.is-active{visibility:visible;}
-.ra-scope button.thread-collapse-all:hover{color:var(--text);background:var(--surface-2);border-color:var(--text-4);}
-/* Active toggle stays background-less (like the other thread control), just darker text. */
-.ra-scope button.thread-collapse-all.on{color:var(--text);}
-.ra-scope button.thread-collapse-all.on:hover{background:var(--surface-2);}
+.ra-scope button.thread-collapse-all:hover{color:var(--text);background:transparent;border:none;}
+.ra-scope button.thread-collapse-all.on{color:var(--text-2);}
+.ra-scope button.thread-collapse-all.on:hover{color:var(--text);background:transparent;}
 
 .ra-scope .msg-ai{display:flex;gap:13px;align-self:stretch;animation:ra-fadeUp .35s ease both;}
 .ra-scope .msg-ai .avatar{width:28px;height:28px;margin-top:2px;}
@@ -1978,7 +1980,8 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
      top border color (var(--line)). */
   /* Match the header to the message column: title left edge lines up with the
      bubble left edge, both at the thread's 14px inset (+28px avatar +13px gap). */
-  .ra-scope .thread-head{border-bottom:1px solid var(--line);padding:0 14px;}
+  .ra-scope .thread-head{border-bottom:none;padding:0 14px;}
+  .ra-scope .thread-head::after{display:none;}
   /* Tighter tab spacing in the mobile bottom-sheet (all tabs shown at once). */
   .ra-scope .drawer-tabs{gap:14px;padding:0 12px;}
   /* Drop the redundant × on mobile — the sheet closes by flicking the grabber. */
