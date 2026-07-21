@@ -1903,7 +1903,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope button.empty-upload{display:inline-flex;align-items:center;justify-content:center;gap:6px;
   font-family:inherit;font-size:11px;font-weight:500;line-height:1;color:var(--text);
   background:var(--surface);border:1px solid var(--text-3);border-radius:999px;padding:9px 16px;
-  box-sizing:border-box;cursor:pointer;white-space:nowrap;}
+  box-sizing:border-box;cursor:pointer;white-space:nowrap;margin-top:24px;}
 .ra-scope button.empty-upload:hover{background:var(--surface-2);border-color:var(--text);color:var(--text);}
 .ra-scope button.empty-upload .ic{color:var(--text);display:flex;}
 
