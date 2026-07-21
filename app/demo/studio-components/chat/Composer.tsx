@@ -102,7 +102,7 @@ export function Composer({
                       onExpertChat();
                       return;
                     }
-                    if (a.label === "Upload sleep data") {
+                    if (a.icon === "Upload" || a.label.startsWith("Upload")) {
                       onUpload();
                       return;
                     }

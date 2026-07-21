@@ -1886,16 +1886,26 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .sim-acc-body .sim-btn{align-self:flex-end;}
 
 /* empty state */
-.ra-scope .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;}
+.ra-scope .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:0;padding:30px;}
 .ra-scope .empty-orb{width:60px;height:60px;border-radius:50%;}
 .ra-scope .empty-title{font-family:var(--serif);font-size:20px;color:var(--text);font-weight:500;letter-spacing:.2px;white-space:nowrap;}
 .ra-scope .empty-sub{color:var(--text-3);font-size:14px;font-weight:400;max-width:380px;text-align:center;margin:2px 0 4px;line-height:1.5;}
-.ra-scope .suggests{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;max-width:480px;}
-.ra-scope .sug-chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;
-  padding:9px 15px;font-size:14px;font-weight:400;color:var(--text);background:transparent;white-space:nowrap;}
-.ra-scope .sug-chip:hover{background:var(--surface);border-color:var(--accent-soft);color:var(--text);}
-.ra-scope .sug-chip .ic{color:var(--text-3);display:flex;}
-.ra-scope .sug-chip:hover .ic{color:var(--accent);}
+.ra-scope .suggests{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:480px;}
+/* `button.sug-chip` beats the global `button { border:none }` reset. */
+.ra-scope button.sug-chip{display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  font-family:inherit;font-size:12px;font-weight:400;line-height:1;color:var(--text-2);
+  background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+  box-sizing:border-box;cursor:pointer;white-space:nowrap;}
+.ra-scope button.sug-chip:hover{background:var(--surface-2);border-color:var(--text-4);color:var(--text);}
+.ra-scope button.sug-chip .ic{color:var(--text-3);display:flex;}
+.ra-scope button.sug-chip:hover .ic{color:var(--text);}
+/* Upload CTA sits with the empty-state cluster (below suggestion pills). */
+.ra-scope button.empty-upload{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:inherit;font-size:11px;font-weight:500;line-height:1;color:var(--text);
+  background:var(--surface);border:1px solid var(--text-3);border-radius:999px;padding:9px 16px;
+  box-sizing:border-box;cursor:pointer;white-space:nowrap;}
+.ra-scope button.empty-upload:hover{background:var(--surface-2);border-color:var(--text);color:var(--text);}
+.ra-scope button.empty-upload .ic{color:var(--text);display:flex;}
 
 /* composer */
 .ra-scope .composer-wrap{padding:0 26px 18px;border-top:none;display:flex;flex-direction:column;gap:8px;}
@@ -1904,10 +1914,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .composer-inner::before{content:"";position:absolute;top:0;left:-10px;right:-10px;height:1px;
   background:var(--line-soft);pointer-events:none;}
 .ra-scope .action-chips{display:flex;flex-wrap:wrap;gap:9px;}
-.ra-scope .act-chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;
-  padding:7px 14px;font-size:13px;color:var(--text-2);background:transparent;white-space:nowrap;}
-.ra-scope .act-chip:hover{background:var(--surface);color:var(--text);}
-.ra-scope .act-chip .ic{color:var(--text-3);display:flex;}
+/* `button.act-chip` beats the global `button { border:none }` reset. */
+.ra-scope button.act-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;
+  padding:7px 14px;font-size:13px;color:var(--text-2);background:transparent;white-space:nowrap;cursor:pointer;}
+.ra-scope button.act-chip:hover{background:var(--surface);color:var(--text);}
+.ra-scope button.act-chip .ic{color:var(--text-3);display:flex;}
 .ra-scope .composer-row{display:flex;align-items:center;gap:11px;width:100%;}
 .ra-scope .composer{flex:1;width:100%;min-width:0;display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);
   border-radius:999px;padding:6px 8px 6px 18px;box-sizing:border-box;}
@@ -2019,7 +2030,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   .ra-scope .msg-ai .bubble .bubble-body{font-size:12px;line-height:1.45;}
   .ra-scope .comp-input{font-size:12px;}
   .ra-scope .typing-status{font-size:12px;}
-  .ra-scope .sug-chip{font-size:12px;padding:7px 12px;}
+  .ra-scope .sug-chip{font-size:12px;padding:6px 12px;}
   .ra-scope .bubble-fs-body,.bubble-fs-body,
   .ra-scope .bubble-fs-textarea,.bubble-fs-textarea{font-size:12px;line-height:1.5;}
   .ra-scope .bubble-fs-title,.bubble-fs-title{font-size:16px;}

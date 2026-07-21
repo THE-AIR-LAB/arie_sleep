@@ -29,7 +29,7 @@ export function Bubble({
   hideControls = false,
   turnNumber,
 }: {
-  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "emptyStateHref">;
+  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref">;
   m: Message;
   messageIndex?: number;
   messages?: Message[];

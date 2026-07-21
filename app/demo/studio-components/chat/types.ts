@@ -71,8 +71,10 @@ export type StudioChatConfig = {
   /** e.g. "/demo/law/studio" — used for the brand-logo link (splash, loading, empty state). */
   studioPath: string;
   /** How the assistant mark is rendered in the header / bubbles / empty state.
-   *  "logo" → a solid color square matching the chat mark (law, analyst); "avatar" → a photo/mono Avatar (sleep). */
+   *  "logo" → a square photo/color mark (law, analyst); "avatar" → a circular photo Avatar (sleep). */
   assistantMark: "logo" | "avatar";
+  /** Image URL for the assistant mark (e.g. "/lawyer.png"). Used by both mark modes. */
+  avatarSrc?: string;
   /** Mono fallback initials for the Avatar mark, e.g. "SA" for sleep. Only used when assistantMark === "avatar". */
   avatarMono?: string;
   /** Href for the empty-state brand mark. Usually the same as `studioPath`. */

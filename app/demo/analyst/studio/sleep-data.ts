@@ -284,16 +284,8 @@ export const GUIDELINES: GuidelineTopic[] = [
 export const SUGGESTIONS: { icon: string; label: string }[] = [
   { icon: "Memo", label: "How is the S&P 500 doing?" },
   { icon: "Book", label: "Analyze NVDA after earnings" },
-  { icon: "Edit", label: "What are 10-year yields telling us?" },
 ];
-export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [
-  // { icon: "Upload", label: "Upload sleep data" },
-  // {
-  //   icon: "User",
-  //   label: "Chat with the expert",
-  //   prefill: "I'd like to chat with a sleep expert about ",
-  // },
-];
+export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [];
 
 const OPENERS = [
   "Glad you reached out. Before we dig in — are you after a quick tip, a look at your recent nights, or a routine you can actually stick to?",

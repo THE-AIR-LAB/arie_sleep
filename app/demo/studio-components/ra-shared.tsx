@@ -58,7 +58,7 @@ export function Avatar({
     <div className={cls} style={{ width: size, height: size }}>
       {kind === "assistant" ? (
         <img
-          src="/sleep-assistant-avatar.jpg"
+          src={src || "/sleep-assistant-avatar.jpg"}
           alt={assistantAlt}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />

@@ -1123,7 +1123,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 hideBubbleControls={hideBubbleControls}
               />
             ) : (
-              <EmptyState config={config} onSuggest={send} compact={canvasOpen} />
+              <EmptyState config={config} onSuggest={send} onUpload={() => openDrawer("upload")} compact={canvasOpen} />
             )}
             {feedbackError && (
               <div className="fb-error-toast" role="alert">

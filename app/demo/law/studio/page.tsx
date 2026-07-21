@@ -32,6 +32,7 @@ const studioChatConfig: StudioChatConfig = {
   productName: "Legal Assistant",
   studioPath: "/demo/law/studio",
   assistantMark: "logo",
+  avatarSrc: "/lawyer.png",
   emptyStateHref: "/demo/law/studio",
   emptyStateTitle: "Mergers and Acquisitions council",
   emptyStateBody: (

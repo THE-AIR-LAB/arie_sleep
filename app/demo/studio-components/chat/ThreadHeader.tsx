@@ -6,7 +6,7 @@ import type { StudioChatConfig } from "./types";
 export function ThreadHeader({
   config,
 }: {
-  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "emptyStateHref">;
+  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref">;
 }) {
   return (
     <div className="thread-head">

@@ -46,7 +46,7 @@ const ALL_TABS: DrawerId[] = [
   "modelsetup",
   "simulation",
   // "expert",
-  // "upload",
+  "upload",
 ];
 
 // Panels that expose internal wiring (model/prompt setup, step-by-step traces).

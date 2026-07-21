@@ -28,7 +28,7 @@ export function Thread({
   setCollapsedByIdx,
   hideBubbleControls,
 }: {
-  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "emptyStateHref">;
+  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref">;
   messages: Message[];
   typing: boolean;
   typingLabel: string;

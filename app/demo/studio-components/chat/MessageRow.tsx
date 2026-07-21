@@ -26,7 +26,7 @@ export function MessageRow({
   hideControls,
   turnNumber,
 }: {
-  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "emptyStateHref">;
+  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref">;
   m: Message;
   index: number;
   messages: Message[];

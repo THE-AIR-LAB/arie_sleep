@@ -12,10 +12,12 @@ import type { StudioChatConfig } from "./types";
 export function EmptyState({
   config,
   onSuggest,
+  onUpload,
   compact = false,
 }: {
-  config: Pick<StudioChatConfig, "assistantMark" | "avatarMono" | "emptyStateHref" | "emptyStateTitle" | "emptyStateBody" | "suggestions">;
+  config: Pick<StudioChatConfig, "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref" | "emptyStateTitle" | "emptyStateBody" | "suggestions">;
   onSuggest: (t: string) => void;
+  onUpload?: () => void;
   compact?: boolean;
 }) {
   return (
@@ -30,11 +32,17 @@ export function EmptyState({
               const I = Ic[s.icon as keyof typeof Ic];
               return (
                 <button key={s.label} className="sug-chip" onClick={() => onSuggest(s.label)}>
-                  <span className="ic"><I size={15} /></span>{s.label}
+                  <span className="ic"><I size={13} /></span>{s.label}
                 </button>
               );
             })}
           </div>
+          {onUpload && (
+            <button type="button" className="empty-upload" onClick={onUpload}>
+              <span className="ic"><Ic.Upload size={13} /></span>
+              Upload files
+            </button>
+          )}
         </>
       )}
     </div>
