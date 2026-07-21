@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     "Write the title.";
 
   try {
-    const openai = new OpenAI({ apiKey: process.env.AIRLAB_OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.AIRIE_OPENAI_API_KEY });
     const res = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3,

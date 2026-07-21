@@ -263,7 +263,7 @@ export function createChatToolsPostHandler(options: CreateChatToolsRouteOptions)
           }));
 
           const openai = new OpenAI({
-            apiKey: options.openAiApiKey?.() ?? process.env.AIRLAB_OPENAI_API_KEY,
+            apiKey: options.openAiApiKey?.() ?? process.env.AIRIE_OPENAI_API_KEY,
           });
 
           const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];

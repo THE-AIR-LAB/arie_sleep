@@ -25,7 +25,7 @@ export function isChatModelId(value: string): value is ChatModelId {
 
 export function resolveOptionalOpenAiApiKey(): string | null {
   return (
-    process.env.AIRLAB_OPENAI_API_KEY?.trim() ||
+    process.env.AIRIE_OPENAI_API_KEY?.trim() ||
     process.env.OPENAI_API_KEY?.trim() ||
     null
   );
@@ -34,7 +34,7 @@ export function resolveOptionalOpenAiApiKey(): string | null {
 export function resolveOpenAiApiKey(): string {
   const apiKey = resolveOptionalOpenAiApiKey();
   if (!apiKey) {
-    throw new Error("Set AIRLAB_OPENAI_API_KEY or OPENAI_API_KEY.");
+    throw new Error("Set AIRIE_OPENAI_API_KEY or OPENAI_API_KEY.");
   }
   return apiKey;
 }

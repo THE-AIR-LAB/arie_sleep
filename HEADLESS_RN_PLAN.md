@@ -70,7 +70,7 @@ recommended way to smoke-test the headless API before building React Native.
 ### Deploy (Vercel — project `sleep-therapist`, already linked)
 Ensure Production env vars are set:
 - `AIR_CLERK_SECRET_KEY`, `NEXT_PUBLIC_AIR_CLERK_PUBLISHABLE_KEY`
-- `AIRLAB_OPENAI_API_KEY`, `AIRLAB_FT_SLEEP_STAGE_1`
+- `AIRIE_OPENAI_API_KEY`, `AIRLAB_FT_SLEEP_STAGE_1`
 - `NEXT_PUBLIC_AIRLAB_SUPABASE_URL`, `NEXT_PUBLIC_AIRLAB_SUPABASE_ANON_KEY`,
   `AIRLAB_SUPABASE_SERVICE_ROLE_KEY`
 - `AIRLAB_AUTHORIZED_PARTIES` (new)
