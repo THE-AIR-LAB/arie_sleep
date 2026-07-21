@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import SiteLogo from "./SiteLogo";
 
 export default function NavigationOverlay() {
   const pathname = usePathname();
@@ -36,13 +37,11 @@ export default function NavigationOverlay() {
 
   if (!isVisible) return null;
 
+  // Match StudioSplash / StudioLoading so assistant selection doesn’t flash the
+  // old cream bouncing-dots loader before the studio entry screen.
   return (
-    <div className="fixed inset-0 z-[9999] bg-[#E1DECF] flex items-center justify-center">
-      <div className="flex gap-2">
-        <span className="w-2 h-2 rounded-full bg-gray-900 animate-bounce [animation-delay:-0.3s]" />
-        <span className="w-2 h-2 rounded-full bg-gray-900 animate-bounce [animation-delay:-0.15s]" />
-        <span className="w-2 h-2 rounded-full bg-gray-900 animate-bounce" />
-      </div>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white">
+      <SiteLogo size={120} href={false} />
     </div>
   );
 }

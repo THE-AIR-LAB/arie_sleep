@@ -75,6 +75,9 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   // selecting the run later can repopulate the Patient scenario field.
   const simulationScenarioRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  // True while a selected conversation/simulation run is fetching into the thread.
+  const [threadLoading, setThreadLoading] = useState(false);
+  const threadLoadSeqRef = useRef(0);
   const [streaming, setStreaming] = useState("");
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -820,6 +823,8 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   // animation, since it's driven off the latest completed turn). Shared by the New
   // conversation button and by starting a simulation run.
   const resetConversation = () => {
+    threadLoadSeqRef.current += 1;
+    setThreadLoading(false);
     setActiveId(null);
     setMessages([]);
     setStreaming("");
@@ -878,11 +883,19 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     setActiveId(id);
     setStreaming("");
     setEditingIdx(null);
+    setCollapsedByIdx({});
+    // Clear the previous thread immediately so the loader isn't overlaid on old turns.
+    setMessages([]);
+    setTurns([]);
+    setFeedbackByIdx({});
     speakNextAssistantRef.current = false;
     stopSpeaking();
-    loadMessages(id);
-    loadFeedback(id);
     setMenuOpen(false);
+    const seq = ++threadLoadSeqRef.current;
+    setThreadLoading(true);
+    void Promise.all([loadMessages(id), loadFeedback(id)]).finally(() => {
+      if (seq === threadLoadSeqRef.current) setThreadLoading(false);
+    });
   };
   const onRename = async (id: string, title: string) => {
     const next = title.trim();
@@ -1106,10 +1119,10 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
             {/* Show the thread as soon as there's a message, even before a
                 conversation row exists — otherwise a failed conversation
                 create would leave the user staring at the empty state. */}
-            {activeId || messages.length > 0 ? (
+            {activeId || messages.length > 0 || threadLoading ? (
               <ThreadHeader
                 config={config}
-                showThreadControls={messages.length > 0}
+                showThreadControls={threadLoading || messages.length > 0}
                 hideBubbleControls={hideBubbleControls}
                 onToggleHideBubbleControls={() => setHideBubbleControls((v) => !v)}
                 allCollapsed={
@@ -1126,7 +1139,11 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 }}
               />
             ) : null}
-            {activeId || messages.length > 0 ? (
+            {threadLoading ? (
+              <div className="thread thread-loading" aria-busy="true" aria-label="Loading conversation">
+                <SiteLogo size={96} href={false} animateColors />
+              </div>
+            ) : activeId || messages.length > 0 ? (
               <Thread
                 config={config}
                 messages={messages}
@@ -1178,7 +1195,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
               onToggleAutoSpeak={() => setAutoSpeak((v) => !v)}
               isSpeaking={isSpeaking}
               onStopSpeaking={stopSpeaking}
-              showThreadControls={messages.length > 0}
+              showThreadControls={threadLoading || messages.length > 0}
               onOpenThreadFullscreen={() => setThreadFullscreen(true)}
               selectedModel={selectedModel}
               onSelectModel={(model) => {
@@ -1222,10 +1239,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
             <MobileNav
               onOpen={openMobileDrawer}
               isAdmin={isAdmin}
-              showThreadControls={messages.length > 0}
-              allCollapsed={
-                messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
-              }
+              showThreadControls={threadLoading || messages.length > 0}
               onToggleCollapseAll={() => {
                 if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
                   setCollapsedByIdx({});
