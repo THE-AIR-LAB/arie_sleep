@@ -273,7 +273,7 @@ async function normalizeGeneralOrchestrationDaemonSetup(args: {
   if (options.deriveRuleRegistry) {
     if (!openai) {
       throw new Error(
-        "Cannot update daemon rule_registry because neither AIRLAB_OPENAI_API_KEY nor OPENAI_API_KEY is configured."
+        "Cannot update daemon rule_registry because neither AIRIE_OPENAI_API_KEY nor OPENAI_API_KEY is configured."
       );
     }
     project = await refreshDerivedCanvasRuleRegistry({

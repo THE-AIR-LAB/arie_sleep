@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     : "Start the conversation: write the patient's opening message describing why they're here.";
 
   try {
-    const openai = new OpenAI({ apiKey: process.env.AIRLAB_OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.AIRIE_OPENAI_API_KEY });
     const res = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.85,

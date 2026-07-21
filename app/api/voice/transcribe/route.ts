@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = process.env.AIRLAB_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+  const apiKey = process.env.AIRIE_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
       { error: "OpenAI API key is not configured on the server." },

@@ -8,7 +8,7 @@ export const CORPUS_EMBEDDING_MODEL = "text-embedding-3-small";
 export const CORPUS_EMBEDDING_DIM = 1536;
 
 function client(): OpenAI {
-  return new OpenAI({ apiKey: process.env.AIRLAB_OPENAI_API_KEY });
+  return new OpenAI({ apiKey: process.env.AIRIE_OPENAI_API_KEY });
 }
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {

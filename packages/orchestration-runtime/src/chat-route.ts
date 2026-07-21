@@ -4164,7 +4164,7 @@ export function createChatPostHandler(options: CreateChatRouteOptions) {
       // Flipped to "policy" inside runStatefulAssistantTurn once the state update
       // finishes, so each traced model call is tagged with its turn stage.
       const phaseRef = { current: "state" as ChatTracePhase };
-      const baseOpenAI = new OpenAI({ apiKey: process.env.AIRLAB_OPENAI_API_KEY });
+      const baseOpenAI = new OpenAI({ apiKey: process.env.AIRIE_OPENAI_API_KEY });
       const openai = wantsTrace ? createTracingOpenAIClient(baseOpenAI, traceSink, phaseRef) : baseOpenAI;
       const promptConfig = await loadRuntimePromptConfig(supabase, setupSource);
       const knownState = getConversationKnownState(

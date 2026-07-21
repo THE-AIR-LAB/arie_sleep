@@ -48,7 +48,7 @@ All variables are documented in `.env.example`. The essentials:
 - **Supabase** — `NEXT_PUBLIC_AIRLAB_SUPABASE_URL`, `NEXT_PUBLIC_AIRLAB_SUPABASE_ANON_KEY`,
   `AIRLAB_SUPABASE_SERVICE_ROLE_KEY`. All data access uses the service-role key
   (server-side); keep it secret.
-- **OpenAI** — `AIRLAB_OPENAI_API_KEY` (base chat + fine-tuned triage).
+- **OpenAI** — `AIRIE_OPENAI_API_KEY` (base chat + fine-tuned triage).
   `AIRLAB_FT_SLEEP_STAGE_1` sets the fine-tuned model id (a default is baked in).
 - **Clerk** — `NEXT_PUBLIC_AIR_CLERK_PUBLISHABLE_KEY`, `AIR_CLERK_SECRET_KEY`.
   Create a Clerk application and paste its keys.
