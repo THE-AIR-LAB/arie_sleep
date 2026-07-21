@@ -41,9 +41,43 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const conversationId = request.nextUrl.searchParams.get("conversationId");
+  const topic = request.nextUrl.searchParams.get("topic");
+  const supabase = createSupabaseAdminClient();
+
+  // Topic-wide list (Move to V2 summary): all feedback the user left on
+  // conversations for this demo topic.
+  if (!conversationId && topic) {
+    const { data: convos, error: convoErr } = await supabase
+      .from("conversations")
+      .select("id, title")
+      .eq("user_id", user.userUUID)
+      .eq("topic", topic);
+    if (convoErr) return NextResponse.json({ error: convoErr.message }, { status: 500 });
+    const rows = (convos ?? []) as Array<{ id: string; title: string }>;
+    if (rows.length === 0) return NextResponse.json({ feedback: [] });
+
+    const titleById = new Map(rows.map((c) => [c.id, c.title]));
+    const ids = rows.map((c) => c.id);
+    const { data, error } = await supabase
+      .from("message_feedback")
+      .select(
+        "conversation_id, message_index, message_role, message_excerpt, rating, signal, comment, updated_at"
+      )
+      .eq("user_id", user.userUUID)
+      .in("conversation_id", ids)
+      .order("updated_at", { ascending: false });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const feedback = ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      ...row,
+      conversation_title:
+        titleById.get(String(row.conversation_id ?? "")) ?? "Conversation",
+    }));
+    return NextResponse.json({ feedback });
+  }
+
   if (!conversationId) return NextResponse.json({ feedback: [] });
 
-  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("message_feedback")
     .select("message_index, message_role, rating, signal, comment")

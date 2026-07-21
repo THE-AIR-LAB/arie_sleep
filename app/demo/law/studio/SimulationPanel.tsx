@@ -1,624 +1,78 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Ic } from "./ra-icons";
+import React from "react";
+export type { SimRun, SimRunControls, SimulationController } from "../../studio-components/SimulationPanel";
+import {
+  SimulationPanel as SharedSimulationPanel,
+  type SimulationPanelConfig,
+} from "../../studio-components/SimulationPanel";
 
-type SimMsg = { role: "user" | "ai"; text: string };
-
-/** A saved simulation conversation, shown in the panel's run history. */
-export type SimRun = {
-  id: string;
-  title: string;
-  updatedAt?: string;
-  turnCount?: number;
-  /** The patient scenario that drove the run (repopulated when the run is selected). */
-  scenario?: string | null;
-};
-
-/** Split a simulation title into its parts. New runs are titled
- *  "Simulation · {n} turns · {scenario}"; legacy ones "Simulation · {scenario}". */
-function parseRunTitle(title: string): { turns: string | null; scenario: string } {
-  const parts = title.split(" · ");
-  if (parts.length >= 3 && /\bturns?\b/i.test(parts[1])) {
-    return { turns: parts[1], scenario: parts.slice(2).join(" · ").trim() || "Improvised patient" };
-  }
-  const rest = parts.slice(1).join(" · ").trim();
-  return { turns: null, scenario: rest && rest !== "run" ? rest : "Improvised patient" };
-}
-
-/** Short relative time like "2h ago" / "3d ago" from an ISO timestamp. */
-function relativeTime(iso?: string): string {
-  if (!iso) return "";
-  const then = new Date(iso).getTime();
-  if (!Number.isFinite(then)) return "";
-  const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
-  if (secs < 60) return "just now";
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.round(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(then).toLocaleDateString();
-}
-
-/** Ready-made client scenarios shown in the Examples modal. */
 const SCENARIO_EXAMPLES: { title: string; text: string }[] = [
   {
-    title: "Wrongful termination",
-    text: "A 34-year-old software engineer in California was fired two weeks after reporting sexual harassment to HR. They believe it was retaliation, have their offer letter and a few emails, and want to know if they have a wrongful-termination claim and what the deadline to act is.",
+    title: "Stock purchase vs. asset purchase",
+    text: "A founder of a Series B SaaS company is negotiating a sale to a strategic buyer. The buyer wants an asset purchase; the founder prefers a stock purchase for tax and continuity reasons. They want to understand the tradeoffs, liability allocation, and what typically gets negotiated in the purchase agreement.",
   },
   {
-    title: "Landlord withholding a security deposit",
-    text: "A tenant in New York moved out 45 days ago and the landlord still hasn't returned the $2,400 security deposit or sent an itemized list of deductions. The apartment was left clean. They want to recover the deposit and know whether they can go to small claims court.",
+    title: "Letter of intent / exclusivity",
+    text: "A PE firm sent a non-binding LOI with a 60-day exclusivity period and a $2M break fee if the seller walks. The seller's board wants to know what is actually binding, whether the exclusivity is market, and what diligence and interim covenants they should expect before a definitive agreement.",
   },
   {
-    title: "Unpaid invoice / breach of contract",
-    text: "A freelance graphic designer completed a $9,500 branding project under a signed contract, but the client has ignored invoices for three months and now claims the work was 'never approved.' They have the contract, deliverables, and email approvals, and want to get paid.",
+    title: "Due diligence red flags",
+    text: "Buyer's counsel is mid-diligence on a manufacturing target and found customer concentration (one customer is 40% of revenue), an expired key IP license, and an open wage-and-hour claim. They want to know how these typically affect price, reps, indemnities, and whether to walk or restructure the deal.",
   },
   {
-    title: "Divorce with young children",
-    text: "A parent of two children (ages 4 and 7) has decided to divorce their spouse after eight years of marriage. They're worried about custody, the family home, and child support, and want to understand the process and what to expect in their state.",
+    title: "Earnout dispute risk",
+    text: "A founder sold their company with a $15M earnout tied to EBITDA over two years. Post-close, the buyer changed revenue recognition and cut the go-to-market budget. The founder believes the earnout was sabotaged and wants to understand contractual protections and remedies.",
   },
   {
-    title: "Car accident injury",
-    text: "A driver was rear-ended at a red light three weeks ago and has ongoing neck and back pain plus $6,000 in medical bills. The other driver's insurer is pushing for a quick low settlement. They want to know their options and whether to accept.",
+    title: "Working capital adjustment",
+    text: "A buyer and seller agreed on a $50M enterprise value with a pegged working capital target. At closing, the estimated net working capital was $3M below the peg. The seller disputes the buyer's calculation of accrued liabilities. They want to understand how pegs, true-ups, and dispute mechanisms usually work.",
   },
   {
-    title: "Immigration / work visa",
-    text: "An H-1B holder's employer is being acquired and they're unsure whether their visa and pending green-card petition survive the transition. They want to understand their status, timing, and what happens if they're laid off.",
+    title: "Series B preferred financing",
+    text: "A startup is raising a $40M Series B led by a growth fund. The term sheet includes a 1x non-participating liquidation preference, a broad-based weighted-average anti-dilution, a board seat, and pro rata rights. Founders want to know what is standard, what to push back on, and how this affects existing common and Option holders.",
   },
   {
-    title: "First-time DUI",
-    text: "A 27-year-old was arrested for a first-offense DUI over the weekend, has a court date in three weeks, and no prior record. They want to understand the charges, possible penalties, effect on their license, and what to do before the hearing.",
+    title: "Convertible note / SAFE stack",
+    text: "A company raised $8M on SAFEs (uncapped and $60M cap) and now has a priced round at a $45M pre-money. Early SAFE holders expect conversion economics that would heavily dilute the founders. They want to understand conversion math, most-favored-nation issues, and how to negotiate a clean-up with investors.",
   },
   {
-    title: "Estate / probate after a parent's death",
-    text: "A person's mother recently passed away leaving a house, some savings, and a handwritten will naming them executor. They have two siblings and aren't sure whether probate is required or how to handle the estate and debts.",
+    title: "Debt financing / credit agreement",
+    text: "A mid-market company is negotiating a $75M senior secured credit facility to fund an acquisition. The lender's draft has tight financial covenants, a sweeping change-of-control default, and broad events of default. Management wants to know which terms are negotiable and how they interact with the planned M&A timeline.",
   },
   {
-    title: "Trademark / small-business IP",
-    text: "A small coffee-roaster owner just received a cease-and-desist letter claiming their brand name infringes a larger company's trademark. They've used the name for two years and have a small following. They want to know their risk and options.",
+    title: "Rollover equity / management package",
+    text: "In a PE buyout, management is asked to roll 30% of after-tax proceeds into a new holdco and take a new equity incentive plan with a 4-year vest and double-trigger acceleration. They want to understand tax, governance, dilution, and what happens if they leave or the company is sold again.",
   },
   {
-    title: "Eviction notice dispute",
-    text: "A renter received a 30-day eviction notice they believe is retaliation for requesting repairs to a broken heater they'd reported in writing. Rent is current. They want to know if the eviction is lawful and how to respond before the deadline.",
+    title: "Representations, warranties & R&W insurance",
+    text: "On a $200M stock deal, the buyer wants a $20M indemnity escrow and broad knowledge qualifiers only for the seller. The seller proposes R&W insurance with a small retention. Both sides want to understand how R&W insurance changes escrow size, survival periods, and negotiation leverage on the reps schedule.",
   },
 ];
 
-/**
- * The live run controls, lifted out of the panel body so the drawer tab bar can
- * render Pause/Stop next to its × while a run is in progress. `null` when idle.
- */
-export type SimRunControls = {
-  paused: boolean;
-  pause: () => void;
-  resume: () => void;
-  stop: () => void;
+const CONFIG: SimulationPanelConfig = {
+  simulateUserPath: "/api/chat/law/simulate-user",
+  summarizeScenarioPath: "/api/chat/law/summarize-scenario",
+  examples: SCENARIO_EXAMPLES,
+  improvisedLabel: "Improvised patient",
+  scenarioFieldLabel: "Client scenario",
+  examplesModalTitle: "Example client scenarios",
+  examplesModalSub: "Pick a scenario, then use it to fill the Client scenario field.",
+  simulatingUserStatus: (t, total) => `Turn ${t}/${total} · simulating the patient…`,
+  assistantReplyingStatus: (t, total) => `Turn ${t}/${total} · council replying…`,
+  simulateUserError: "The simulated patient step failed.",
+  improvisedInfoBlurb: "Improvised patient — no scenario was provided; the patient improvised.",
+  drawerSubhead: "Run a simulated patient against your setup",
+  scenarioPlaceholder:
+    "e.g. A founder negotiating a stock vs. asset sale to a strategic buyer; wants to understand tax, liability allocation, and what typically gets negotiated in the purchase agreement. Leave blank to let the client improvise.",
+  examplesButtonTitle: "Pick from example client scenarios",
+  helpPipelineLabel: "council",
+  helpImproviseProfile: "a generic client profile",
+  simulatedActor: "patient",
 };
 
-export type SimulationController = {
-  /** Clear the thread and arm the next send() to open a titled simulation conversation. */
-  begin: (scenario: string, turns: number) => void;
-  /**
-   * Send one user message through the REAL council pipeline and resolve
-   * with the assistant's reply. Drives the main chat window, the observability
-   * trace and the policy-canvas animation — same path a hand-typed message takes.
-   */
-  send: (text: string) => Promise<string | undefined>;
-  /** Rename the current simulation conversation (used to set a scenario-summary title). */
-  renameCurrent?: (title: string) => void;
-};
-
-/**
- * Simulation tab: set up an automated run and watch a simulated patient talk to
- * the real council pipeline. Each turn is:
- *   /api/chat/law/simulate-user  → the patient's next message
- *   controller.send(message)       → the council's reply (your current setup)
- *
- * The conversation is driven through the main chat's send(), so it appears in the
- * regular chat window, is saved as a "Simulation · …" conversation, and its
- * traces show up in Observability while the policy canvas animates each turn.
- */
-export function SimulationPanel({
-  controller,
-  onRunControls,
-  runs = [],
-  activeRunId,
-  onSelectRun,
-  onDeleteRun,
-  slot,
-}: {
-  controller: SimulationController;
-  /** Reports the live run controls while running (Pause/Stop live in the drawer tab bar); null when idle. */
-  onRunControls?: (controls: SimRunControls | null) => void;
-  /** Saved simulation conversations, most recent first. */
-  runs?: SimRun[];
-  /** The currently open conversation, highlighted if it's one of the runs. */
-  activeRunId?: string | null;
-  /** Open a past run's conversation in the main chat window. */
-  onSelectRun?: (id: string) => void;
-  /** Delete a past run. */
-  onDeleteRun?: (id: string) => void;
-  /**
-   * Drawer pane to portal into. The panel is mounted at the page level so a live
-   * run (and Pause/Stop) survives the drawer closing; UI only shows when this
-   * slot exists.
-   */
-  slot?: HTMLElement | null;
-}) {
-  const [scenario, setScenario] = useState("");
-  // Kept as a string so the field can be cleared while editing (e.g. wiping "110"
-  // to type a new value). Normalized to a valid count on blur and when a run starts.
-  const [turns, setTurns] = useState("10");
-  const [running, setRunning] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [status, setStatus] = useState("");
-  const [error, setError] = useState("");
-  // The run whose scenario is shown in the info modal (null = closed).
-  const [infoRun, setInfoRun] = useState<SimRun | null>(null);
-  // How-to-use modal for the Simulation tab (same pattern as Observability).
-  const [helpOpen, setHelpOpen] = useState(false);
-  // Examples modal: pick a ready-made client scenario. `openExample` = expanded row.
-  const [examplesOpen, setExamplesOpen] = useState(false);
-  const [openExample, setOpenExample] = useState<number | null>(null);
-  const abortRef = useRef(false);
-  const pausedRef = useRef(false);
-
-  useEffect(() => {
-    if (!infoRun && !helpOpen && !examplesOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (infoRun) setInfoRun(null);
-      else if (examplesOpen) setExamplesOpen(false);
-      else setHelpOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [infoRun, helpOpen, examplesOpen]);
-
-  // Resolves once the run is un-paused (or aborted). Called between turns so the
-  // trace for the turn that just finished stays put while you inspect it.
-  const waitWhilePaused = async () => {
-    while (pausedRef.current && !abortRef.current) {
-      await new Promise((r) => setTimeout(r, 150));
-    }
-  };
-
-  const run = async () => {
-    if (running) return;
-    // Normalize the (possibly empty or in-progress) field to at least one turn.
-    const turnCount = Math.max(1, Math.floor(Number(turns)) || 1);
-    setTurns(String(turnCount));
-    setRunning(true);
-    setPaused(false);
-    pausedRef.current = false;
-    setError("");
-    setStatus("Starting a simulation run…");
-    abortRef.current = false;
-    try {
-      // Fresh, empty conversation. The first send() below creates the row,
-      // titled as a simulation (scenario + turn count for the run history).
-      controller.begin(scenario, turnCount);
-
-      // Local mirror of the exchange, used only to prompt the simulated patient.
-      const history: SimMsg[] = [];
-      for (let t = 0; t < turnCount; t++) {
-        if (abortRef.current) break;
-        // Pause checkpoint between turns — the trace for the previous turn is
-        // fully written by now, so this is the moment to freeze and look.
-        await waitWhilePaused();
-        if (abortRef.current) break;
-
-        setStatus(`Turn ${t + 1}/${turnCount} · simulating the patient…`);
-        const uRes = await fetch("/api/chat/law/simulate-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenario, history }),
-        });
-        if (!uRes.ok) {
-          const j = await uRes.json().catch(() => ({}));
-          throw new Error(j.error ?? "The simulated patient step failed.");
-        }
-        const { message: userMessage } = await uRes.json();
-        if (abortRef.current) break;
-        history.push({ role: "user", text: userMessage });
-
-        setStatus(`Turn ${t + 1}/${turnCount} · council replying…`);
-        const reply = await controller.send(userMessage);
-        history.push({ role: "ai", text: reply ?? "" });
-      }
-      setStatus(
-        abortRef.current
-          ? "Stopped."
-          : "Simulation complete — see the conversation in the chat window and the traces in Observability."
-      );
-
-      // Give the run a descriptive title summarizing the patient scenario, so the
-      // run list shows e.g. "45yo woman, 3am waking" instead of "Improvised patient".
-      if (history.length > 0 && controller.renameCurrent) {
-        try {
-          const sRes = await fetch("/api/chat/law/summarize-scenario", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scenario, history }),
-          });
-          if (sRes.ok) {
-            const { title } = (await sRes.json()) as { title?: string };
-            if (title) controller.renameCurrent(`Simulation · ${turnCount} turns · ${title}`);
-          }
-        } catch {
-          // Keep the placeholder title if summarization fails.
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Simulation failed.");
-      setStatus("");
-    } finally {
-      setRunning(false);
-      setPaused(false);
-      pausedRef.current = false;
-    }
-  };
-
-  const pause = () => {
-    pausedRef.current = true;
-    setPaused(true);
-    setStatus("Paused — inspect the traces in Observability, then Resume.");
-  };
-
-  const resume = () => {
-    pausedRef.current = false;
-    setPaused(false);
-  };
-
-  const stop = () => {
-    abortRef.current = true;
-    pausedRef.current = false;
-    setPaused(false);
-  };
-
-  // Lift the live controls to the drawer tab bar while running, so Pause/Stop sit
-  // next to the × up top. Report null when idle, and on unmount, so the tab bar
-  // never keeps stale controls.
-  useEffect(() => {
-    onRunControls?.(running ? { paused, pause, resume, stop } : null);
-  }, [running, paused, onRunControls]);
-  useEffect(() => () => onRunControls?.(null), [onRunControls]);
-
-  // Selecting a past run repopulates the Patient scenario with the scenario that
-  // drove it (once per selection, and never mid-run so it can't clobber a live
-  // run's setup). Runs from before scenarios were saved (null) leave it untouched.
-  const populatedRunRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (running) return;
-    if (!activeRunId) { populatedRunRef.current = null; return; }
-    if (populatedRunRef.current === activeRunId) return;
-    const run = runs.find((r) => r.id === activeRunId);
-    if (run && typeof run.scenario === "string") {
-      setScenario(run.scenario);
-      populatedRunRef.current = activeRunId;
-    }
-  }, [activeRunId, runs, running]);
-
-  // Run state lives at the page level; docked chrome only when the drawer slot exists.
-  if (!slot) return null;
-
-  return createPortal(
-    <div className="sim-panel">
-      <div className="drawer-subhead">
-        <span className="obs-sub">Run a simulated patient against your setup</span>
-        <div className="drawer-subhead-actions">
-          <button
-            type="button"
-            className="obs-info-btn"
-            aria-label="How to use simulation"
-            title="How to use simulation"
-            onClick={() => setHelpOpen(true)}
-          >
-            <Ic.Info size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="sim-setup">
-        <div className="sim-scenario-head">
-          <label className="sim-label" htmlFor="sim-scenario">Client scenario</label>
-          <button
-            type="button"
-            className="sim-examples-btn"
-            onClick={() => setExamplesOpen(true)}
-            disabled={running}
-            title="Pick from example client scenarios"
-          >
-            <Ic.Book size={13} /> Examples
-          </button>
-        </div>
-        <textarea
-          id="sim-scenario"
-          className="sim-textarea"
-          placeholder="e.g. A 34-year-old software engineer in California fired two weeks after reporting harassment to HR; wants to know if they have a wrongful-termination claim and what the deadline is. Leave blank to let the client improvise."
-          value={scenario}
-          onChange={(e) => setScenario(e.target.value)}
-          disabled={running}
-          rows={4}
-        />
-        <div className="sim-row">
-          <label className="sim-label" htmlFor="sim-turns">Turns</label>
-          <input
-            id="sim-turns"
-            className="sim-turns"
-            type="text"
-            inputMode="numeric"
-            value={turns}
-            // Accept only digits, and allow empty so the field can be cleared to retype.
-            onChange={(e) => setTurns(e.target.value.replace(/[^0-9]/g, ""))}
-            // Normalize to at least one turn once you leave the field.
-            onBlur={() => setTurns((v) => String(Math.max(1, Math.floor(Number(v)) || 1)))}
-            disabled={running}
-          />
-          {running ? (
-            // Pause/Stop live in the drawer tab bar (next to ×) while running.
-            <span className="sim-btn-lead sim-running-hint">
-              {paused ? "Simulation paused" : "Simulation running…"}
-            </span>
-          ) : (
-            <button type="button" className="sim-btn sim-btn-run sim-btn-lead" onClick={run}>Run simulation</button>
-          )}
-        </div>
-        {status && <div className="sim-status">{status}</div>}
-        {error && <div className="sim-error">{error}</div>}
-      </div>
-
-      <div className="sim-runs">
-        <div className="sim-runs-head">
-          Runs<span className="sim-runs-count">{runs.length}</span>
-        </div>
-        {runs.length === 0 ? (
-          <div className="sim-runs-empty">No runs yet. Configure a scenario above and press Run.</div>
-        ) : (
-          <div className="sim-runs-list">
-            {runs.map((r) => {
-              const { turns: parsedTurns, scenario: scLabel } = parseRunTitle(r.title);
-              // Prefer the actual number of turns the run produced (assistant
-              // replies); fall back to the requested count parsed from the title.
-              const turnsLabel =
-                r.turnCount && r.turnCount > 0
-                  ? `${r.turnCount} ${r.turnCount === 1 ? "turn" : "turns"}`
-                  : parsedTurns;
-              const when = relativeTime(r.updatedAt);
-              return (
-                <div
-                  key={r.id}
-                  className={"sim-run" + (r.id === activeRunId ? " active" : "")}
-                  role="button"
-                  tabIndex={0}
-                  title="Open this run in the chat window"
-                  onClick={() => onSelectRun?.(r.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onSelectRun?.(r.id);
-                    }
-                  }}
-                >
-                  <div className="sim-run-body">
-                    <div className="sim-run-scenario">{scLabel}</div>
-                    <div className="sim-run-meta">
-                      {turnsLabel && <span>{turnsLabel}</span>}
-                      {turnsLabel && when && <span className="sim-run-dot">·</span>}
-                      {when && <span>{when}</span>}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="sim-run-info"
-                    title="View this run's scenario"
-                    aria-label="View this run's scenario"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setInfoRun(r);
-                    }}
-                  >
-                    <Ic.Info size={15} />
-                  </button>
-                  {onDeleteRun && (
-                    <button
-                      type="button"
-                      className="sim-run-del"
-                      title="Delete this run"
-                      aria-label="Delete this run"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteRun(r.id);
-                      }}
-                    >
-                      <Ic.Trash size={15} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {helpOpen && <SimulationInfoModal onClose={() => setHelpOpen(false)} />}
-
-      {infoRun && (
-        <div className="sim-info-overlay" role="dialog" aria-modal="true" onClick={() => setInfoRun(null)}>
-          <div className="sim-info" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="sim-info-close"
-              aria-label="Close"
-              title="Close"
-              onClick={() => setInfoRun(null)}
-            >
-              <Ic.Close size={18} />
-            </button>
-            <div className="sim-info-eyebrow">Simulation run</div>
-            <h3 className="sim-info-title">{parseRunTitle(infoRun.title).scenario}</h3>
-            <div className="sim-info-meta">
-              {[
-                infoRun.turnCount && infoRun.turnCount > 0
-                  ? `${infoRun.turnCount} ${infoRun.turnCount === 1 ? "turn" : "turns"}`
-                  : parseRunTitle(infoRun.title).turns,
-                relativeTime(infoRun.updatedAt),
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </div>
-            <div className="sim-info-label">Patient scenario</div>
-            <div className="sim-info-scenario">
-              {typeof infoRun.scenario === "string"
-                ? infoRun.scenario.trim() ||
-                  "Improvised patient — no scenario was provided; the patient improvised."
-                : "No scenario was saved for this run."}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {examplesOpen && (
-        <div className="sim-examples-overlay" role="dialog" aria-modal="true" onClick={() => setExamplesOpen(false)}>
-          <div className="sim-examples" onClick={(e) => e.stopPropagation()}>
-            <div className="sim-examples-head">
-              <h3 className="sim-examples-title">Example client scenarios</h3>
-              <button
-                type="button"
-                className="sim-info-close"
-                aria-label="Close"
-                title="Close"
-                onClick={() => setExamplesOpen(false)}
-              >
-                <Ic.Close size={18} />
-              </button>
-            </div>
-            <p className="sim-examples-sub">Pick a scenario, then use it to fill the Client scenario field.</p>
-            <div className="sim-examples-list">
-              {SCENARIO_EXAMPLES.map((ex, i) => {
-                const open = openExample === i;
-                return (
-                  <div key={i} className={"sim-acc" + (open ? " open" : "")}>
-                    <button
-                      type="button"
-                      className="sim-acc-head"
-                      aria-expanded={open}
-                      onClick={() => setOpenExample((o) => (o === i ? null : i))}
-                    >
-                      <span className="sim-acc-num">{i + 1}</span>
-                      <span className="sim-acc-title">{ex.title}</span>
-                      <Ic.Chevron size={16} />
-                    </button>
-                    {open && (
-                      <div className="sim-acc-body">
-                        <p className="sim-acc-text">{ex.text}</p>
-                        <button
-                          type="button"
-                          className="sim-btn sim-btn-run"
-                          onClick={() => {
-                            setScenario(ex.text);
-                            setExamplesOpen(false);
-                          }}
-                        >
-                          Use this scenario
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>,
-    slot
-  );
-}
-
-/** How-to-use modal for the Simulation tab — same chrome as Observability’s info panel. */
-function SimulationInfoModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      className="obs-info-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="How to use simulation"
-      onClick={onClose}
-    >
-      <div className="obs-info-card" onClick={(e) => e.stopPropagation()}>
-        <div className="obs-info-head">
-          <span className="obs-info-title">How to use simulation</span>
-          <button
-            type="button"
-            className="obs-info-close"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            <Ic.Close size={16} />
-          </button>
-        </div>
-
-        <div className="obs-info-body">
-          <p>
-            Simulation runs a fake patient against your <b>real</b> council
-            pipeline — the same path a hand-typed chat takes — so you can stress-test
-            State, Policy, and prompts without typing every turn yourself.
-          </p>
-
-          <div className="obs-info-step">
-            <div className="obs-info-step-n">1</div>
-            <div>
-              <div className="obs-info-step-t">Set the patient scenario</div>
-              <p>
-                Describe who the patient is and what they&apos;re dealing with
-                (age, symptoms, recent events). Leave it blank to let the patient
-                improvise from a generic client profile.
-              </p>
-            </div>
-          </div>
-
-          <div className="obs-info-step">
-            <div className="obs-info-step-n">2</div>
-            <div>
-              <div className="obs-info-step-t">Choose how many turns</div>
-              <p>
-                Each turn is one patient message plus one assistant reply. Start
-                with a few turns to sanity-check the flow; raise the count when you
-                want a longer conversation.
-              </p>
-            </div>
-          </div>
-
-          <div className="obs-info-step">
-            <div className="obs-info-step-n">3</div>
-            <div>
-              <div className="obs-info-step-t">Run, pause, or stop</div>
-              <p>
-                Press <b>Run simulation</b>. While it&apos;s going, use{" "}
-                <b>Pause</b> / <b>Stop</b> in the drawer tab bar (or the floating
-                controls if the drawer is closed) to inspect a turn mid-run.
-              </p>
-            </div>
-          </div>
-
-          <div className="obs-info-h">What the run drives</div>
-          <p>
-            The run drives the real pipeline: the conversation appears in the main
-            chat window and is saved as a run below, the step-by-step traces fill
-            the <b>Observability</b> tab, and the policy canvas animates each turn.
-            Switch to Observability or Model Setup while it runs to watch.
-          </p>
-
-          <p className="obs-info-note">
-            Past runs stay in the <b>Runs</b> list. Click one to reopen it in chat;
-            use its info icon to read the scenario that drove it.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+export function SimulationPanel(
+  props: Omit<React.ComponentProps<typeof SharedSimulationPanel>, "config">
+) {
+  return <SharedSimulationPanel {...props} config={CONFIG} />;
 }

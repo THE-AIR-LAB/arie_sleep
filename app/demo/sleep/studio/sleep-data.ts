@@ -1,6 +1,6 @@
 /* sleep-data.ts — content for the Sleep Studio experience.
    The state schema, prompts, datasets, and guideline topics mirror the real
-   Sleep assistant configuration (see app/demo/sleep/input/page.tsx). The node
+   Sleep assistant configuration (see app/demo/sleep/studio/config). The node
    graphs are high-fidelity visual mocks adapted to the sleep domain. */
 
 export type NodeType =
@@ -286,14 +286,7 @@ export const SUGGESTIONS: { icon: string; label: string }[] = [
   { icon: "Book", label: "Find guidance on insomnia" },
   { icon: "Edit", label: "Draft a wind-down routine" },
 ];
-export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [
-  // { icon: "Upload", label: "Upload sleep data" },
-  // {
-  //   icon: "User",
-  //   label: "Chat with the expert",
-  //   prefill: "I'd like to chat with a sleep expert about ",
-  // },
-];
+export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [];
 
 const OPENERS = [
   "Glad you reached out. Before we dig in — are you after a quick tip, a look at your recent nights, or a routine you can actually stick to?",

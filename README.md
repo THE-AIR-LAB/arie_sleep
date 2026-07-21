@@ -14,10 +14,8 @@ Tailwind 4, Clerk (auth), Supabase (data), and OpenAI.
 | `/` | Landing page linking to the surfaces below |
 | `/sleep-assessment`, `/sleep-assessment/hermes` | Patient-facing sleep assessment flow |
 | `/demo/sleep` | The chat interface (`/api/chat/sleep/base`) |
-| `/demo/sleep/studio` | Expert studio (mostly mock-driven; renders without a backend) |
+| `/demo/sleep/studio` | Expert studio (chat, observability, simulation) |
 | `/demo/sleep/studio/config` | Canvas policy/state configuration |
-| `/demo/sleep/input` | Setup: state schema, prompts, datasets, guidelines, file uploads |
-| `/demo/sleep/expert-dashboard` | Admin view of sleep conversations |
 
 ## Architecture
 
@@ -25,9 +23,8 @@ The heavy platform lives in `packages/@airlab/*` (canvas + orchestration + chat 
 consumed through thin re-export wrappers under `app/components/*` and `app/lib/*`.
 `next.config.ts` transpiles these workspace packages.
 
-> Note: `app/api/` also contains non-sleep routes carried over for dependency
-> completeness (`openclaw`, `corpus`, `general-orchestration-daemon`, `mcp`, `sandbox`,
-> `test`). They are unused by the sleep surfaces and can be pruned.
+> Note: `app/api/` is trimmed to the studio demos (sleep / law / analyst), auth,
+> admin users, conversations, feedback, voice, and the sandbox tool runner.
 
 ## Local development
 
@@ -69,7 +66,7 @@ All variables are documented in `.env.example`. The essentials:
 3. Create a **Storage bucket** named `sleep-input-files` (used by the input page's
    file uploads).
 
-The seed inserts a default `sleep_inputs` row so `/demo/sleep/input` and the chat
+The seed inserts a default `sleep_inputs` row so `/demo/sleep/studio` and the chat
 have a working configuration on first run.
 
 ## Deploy to Vercel

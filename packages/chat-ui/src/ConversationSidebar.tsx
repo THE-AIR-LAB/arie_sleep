@@ -39,9 +39,9 @@ const DEMO_META: Array<{
     prefix: "/demo/sleep",
     key: "sleep",
     title: "Sleep",
-    modelSetupHref: "/demo/sleep/input",
+    modelSetupHref: "/demo/sleep/studio/config",
     modelSetupLabel: "Sleep model setup",
-    expertDashboardHref: "/demo/sleep/expert-dashboard",
+    expertDashboardHref: "/demo/sleep/studio",
   },
   {
     prefix: "/demo/dnd",
