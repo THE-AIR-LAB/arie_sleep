@@ -2059,7 +2059,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
      symmetrical and the mic doesn't hang off the right edge. */
   .ra-scope .composer-wrap{padding:0 14px calc(16px + env(safe-area-inset-bottom,0px));}
   .ra-scope .composer-inner{padding-top:0;max-width:none;}
-  .ra-scope .composer-row{width:calc(100% - 41px + 40px);margin-left:21px;}
+  /* Drop desktop avatar-offset overhang — keep equal insets with the thread. */
+  .ra-scope .composer-row{width:100%;margin-left:0;}
+  .ra-scope .composer,
+  .ra-scope .thread-head,
+  .ra-scope button.mrail-btn{box-shadow:0 8px 24px rgba(31,29,24,.14);}
   .ra-scope .empty{padding:24px 18px 88px;}
 
   /* Compact chat typography on narrow screens */
