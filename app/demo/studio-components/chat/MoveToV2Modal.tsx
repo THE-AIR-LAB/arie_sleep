@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Ic } from "../ra-icons";
+import SiteLogo from "../../../components/SiteLogo";
 
 type PolicyNodeSummary = {
   id: string;
@@ -107,23 +108,40 @@ function formatFeedbackLine(row: FeedbackRow): string {
 /**
  * "Move to V2" summary dialog: shows the policy canvases and all feedback that
  * will be folded into the next custom model, in two expandable sections.
+ * Create switches the body to a training-in-progress state; closing after
+ * Create notifies the host so it can show the floating Training pill.
  */
 export function MoveToV2Modal({
   apiTopic,
   titleId = "thread-model-v2-title",
   onClose,
+  onTrainingStarted,
+  onTrainingStopped,
+  initialTraining = false,
 }: {
   apiTopic: string;
   titleId?: string;
   onClose: () => void;
+  /** Fired when the user closes the modal after pressing Create. */
+  onTrainingStarted?: () => void;
+  /** Fired when the user stops training from the progress view. */
+  onTrainingStopped?: () => void;
+  /** Reopen in the "your model is being trained" state (e.g. from the Training pill). */
+  initialTraining?: boolean;
 }) {
   const [openSection, setOpenSection] = useState<"policy" | "feedback" | null>("policy");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialTraining);
   const [error, setError] = useState<string | null>(null);
   const [policies, setPolicies] = useState<PolicyCanvasSummary[]>([]);
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
+  const [training, setTraining] = useState(initialTraining);
+  /** Stays true after Create so closing from the setup form still keeps the Training pill. */
+  const [trainingStarted, setTrainingStarted] = useState(initialTraining);
+  const [setupNonce, setSetupNonce] = useState(0);
 
   useEffect(() => {
+    // Skip fetch when reopening already-in-training; Setup bumps setupNonce to load.
+    if (initialTraining && setupNonce === 0) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -161,7 +179,12 @@ export function MoveToV2Modal({
     return () => {
       cancelled = true;
     };
-  }, [apiTopic]);
+  }, [apiTopic, initialTraining, setupNonce]);
+
+  const handleClose = () => {
+    if (trainingStarted) onTrainingStarted?.();
+    onClose();
+  };
 
   const toggle = (section: "policy" | "feedback") =>
     setOpenSection((cur) => (cur === section ? null : section));
@@ -175,7 +198,7 @@ export function MoveToV2Modal({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div className="obs-info-card v2-train-card" onClick={(e) => e.stopPropagation()}>
         <div className="obs-info-head">
@@ -186,129 +209,169 @@ export function MoveToV2Modal({
             type="button"
             className="obs-info-close"
             aria-label="Close"
-            onClick={onClose}
+            onClick={handleClose}
           >
             <Ic.Close size={16} />
           </button>
         </div>
         <div className="obs-info-body">
-          <p>
-            All the information defined in the <b>policy</b> and <b>state</b>, and all the
-            feedback you have provided, will be used to train the V2 custom model.
-          </p>
-
-          {loading ? (
-            <p className="v2-train-status">Loading policy and feedback…</p>
-          ) : error ? (
-            <p className="v2-train-status v2-train-error">{error}</p>
-          ) : (
-            <div className="v2-train-accs">
-              <div className={"sim-acc" + (openSection === "policy" ? " open" : "")}>
+          {training ? (
+            <div className="v2-train-progress">
+              <SiteLogo size={122} href={false} animateColors />
+              <p className="v2-train-progress-text">Your model is being trained.</p>
+              <div className="v2-train-progress-actions">
                 <button
                   type="button"
-                  className="sim-acc-head"
-                  aria-expanded={openSection === "policy"}
-                  onClick={() => toggle("policy")}
+                  className="v2-train-action-pill"
+                  onClick={() => {
+                    setTraining(false);
+                    // Reload if we never fetched (e.g. reopened from the Training pill).
+                    if (policies.length === 0 && feedback.length === 0) {
+                      setSetupNonce((n) => n + 1);
+                    }
+                  }}
                 >
-                  <span className="sim-acc-title">
-                    Policy
-                    <span className="v2-train-count">
-                      {policies.length} canvas{policies.length === 1 ? "" : "es"}
-                      {policyCount > 0 ? ` · ${policyCount} nodes` : ""}
-                    </span>
-                  </span>
-                  <Ic.Chevron size={16} />
+                  Setup
                 </button>
-                {openSection === "policy" && (
-                  <div className="sim-acc-body v2-train-body">
-                    {policies.length === 0 ? (
-                      <p className="sim-acc-text">No policy canvases saved yet.</p>
-                    ) : (
-                      policies.map((canvas) => (
-                        <div key={canvas.id} className="v2-train-block">
-                          <div className="v2-train-block-title">{canvas.name}</div>
-                          {canvas.freeText ? (
-                            <pre className="v2-train-pre">{canvas.freeText}</pre>
-                          ) : null}
-                          {canvas.nodes.length === 0 ? (
-                            <p className="sim-acc-text">Empty canvas.</p>
-                          ) : (
-                            <ul className="v2-train-list">
-                              {canvas.nodes.map((node) => (
-                                <li key={node.id}>
-                                  <span className="v2-train-node-type">{formatNodeType(node.type)}</span>
-                                  <span className="v2-train-node-label">{node.label}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className={"sim-acc" + (openSection === "feedback" ? " open" : "")}>
                 <button
                   type="button"
-                  className="sim-acc-head"
-                  aria-expanded={openSection === "feedback"}
-                  onClick={() => toggle("feedback")}
+                  className="v2-train-action-pill"
+                  onClick={() => {
+                    onTrainingStopped?.();
+                    onClose();
+                  }}
                 >
-                  <span className="sim-acc-title">
-                    Feedback
-                    <span className="v2-train-count">
-                      {feedbackCount} entr{feedbackCount === 1 ? "y" : "ies"}
-                    </span>
-                  </span>
-                  <Ic.Chevron size={16} />
+                  Stop
                 </button>
-                {openSection === "feedback" && (
-                  <div className="sim-acc-body v2-train-body">
-                    {feedback.length === 0 ? (
-                      <p className="sim-acc-text">No feedback saved yet.</p>
-                    ) : (
-                      <ul className="v2-train-list">
-                        {feedback.map((row, i) => (
-                          <li
-                            key={`${row.conversation_id}-${row.message_index}-${row.signal}-${i}`}
-                          >
-                            <div className="v2-train-fb-meta">
-                              <span>
-                                {row.conversation_title ?? "Conversation"} · msg #
-                                {row.message_index + 1} · {row.message_role}
-                              </span>
-                            </div>
-                            {row.message_excerpt ? (
-                              <div className="v2-train-fb-excerpt">
-                                “{row.message_excerpt}”
-                              </div>
-                            ) : null}
-                            <div className="v2-train-fb-body">{formatFeedbackLine(row)}</div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
+          ) : (
+            <>
+              <p>
+                All the information defined in the <b>policy</b> and <b>state</b>, and all the
+                feedback you have provided, will be used to train the V2 custom model.
+              </p>
+
+              {loading ? (
+                <p className="v2-train-status">Loading policy and feedback…</p>
+              ) : error ? (
+                <p className="v2-train-status v2-train-error">{error}</p>
+              ) : (
+                <div className="v2-train-accs">
+                  <div className={"sim-acc" + (openSection === "policy" ? " open" : "")}>
+                    <button
+                      type="button"
+                      className="sim-acc-head"
+                      aria-expanded={openSection === "policy"}
+                      onClick={() => toggle("policy")}
+                    >
+                      <span className="sim-acc-title">
+                        Policy
+                        <span className="v2-train-count">
+                          {policies.length} canvas{policies.length === 1 ? "" : "es"}
+                          {policyCount > 0 ? ` · ${policyCount} nodes` : ""}
+                        </span>
+                      </span>
+                      <Ic.Chevron size={16} />
+                    </button>
+                    {openSection === "policy" && (
+                      <div className="sim-acc-body v2-train-body">
+                        {policies.length === 0 ? (
+                          <p className="sim-acc-text">No policy canvases saved yet.</p>
+                        ) : (
+                          policies.map((canvas) => (
+                            <div key={canvas.id} className="v2-train-block">
+                              <div className="v2-train-block-title">{canvas.name}</div>
+                              {canvas.freeText ? (
+                                <pre className="v2-train-pre">{canvas.freeText}</pre>
+                              ) : null}
+                              {canvas.nodes.length === 0 ? (
+                                <p className="sim-acc-text">Empty canvas.</p>
+                              ) : (
+                                <ul className="v2-train-list">
+                                  {canvas.nodes.map((node) => (
+                                    <li key={node.id}>
+                                      <span className="v2-train-node-type">{formatNodeType(node.type)}</span>
+                                      <span className="v2-train-node-label">{node.label}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={"sim-acc" + (openSection === "feedback" ? " open" : "")}>
+                    <button
+                      type="button"
+                      className="sim-acc-head"
+                      aria-expanded={openSection === "feedback"}
+                      onClick={() => toggle("feedback")}
+                    >
+                      <span className="sim-acc-title">
+                        Feedback
+                        <span className="v2-train-count">
+                          {feedbackCount} entr{feedbackCount === 1 ? "y" : "ies"}
+                        </span>
+                      </span>
+                      <Ic.Chevron size={16} />
+                    </button>
+                    {openSection === "feedback" && (
+                      <div className="sim-acc-body v2-train-body">
+                        {feedback.length === 0 ? (
+                          <p className="sim-acc-text">No feedback saved yet.</p>
+                        ) : (
+                          <ul className="v2-train-list">
+                            {feedback.map((row, i) => (
+                              <li
+                                key={`${row.conversation_id}-${row.message_index}-${row.signal}-${i}`}
+                              >
+                                <div className="v2-train-fb-meta">
+                                  <span>
+                                    {row.conversation_title ?? "Conversation"} · msg #
+                                    {row.message_index + 1} · {row.message_role}
+                                  </span>
+                                </div>
+                                {row.message_excerpt ? (
+                                  <div className="v2-train-fb-excerpt">
+                                    “{row.message_excerpt}”
+                                  </div>
+                                ) : null}
+                                <div className="v2-train-fb-body">{formatFeedbackLine(row)}</div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          <div className="obs-info-actions">
-            <button
-              type="button"
-              className="obs-info-btn bordered"
-              onClick={onClose}
-              title="Create V2 from policy and feedback"
-            >
-              Create
-            </button>
-            <button type="button" className="obs-info-btn primary" onClick={onClose}>
-              Got it
-            </button>
-          </div>
+          {!training && (
+            <div className="obs-info-actions">
+              <button
+                type="button"
+                className="obs-info-btn primary"
+                onClick={() => {
+                  setTraining(true);
+                  setTrainingStarted(true);
+                }}
+                title={
+                  trainingStarted
+                    ? "Continue training"
+                    : "Create V2 from policy and feedback"
+                }
+              >
+                {trainingStarted ? "Next" : "Create"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

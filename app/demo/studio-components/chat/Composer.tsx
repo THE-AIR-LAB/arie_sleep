@@ -8,12 +8,10 @@ import {
   type ChatModelId,
 } from "../../../lib/openai-config";
 import { VoiceReplyButton } from "./VoiceReplyButton";
-import { MoveToV2Modal } from "./MoveToV2Modal";
 import type { ActionChip } from "./types";
 
 export function Composer({
   actionChips,
-  apiTopic,
   value,
   setValue,
   onSend,
@@ -28,17 +26,12 @@ export function Composer({
   isSpeaking,
   onStopSpeaking,
   showThreadControls = false,
-  hideBubbleControls = true,
-  onToggleHideBubbleControls,
-  allCollapsed = false,
-  onToggleCollapseAll,
   onOpenThreadFullscreen,
   selectedModel = OPENAI_MODEL,
   onSelectModel,
+  onOpenV2Modal,
 }: {
   actionChips: ActionChip[];
-  /** Demo topic slug — used to load policy + feedback for Move to V2. */
-  apiTopic: string;
   value: string;
   setValue: (v: string) => void;
   onSend: (t: string) => void;
@@ -53,16 +46,12 @@ export function Composer({
   isSpeaking: boolean;
   onStopSpeaking: () => void;
   showThreadControls?: boolean;
-  hideBubbleControls?: boolean;
-  onToggleHideBubbleControls?: () => void;
-  allCollapsed?: boolean;
-  onToggleCollapseAll?: () => void;
   onOpenThreadFullscreen?: () => void;
   selectedModel?: string;
   onSelectModel?: (model: ChatModelId) => void;
+  onOpenV2Modal?: () => void;
 }) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [v2ModalOpen, setV2ModalOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!modelMenuOpen) return;
@@ -123,40 +112,6 @@ export function Composer({
               <div className="composer-thread-controls-left">
                 <button
                   type="button"
-                  className={"thread-collapse-all" + (hideBubbleControls ? " on" : "")}
-                  onClick={onToggleHideBubbleControls}
-                  title={
-                    hideBubbleControls
-                      ? "Show bubble nav and footer"
-                      : "Hide bubble nav and footer"
-                  }
-                >
-                  <span className="thread-pill-swap">
-                    <span className={hideBubbleControls ? "is-active" : ""} aria-hidden={!hideBubbleControls}>
-                      Show controls
-                    </span>
-                    <span className={!hideBubbleControls ? "is-active" : ""} aria-hidden={hideBubbleControls}>
-                      Hide controls
-                    </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="thread-collapse-all"
-                  onClick={onToggleCollapseAll}
-                  title={allCollapsed ? "Expand every message" : "Collapse every message to one line"}
-                >
-                  <span className="thread-pill-swap">
-                    <span className={allCollapsed ? "is-active" : ""} aria-hidden={!allCollapsed}>
-                      Expand all
-                    </span>
-                    <span className={!allCollapsed ? "is-active" : ""} aria-hidden={allCollapsed}>
-                      Collapse all
-                    </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
                   className="thread-collapse-all"
                   onClick={onOpenThreadFullscreen}
                   title="View conversation full screen from the first message"
@@ -190,7 +145,7 @@ export function Composer({
                         onClick={() => {
                           setModelMenuOpen(false);
                           if (opt.kind === "action") {
-                            setV2ModalOpen(true);
+                            onOpenV2Modal?.();
                             return;
                           }
                           onSelectModel?.(opt.id);
@@ -288,9 +243,6 @@ export function Composer({
         </div>
         </div>
       </div>
-      {v2ModalOpen && (
-        <MoveToV2Modal apiTopic={apiTopic} onClose={() => setV2ModalOpen(false)} />
-      )}
       <style jsx>{`
         @keyframes voice-pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(240, 80, 37, 0.55); }

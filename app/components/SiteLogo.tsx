@@ -11,15 +11,32 @@ const grid = [
 
 const CELL_COUNT = 9;
 
-function randomColor(): { bg: string; fg: string } {
+type CellColor = { bg: string; fg: string };
+
+function randomColor(): CellColor {
   const black = Math.random() < 0.5;
   return black
     ? { bg: "#000000", fg: "#ffffff" }
     : { bg: "#ffffff", fg: "#000000" };
 }
 
+function invertColor(cell: CellColor): CellColor {
+  return cell.bg === "#000000"
+    ? { bg: "#ffffff", fg: "#000000" }
+    : { bg: "#000000", fg: "#ffffff" };
+}
+
 function makePalette() {
   return Array.from({ length: CELL_COUNT }, () => randomColor());
+}
+
+function shuffledOrder() {
+  const order = Array.from({ length: CELL_COUNT }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
 }
 
 interface SiteLogoProps {
@@ -29,7 +46,8 @@ interface SiteLogoProps {
    * computed from `size` so it fills the square like the password-screen logo.
    */
   letterSize?: string;
-  href?: string;
+  /** Link target. Pass `false` to render the mark without a link (loading states). */
+  href?: string | false;
   /** When true, each cell cycles through random colors. */
   animateColors?: boolean;
 }
@@ -53,18 +71,20 @@ export default function SiteLogo({
       return;
     }
     setPalette(makePalette());
+    // Steady one-cell invert on a shuffle cycle — every tick is a visible change,
+    // so the loop never looks like it paused between bursts.
+    let cursor = 0;
+    let order = shuffledOrder();
     const id = window.setInterval(() => {
       setPalette((prev) => {
         const next = prev ? [...prev] : makePalette();
-        // Flip 2–4 random cells each tick so the change feels lively, not a full flash.
-        const flips = 2 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < flips; i++) {
-          const idx = Math.floor(Math.random() * CELL_COUNT);
-          next[idx] = randomColor();
-        }
+        const idx = order[cursor % CELL_COUNT]!;
+        cursor += 1;
+        if (cursor % CELL_COUNT === 0) order = shuffledOrder();
+        next[idx] = invertColor(next[idx]!);
         return next;
       });
-    }, 700);
+    }, 227);
     return () => window.clearInterval(id);
   }, [animateColors]);
 
@@ -81,11 +101,11 @@ export default function SiteLogo({
     });
   };
 
-  return (
-    <Link href={href}>
+  const mark = (
       <div
         className="grid grid-cols-3 aspect-square"
         style={{ width: size, gap: 0, margin: 0, padding: 0 }}
+        aria-hidden={animateColors || undefined}
       >
         {grid.map((row, rowIndex) =>
           row.map((letter, colIndex) => {
@@ -97,8 +117,10 @@ export default function SiteLogo({
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className={`flex items-center justify-center transition-colors duration-500 ease-in-out ${
-                  animateColors ? "cursor-default" : "cursor-pointer"
+                className={`flex items-center justify-center transition-colors ease-in-out ${
+                  animateColors
+                    ? "duration-300 cursor-default"
+                    : "duration-500 cursor-pointer"
                 }`}
                 onMouseEnter={() => handleToggle(index)}
                 onClick={() => handleToggle(index)}
@@ -114,7 +136,9 @@ export default function SiteLogo({
                 }}
               >
                 <span
-                  className={`${letterSize ?? ""} font-light tracking-widest transition-colors duration-500 ease-in-out`}
+                  className={`${letterSize ?? ""} font-light tracking-widest transition-colors ease-in-out ${
+                    animateColors ? "duration-300" : "duration-500"
+                  }`}
                   style={{
                     fontFamily: "var(--font-archivo), system-ui, sans-serif",
                     color: fg,
@@ -128,6 +152,8 @@ export default function SiteLogo({
           })
         )}
       </div>
-    </Link>
   );
+
+  if (href === false) return mark;
+  return <Link href={href}>{mark}</Link>;
 }

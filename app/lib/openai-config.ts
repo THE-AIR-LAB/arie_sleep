@@ -2,11 +2,11 @@ export const OPENAI_MODEL = "gpt-5.4" as const;
 
 /** Studio composer model picker — must stay in sync with chat-route allowlist.
  * Custom V1 is a placeholder id (server maps it to gpt-5.4 for now).
- * "move to V2" is an action, not a selectable chat model. */
+ * "Move to V2" is an action, not a selectable chat model. */
 export const CHAT_MODEL_OPTIONS = [
   { id: "gpt-5.4", label: "GPT-5.4", kind: "model" },
   { id: "custom-v1", label: "Custom V1", kind: "model" },
-  { id: "move-to-v2", label: "move to V2", kind: "action" },
+  { id: "move-to-v2", label: "Move to V2", kind: "action" },
 ] as const;
 
 export type ChatModelOptionId = (typeof CHAT_MODEL_OPTIONS)[number]["id"];

@@ -41,6 +41,8 @@ import { ResizeHandle } from "./ResizeHandle";
 import { RightRail } from "./RightRail";
 import { Sidebar, SidebarRail } from "./Sidebar";
 import { SimControlsPill } from "./SimControlsPill";
+import { TrainingPill } from "./TrainingPill";
+import { MoveToV2Modal } from "./MoveToV2Modal";
 import { Thread } from "./Thread";
 import { ThreadHeader } from "./ThreadHeader";
 import type { Conversation, Message, StudioChatConfig } from "./types";
@@ -224,6 +226,13 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     []
   );
   const [simControlsCollapsed, setSimControlsCollapsed] = useState(false);
+  const [v2Training, setV2Training] = useState(false);
+  const [v2ModalOpen, setV2ModalOpen] = useState(false);
+  const [v2ModalTraining, setV2ModalTraining] = useState(false);
+  const openV2Modal = useCallback((asTraining = false) => {
+    setV2ModalTraining(asTraining);
+    setV2ModalOpen(true);
+  }, []);
   useEffect(() => {
     if (!simRunControls) setSimControlsCollapsed(false);
   }, [simRunControls]);
@@ -1098,7 +1107,24 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 conversation row exists — otherwise a failed conversation
                 create would leave the user staring at the empty state. */}
             {activeId || messages.length > 0 ? (
-              <ThreadHeader config={config} />
+              <ThreadHeader
+                config={config}
+                showThreadControls={messages.length > 0}
+                hideBubbleControls={hideBubbleControls}
+                onToggleHideBubbleControls={() => setHideBubbleControls((v) => !v)}
+                allCollapsed={
+                  messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
+                }
+                onToggleCollapseAll={() => {
+                  if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
+                    setCollapsedByIdx({});
+                    return;
+                  }
+                  const next: Record<number, boolean> = {};
+                  for (let i = 0; i < messages.length; i++) next[i] = true;
+                  setCollapsedByIdx(next);
+                }}
+              />
             ) : null}
             {activeId || messages.length > 0 ? (
               <Thread
@@ -1139,7 +1165,6 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
             )}
             <Composer
               actionChips={config.actionChips}
-              apiTopic={config.apiTopic}
               value={input}
               setValue={setInput}
               onSend={send}
@@ -1154,20 +1179,6 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
               isSpeaking={isSpeaking}
               onStopSpeaking={stopSpeaking}
               showThreadControls={messages.length > 0}
-              hideBubbleControls={hideBubbleControls}
-              onToggleHideBubbleControls={() => setHideBubbleControls((v) => !v)}
-              allCollapsed={
-                messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
-              }
-              onToggleCollapseAll={() => {
-                if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
-                  setCollapsedByIdx({});
-                  return;
-                }
-                const next: Record<number, boolean> = {};
-                for (let i = 0; i < messages.length; i++) next[i] = true;
-                setCollapsedByIdx(next);
-              }}
               onOpenThreadFullscreen={() => setThreadFullscreen(true)}
               selectedModel={selectedModel}
               onSelectModel={(model) => {
@@ -1178,6 +1189,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                   /* ignore */
                 }
               }}
+              onOpenV2Modal={() => openV2Modal(v2Training)}
             />
             {threadFullscreen && messages.length > 0 ? (
               <BubbleFullscreen
@@ -1209,7 +1221,6 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
           {openDrawers.length === 0 && (
             <MobileNav
               onOpen={openMobileDrawer}
-              apiTopic={config.apiTopic}
               isAdmin={isAdmin}
               showThreadControls={messages.length > 0}
               allCollapsed={
@@ -1236,6 +1247,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                   /* ignore */
                 }
               }}
+              onOpenV2Modal={() => openV2Modal(v2Training)}
             />
           )}
           {openDrawers.length > 0 && (
@@ -1304,6 +1316,18 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
               collapsed={simControlsCollapsed}
               onToggleCollapsed={() => setSimControlsCollapsed((v) => !v)}
               floating
+            />
+          )}
+          {v2Training && (
+            <TrainingPill floating onClick={() => openV2Modal(true)} />
+          )}
+          {v2ModalOpen && (
+            <MoveToV2Modal
+              apiTopic={config.apiTopic}
+              initialTraining={v2ModalTraining}
+              onClose={() => setV2ModalOpen(false)}
+              onTrainingStarted={() => setV2Training(true)}
+              onTrainingStopped={() => setV2Training(false)}
             />
           )}
           {/* SetupBar is mounted here (page level), not inside the drawer, so its
