@@ -1463,7 +1463,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 @media (max-width:900px){
   .ra-scope .composer-thread-controls{display:none;}
 }
-.ra-scope .thread-model-menu{position:absolute;right:0;bottom:calc(100% + 6px);z-index:40;min-width:168px;
+.ra-scope .thread-model-menu{position:absolute;right:0;bottom:calc(100% + 16px);z-index:40;min-width:168px;
   display:flex;flex-direction:column;gap:2px;padding:6px;box-sizing:border-box;
   background:var(--elevated);border:1px solid var(--line);border-radius:14px;
   box-shadow:0 8px 24px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);}
