@@ -23,9 +23,8 @@ The heavy platform lives in `packages/@airlab/*` (canvas + orchestration + chat 
 consumed through thin re-export wrappers under `app/components/*` and `app/lib/*`.
 `next.config.ts` transpiles these workspace packages.
 
-> Note: `app/api/` also contains non-sleep routes carried over for dependency
-> completeness (`openclaw`, `corpus`, `general-orchestration-daemon`, `mcp`, `sandbox`,
-> `test`). They are unused by the sleep surfaces and can be pruned.
+> Note: `app/api/` is trimmed to the studio demos (sleep / law / analyst), auth,
+> admin users, conversations, feedback, voice, and the sandbox tool runner.
 
 ## Local development
 
