@@ -284,7 +284,6 @@ export const GUIDELINES: GuidelineTopic[] = [
 export const SUGGESTIONS: { icon: string; label: string }[] = [
   { icon: "Memo", label: "Stock purchase vs. asset purchase" },
   { icon: "Book", label: "What diligence docs should I gather?" },
-  { icon: "Edit", label: "Help me prep for a deal consult" },
 ];
 export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [];
 

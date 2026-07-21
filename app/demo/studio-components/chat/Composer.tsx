@@ -8,12 +8,10 @@ import {
   type ChatModelId,
 } from "../../../lib/openai-config";
 import { VoiceReplyButton } from "./VoiceReplyButton";
-import { MoveToV2Modal } from "./MoveToV2Modal";
 import type { ActionChip } from "./types";
 
 export function Composer({
   actionChips,
-  apiTopic,
   value,
   setValue,
   onSend,
@@ -35,10 +33,9 @@ export function Composer({
   onOpenThreadFullscreen,
   selectedModel = OPENAI_MODEL,
   onSelectModel,
+  onOpenV2Modal,
 }: {
   actionChips: ActionChip[];
-  /** Demo topic slug — used to load policy + feedback for Move to V2. */
-  apiTopic: string;
   value: string;
   setValue: (v: string) => void;
   onSend: (t: string) => void;
@@ -60,9 +57,9 @@ export function Composer({
   onOpenThreadFullscreen?: () => void;
   selectedModel?: string;
   onSelectModel?: (model: ChatModelId) => void;
+  onOpenV2Modal?: () => void;
 }) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [v2ModalOpen, setV2ModalOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!modelMenuOpen) return;
@@ -190,7 +187,7 @@ export function Composer({
                         onClick={() => {
                           setModelMenuOpen(false);
                           if (opt.kind === "action") {
-                            setV2ModalOpen(true);
+                            onOpenV2Modal?.();
                             return;
                           }
                           onSelectModel?.(opt.id);
@@ -288,9 +285,6 @@ export function Composer({
         </div>
         </div>
       </div>
-      {v2ModalOpen && (
-        <MoveToV2Modal apiTopic={apiTopic} onClose={() => setV2ModalOpen(false)} />
-      )}
       <style jsx>{`
         @keyframes voice-pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(240, 80, 37, 0.55); }

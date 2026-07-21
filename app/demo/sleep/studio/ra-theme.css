@@ -1369,6 +1369,20 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   line-height:1.4;}
 .ra-scope .v2-train-fb-body{font-family:inherit;font-size:13px;line-height:1.45;color:var(--text-2);
   white-space:pre-wrap;word-break:break-word;}
+.ra-scope .v2-train-progress{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px 0 16px;text-align:center;}
+.ra-scope .v2-train-progress-text{margin:0;font-family:inherit;font-size:8px;line-height:1.45;color:var(--text);text-align:center;}
+.ra-scope .v2-train-progress > .grid{flex:0 0 auto;}
+.ra-scope .v2-train-progress-actions{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;width:100%;}
+/* `button.v2-train-action-pill` beats the global `button { border:none }` reset. */
+.ra-scope button.v2-train-action-pill{display:inline-flex;align-items:center;justify-content:center;
+  min-width:88px;height:32px;box-sizing:border-box;font-family:inherit;font-size:12px;font-weight:400;
+  line-height:1;text-align:center;color:var(--text);background:transparent;
+  border:1px solid var(--line) !important;border-radius:0 !important;padding:0 16px 2px;cursor:pointer;}
+.ra-scope button.v2-train-action-pill:hover{background:var(--surface-2);}
+.ra-scope .v2-train-pill-btn{gap:8px;cursor:pointer;}
+.ra-scope .v2-train-pill-spinner{flex:0 0 auto;width:12px;height:12px;border-radius:50%;
+  border:1.5px solid var(--text-3);border-top-color:var(--text);animation:v2-train-spin .8s linear infinite;}
+@keyframes v2-train-spin{to{transform:rotate(360deg);}}
 .ra-scope .obs-info-step{display:flex;gap:12px;margin:0 0 14px;}
 .ra-scope .obs-info-step-n{flex:0 0 auto;width:24px;height:24px;border-radius:50%;display:flex;
   align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);
@@ -1589,7 +1603,13 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   border-radius:8px;background:var(--surface);color:var(--text-3);text-align:center;}
 .ra-scope .bubble-form-blank.is-token{font-style:italic;}
 .ra-scope .bubble-form-collapsed{font-family:inherit;font-size:13.5px;color:var(--text-2);font-weight:500;}
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form{display:none;}
+/* Collapsed preview must never show form chrome (blanks, sections, rows). */
+.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form,
+.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-section,
+.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-rows,
+.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-row,
+.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-blank{
+  display:none !important;}
 .ra-scope .msg-ai .bubble.bubble-traceable{cursor:pointer;border-radius:0;margin:-2px -6px;padding:2px 6px;transition:background .12s ease;}
 .ra-scope .msg-ai .bubble.bubble-traceable:hover{background:var(--surface-2);}
 /* Reply column: the bubble shell fills the column width. */
@@ -1890,7 +1910,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .empty-orb{width:60px;height:60px;border-radius:50%;}
 .ra-scope .empty-title{font-family:var(--serif);font-size:20px;color:var(--text);font-weight:500;letter-spacing:.2px;white-space:nowrap;}
 .ra-scope .empty-sub{color:var(--text-3);font-size:14px;font-weight:400;max-width:380px;text-align:center;margin:2px 0 4px;line-height:1.5;}
-.ra-scope .suggests{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:480px;}
+.ra-scope .suggests{display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;justify-content:center;max-width:100%;}
 /* `button.sug-chip` beats the global `button { border:none }` reset. */
 .ra-scope button.sug-chip{display:inline-flex;align-items:center;justify-content:center;gap:5px;
   font-family:inherit;font-size:12px;font-weight:400;line-height:1;color:var(--text-2);

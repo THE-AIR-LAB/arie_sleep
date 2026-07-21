@@ -8,12 +8,22 @@ import remarkGfm from "remark-gfm";
 const BLANK_TOKEN =
   /\[(?:\s*|_{2,}|yes\s*\/\s*no|[a-z][a-z0-9_\s/-]{0,24})\]/gi;
 
+/** Bare fill-ins LLMs often emit: `Seller: ______` or `$______`. */
+const BARE_BLANK = /\$?_{3,}/g;
+
 export function looksLikeWorksheet(text: string): boolean {
   const blanks = text.match(BLANK_TOKEN) ?? [];
   if (blanks.length >= 3) return true;
+  const bare = text.match(BARE_BLANK) ?? [];
+  // Two+ underscore runs (common in templates) → treat as a form worksheet.
+  if (bare.length >= 2) return true;
+  // "Label: ____" lines even when only one blank is present.
+  if (/^[^\n:]{1,40}:\s*\$?_{3,}\s*$/m.test(text) && bare.length >= 1) return true;
   if (
-    /fill[- ]?in[- ]the[- ]blank|worksheet|intake\s+form|fill\s+out/i.test(text) &&
-    blanks.length >= 1
+    /fill[- ]?in[- ]the[- ]blank|worksheet|intake\s+form|fill\s+out|document\s+index\s+template/i.test(
+      text
+    ) &&
+    (blanks.length >= 1 || bare.length >= 1)
   ) {
     return true;
   }
@@ -44,16 +54,22 @@ function normalizeWorksheetText(text: string): string {
 type BlankKind = "empty" | "line" | "choice" | "token";
 
 function classifyBlank(raw: string): { kind: BlankKind; label: string } {
-  const inner = raw.slice(1, -1).trim();
+  // Bare underscore / $____ runs
+  if (/^\$?_+$/.test(raw)) return { kind: "line", label: "" };
+  const inner = raw.startsWith("[") ? raw.slice(1, -1).trim() : raw.trim();
   if (!inner) return { kind: "empty", label: "" };
   if (/^_+$/.test(inner)) return { kind: "line", label: "" };
   if (/^yes\s*\/\s*no$/i.test(inner)) return { kind: "choice", label: "yes / no" };
   return { kind: "token", label: inner };
 }
 
+/** Match bracket blanks or bare underscore fill-ins, in document order. */
+const ANY_BLANK =
+  /\[(?:\s*|_{2,}|yes\s*\/\s*no|[a-z][a-z0-9_\s/-]{0,24})\]|\$?_{3,}/gi;
+
 function renderInlineWithBlanks(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  const re = new RegExp(BLANK_TOKEN.source, "gi");
+  const re = new RegExp(ANY_BLANK.source, "gi");
   let last = 0;
   let m: RegExpExecArray | null;
   let key = 0;
