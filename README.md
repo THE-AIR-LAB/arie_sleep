@@ -14,10 +14,8 @@ Tailwind 4, Clerk (auth), Supabase (data), and OpenAI.
 | `/` | Landing page linking to the surfaces below |
 | `/sleep-assessment`, `/sleep-assessment/hermes` | Patient-facing sleep assessment flow |
 | `/demo/sleep` | The chat interface (`/api/chat/sleep/base`) |
-| `/demo/sleep/studio` | Expert studio (mostly mock-driven; renders without a backend) |
+| `/demo/sleep/studio` | Expert studio (chat, observability, simulation) |
 | `/demo/sleep/studio/config` | Canvas policy/state configuration |
-| `/demo/sleep/input` | Setup: state schema, prompts, datasets, guidelines, file uploads |
-| `/demo/sleep/expert-dashboard` | Admin view of sleep conversations |
 
 ## Architecture
 
@@ -69,7 +67,7 @@ All variables are documented in `.env.example`. The essentials:
 3. Create a **Storage bucket** named `sleep-input-files` (used by the input page's
    file uploads).
 
-The seed inserts a default `sleep_inputs` row so `/demo/sleep/input` and the chat
+The seed inserts a default `sleep_inputs` row so `/demo/sleep/studio` and the chat
 have a working configuration on first run.
 
 ## Deploy to Vercel

@@ -262,11 +262,14 @@ export function SimulationPanel({
 
   // Lift the live controls to the drawer tab bar while running, so Pause/Stop sit
   // next to the × up top. Report null when idle, and on unmount, so the tab bar
-  // never keeps stale controls.
+  // never keeps stale controls. Read the callback via a ref so an unstable
+  // parent identity can't retrigger this effect every render.
+  const onRunControlsRef = useRef(onRunControls);
+  onRunControlsRef.current = onRunControls;
   useEffect(() => {
-    onRunControls?.(running ? { paused, pause, resume, stop } : null);
-  }, [running, paused, onRunControls]);
-  useEffect(() => () => onRunControls?.(null), [onRunControls]);
+    onRunControlsRef.current?.(running ? { paused, pause, resume, stop } : null);
+  }, [running, paused]);
+  useEffect(() => () => onRunControlsRef.current?.(null), []);
 
   // Selecting a past run repopulates the Patient scenario with the scenario that
   // drove it (once per selection, and never mid-run so it can't clobber a live

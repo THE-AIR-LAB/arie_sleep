@@ -1,6 +1,6 @@
 /* sleep-data.ts — content for the Sleep Studio experience.
    The state schema, prompts, datasets, and guideline topics mirror the real
-   Sleep assistant configuration (see app/demo/sleep/input/page.tsx). The node
+   Sleep assistant configuration (see app/demo/sleep/studio/config). The node
    graphs are high-fidelity visual mocks adapted to the sleep domain. */
 
 export type NodeType =

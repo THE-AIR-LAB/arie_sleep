@@ -21,6 +21,22 @@ const nextConfig: NextConfig = {
   // Combined with the literal dynamic import() in app/lib/tools/mcp.ts, Vercel's
   // tracer still includes the package, so it's present at runtime.
   serverExternalPackages: ["@modelcontextprotocol/sdk"],
+  // Sleep used to ship standalone /input + /expert-dashboard pages; those now
+  // live in the shared studio layout (same as law / analyst).
+  async redirects() {
+    return [
+      {
+        source: "/demo/sleep/input",
+        destination: "/demo/sleep/studio/config",
+        permanent: true,
+      },
+      {
+        source: "/demo/sleep/expert-dashboard",
+        destination: "/demo/sleep/studio",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
