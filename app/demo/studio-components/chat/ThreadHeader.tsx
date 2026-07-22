@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AssistantMark } from "./AssistantMark";
 import type { StudioChatConfig } from "./types";
 
@@ -35,6 +35,14 @@ export function ThreadHeader({
 }) {
   // On mobile, Feedback is a round button in MobileNav — keep it out of the pill.
   const [isMobile, setIsMobile] = useState(false);
+  // Auto-hide the title when the pill would overlap the mobile top-right buttons
+  // (Therapist / Council names are wider; Feedback adds another mrail button).
+  const [compactForNav, setCompactForNav] = useState(false);
+  const headRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const compactRef = useRef(compactForNav);
+  compactRef.current = compactForNav;
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 900px)");
@@ -44,19 +52,70 @@ export function ThreadHeader({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  useEffect(() => {
+    if (!isMobile || avatarOnly) {
+      setCompactForNav(false);
+      return;
+    }
+    const head = headRef.current;
+    if (!head) return;
+
+    const GAP = 12;
+    const HYSTERESIS = 20;
+
+    const check = () => {
+      const nav = document.querySelector(".ra-scope .mobile-railnav");
+      if (!nav) {
+        setCompactForNav(false);
+        return;
+      }
+      const headLeft = head.getBoundingClientRect().left;
+      const navLeft = nav.getBoundingClientRect().left;
+      const avatar = head.querySelector(".th-avatar-toggle") as HTMLElement | null;
+      const avatarW = avatar?.offsetWidth ?? 28;
+      const titleW = measureRef.current?.offsetWidth ?? 0;
+      // Match expanded-pill chrome (mobile padding 4/14, gap 13).
+      const fullW = 4 + avatarW + 13 + titleW + 14;
+      const room = navLeft - headLeft;
+      const compact = compactRef.current;
+      // Hysteresis: once collapsed, require extra space before expanding again.
+      setCompactForNav(compact ? room < fullW + GAP + HYSTERESIS : room < fullW + GAP);
+    };
+
+    check();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(check) : null;
+    ro?.observe(head);
+    const nav = document.querySelector(".ra-scope .mobile-railnav");
+    if (nav) ro?.observe(nav);
+    window.addEventListener("resize", check);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", check);
+    };
+  }, [isMobile, avatarOnly, config.productName, showFeedbackToggle, showThreadControls]);
+
+  const hideMeta = avatarOnly || compactForNav;
+
   return (
-    <div className={"thread-head" + (avatarOnly ? " is-avatar-only" : "")}>
+    <div
+      ref={headRef}
+      className={"thread-head" + (hideMeta ? " is-avatar-only" : "")}
+    >
+      {/* Offscreen title measure — used to decide mobile compact mode. */}
+      <span ref={measureRef} className="th-name th-name-measure" aria-hidden>
+        {config.productName}
+      </span>
       <button
         type="button"
         className="th-avatar-toggle"
         onClick={() => onToggleAvatarOnly?.()}
-        title={avatarOnly ? "Expand header" : "Collapse to avatar"}
-        aria-label={avatarOnly ? "Expand header" : "Collapse to avatar"}
-        aria-expanded={!avatarOnly}
+        title={hideMeta ? "Expand header" : "Collapse to avatar"}
+        aria-label={hideMeta ? "Expand header" : "Collapse to avatar"}
+        aria-expanded={!hideMeta}
       >
         <AssistantMark variant="th" config={config} />
       </button>
-      {!avatarOnly && (
+      {!hideMeta && (
         <div className="th-meta">
           <div className="th-name">{config.productName}</div>
           {showThreadControls && (
