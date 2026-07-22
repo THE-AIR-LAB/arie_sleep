@@ -1071,14 +1071,19 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-grabber.active .
   --rf-fill-reserve-bottom:0px;
   animation:ra-bottomUp .22s ease;}
 @keyframes ra-bottomUp{from{transform:translateY(100%);}to{transform:none;}}
-/* VS Code-style splitter: a full-width invisible strip straddling the top edge;
-   dragging anywhere resizes, and the whole border turns accent on hover/drag. */
-.ra-scope .bottom-drawer-resize{position:absolute;top:0;left:0;right:0;height:9px;
-  transform:translateY(-50%);z-index:6;cursor:row-resize;touch-action:none;}
+/* Full-width drag strip + centered grabber pill. Click/drag highlights the
+   grabber (accent); height is free from a short strip up to nearly full screen. */
+.ra-scope .bottom-drawer-resize{position:absolute;top:0;left:0;right:0;height:20px;
+  transform:translateY(-50%);z-index:6;cursor:row-resize;touch-action:none;
+  display:flex;align-items:center;justify-content:center;}
 .ra-scope .bottom-drawer-resize::before{content:"";position:absolute;left:0;right:0;top:50%;
-  height:2px;transform:translateY(-50%);background:transparent;}
+  height:2px;transform:translateY(-50%);background:transparent;pointer-events:none;}
+.ra-scope .bottom-drawer-grabber{position:relative;z-index:1;display:block;width:40px;height:4px;
+  border-radius:2px;background:var(--line);transition:background .12s ease,width .12s ease;}
 .ra-scope .bottom-drawer-resize:hover::before,
 .ra-scope .bottom-drawer-resize.active::before{background:var(--accent);}
+.ra-scope .bottom-drawer-resize:hover .bottom-drawer-grabber,
+.ra-scope .bottom-drawer-resize.active .bottom-drawer-grabber{background:var(--accent);width:48px;}
 /* Workflow close (×) — tab-end next to (i): color-only hover, no plate. */
 .ra-scope .bottom-drawer-close{display:flex;align-items:center;justify-content:center;
   width:30px;height:30px;border-radius:0;border:none;background:transparent;
@@ -1435,8 +1440,8 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .obs-info-step p{margin:0;}
 .ra-scope .obs-info-mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px;
   background:var(--surface);border:1px solid var(--line-soft);border-radius:4px;padding:0 4px;color:var(--text);}
-.ra-scope .obs-info-h{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:1.2px;
-  text-transform:uppercase;color:var(--text-3);margin:18px 0 10px;}
+.ra-scope .obs-info-h{font-family:inherit;font-size:12px;font-weight:600;letter-spacing:normal;
+  text-transform:none;color:var(--text-3);margin:18px 0 10px;}
 .ra-scope .obs-info-ol{margin:0 0 14px;padding-left:20px;display:flex;flex-direction:column;gap:8px;}
 .ra-scope .obs-info-ol li{font-family:var(--serif);font-size:13.5px;line-height:1.55;color:var(--text-2);}
 .ra-scope .obs-info-ol li::marker{color:var(--text-3);font-weight:600;}
@@ -1604,6 +1609,12 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .msg-block:has(.bubble-fb-menu){position:relative;z-index:20;}
 .ra-scope .msg-ai:has(.bubble-fb-menu),
 .ra-scope .msg-user-col:has(.bubble-fb-menu){position:relative;z-index:20;}
+/* Mobile: centered feedback modal (portaled into .ra-scope). */
+.ra-scope .bubble-fb-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.5);padding:24px;animation:ra-fadeUp .16s ease both;}
+.ra-scope .bubble-fb-modal{width:min(420px,100%);max-height:min(85vh,100%);overflow:auto;background:var(--frame);
+  border:1px solid var(--line);box-shadow:0 24px 60px rgba(0,0,0,0.25);}
+.ra-scope .bubble-fb-modal .fb-editor--menu{width:100%;background:var(--frame);box-shadow:none;}
 .ra-scope .bubble-nav-end{flex:0 0 auto; margin-left:auto; display:inline-flex; align-items:center; gap:6px;}
 .ra-scope .bubble-nav .bubble-collapse{flex:0 0 auto; margin-left:0;}
 .ra-scope .bubble-body{
@@ -2011,10 +2022,10 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope .sim-info-close{position:absolute;top:12px;right:12px;display:flex;align-items:center;justify-content:center;
   width:32px;height:32px;border:none;background:transparent;color:var(--text-3);border-radius:8px;cursor:pointer;}
 .ra-scope .sim-info-close:hover{background:var(--surface-2);color:var(--text);}
-.ra-scope .sim-info-eyebrow{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-4);}
+.ra-scope .sim-info-eyebrow{font-family:inherit;font-size:12px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--text-4);}
 .ra-scope .sim-info-title{margin:4px 0 2px;font-family:inherit;font-size:18px;font-weight:600;line-height:1.35;color:var(--text);padding-right:32px;}
 .ra-scope .sim-info-meta{font-family:inherit;font-size:13px;color:var(--text-3);margin-bottom:16px;}
-.ra-scope .sim-info-label{font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-4);margin-bottom:6px;}
+.ra-scope .sim-info-label{font-family:inherit;font-size:12px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--text-4);margin-bottom:6px;}
 .ra-scope .sim-info-scenario{font-family:var(--serif);font-size:15px;line-height:1.6;color:var(--text);white-space:pre-wrap;}
 
 /* Patient scenario label row + Examples button — match .sim-btn typography. */
@@ -2169,22 +2180,23 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 
   /* the unified drawer (chats / observability / expert / upload / account)
      comes up from the bottom as a sheet — not a full-screen overlay — so the
-     chat stays visible behind it. Drag the grabber down to close, up to expand. */
+     chat stays visible behind it. Height is set inline and dragged freely. */
   .ra-scope .obs-panel{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:120;
     width:auto;flex:none;border-left:none;
-    /* fixed height so the sheet doesn't resize when you switch tabs (each pane
-       scrolls its own body); flick the grabber up for full height. */
     height:70vh;max-height:70vh;
     border-top:1px solid var(--line);border-radius:0;
     box-shadow:none;
-    transition:transform .26s ease, max-height .26s ease, height .26s ease;}
-  /* dragged/flicked up → full height */
-  .ra-scope .obs-panel.full{max-height:100dvh;height:100dvh;border-radius:0;}
+    transition:height .2s ease, max-height .2s ease;}
+  .ra-scope .obs-panel.is-dragging{transition:none;}
   /* drag handle — only shown in the bottom-sheet (mobile) layout */
   .ra-scope .drawer-grabber-wrap{display:flex;justify-content:center;align-items:center;
-    flex:0 0 auto;padding:9px 0 5px;touch-action:none;cursor:grab;}
-  .ra-scope .drawer-grabber-wrap:active{cursor:grabbing;}
-  .ra-scope .drawer-grabber{width:40px;height:4px;border-radius:0;background:var(--line);}
+    flex:0 0 auto;padding:12px 0 8px;touch-action:none;cursor:grab;}
+  .ra-scope .drawer-grabber-wrap:active,
+  .ra-scope .drawer-grabber-wrap.active{cursor:grabbing;}
+  .ra-scope .drawer-grabber{width:40px;height:4px;border-radius:2px;background:var(--line);
+    transition:background .12s ease,width .12s ease;}
+  .ra-scope .drawer-grabber-wrap:hover .drawer-grabber,
+  .ra-scope .drawer-grabber-wrap.active .drawer-grabber{background:var(--accent);width:48px;}
 
   /* no edge-dragging on touch layouts */
   .ra-scope .resize-handle{display:none;}
@@ -2777,7 +2789,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope .fb-types .fb-type:focus,
 .ra-scope .fb-types .fb-type:focus-visible{ outline:none; box-shadow:none; }
 .ra-scope .fb-types .fb-type.active{
-  color:var(--text); border-bottom:2px solid var(--text); background:transparent;
+  color:var(--text); border-bottom:2px solid var(--text); background:transparent; font-weight:400;
 }
 .ra-scope .fb-types .fb-type.filled:not(.active){ color:var(--text-2); }
 .ra-scope .fb-textarea{
@@ -2792,12 +2804,13 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   background:transparent; color:var(--text-2); font-family:inherit; font-size:13px; font-weight:400; cursor:pointer;
 }
 .ra-scope .fb-btn:hover{ color:var(--text); border-color:var(--text-3); }
-.ra-scope .fb-btn.primary{ background:var(--text); border-color:var(--text); color:var(--elevated,#fff); }
-.ra-scope .fb-btn.primary:hover{ background:var(--text); border-color:var(--text); color:var(--elevated,#fff); filter:none; }
+.ra-scope .fb-btn.primary{ background:#B0BEA5; border-color:#96a58a; color:var(--text); }
+.ra-scope .fb-btn.primary:hover{ background:#B0BEA5; border-color:#96a58a; color:var(--text); filter:brightness(1.04); }
 .ra-scope .fb-btn.primary:disabled{ opacity:.4; cursor:not-allowed; }
 .ra-scope .fb-btn.ghost{ background:transparent; border-color:transparent; }
 .ra-scope .fb-btn.ghost:hover{ border-color:transparent; background:transparent; color:var(--text); }
-.ra-scope .fb-btn.danger{ background:transparent; border-color:var(--danger); color:#9a4634; }
+.ra-scope .fb-btn.danger{ background:transparent; border-color:transparent; color:var(--text); }
+.ra-scope .fb-btn.danger:hover{ background:transparent; border-color:transparent; color:var(--text); }
 .ra-scope .fb-banner{
   display:inline-flex; align-items:center; gap:8px; padding:4px 10px; border-radius:0;
   border:1px solid var(--line); background:transparent; color:var(--text-2); font-size:12px;
@@ -2831,6 +2844,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope.ra-round .msg-user,
 .ra-scope.ra-round .msg-ai .bubble.bubble-traceable,
 .ra-scope.ra-round .bubble-fb-menu,
+.ra-scope.ra-round .bubble-fb-modal,
 .ra-scope.ra-round .fb-editor,
 .ra-scope.ra-round .fb-editor--menu,
 .ra-scope.ra-round .fb-textarea,

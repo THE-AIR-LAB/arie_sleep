@@ -133,7 +133,8 @@ export function SimulationPanel({
 }) {
   const [scenario, setScenario] = useState("");
   // Collapse toggles for the scenario field and the runs list (labels act as headers).
-  const [scenarioOpen, setScenarioOpen] = useState(true);
+  // Default: only Runs is expanded — scenario stays collapsed until you need it.
+  const [scenarioOpen, setScenarioOpen] = useState(false);
   const [runsOpen, setRunsOpen] = useState(true);
   // Kept as a string so the field can be cleared while editing (e.g. wiping "110"
   // to type a new value). Normalized to a valid count on blur and when a run starts.
@@ -290,6 +291,19 @@ export function SimulationPanel({
       populatedRunRef.current = activeRunId;
     }
   }, [activeRunId, runs, running]);
+
+  // Opening a simulation run: keep only the Runs list expanded.
+  useEffect(() => {
+    if (!activeRunId) return;
+    setScenarioOpen(false);
+    setRunsOpen(true);
+  }, [activeRunId]);
+
+  // Drawer closed (slot unmounted): collapse Market scenario so the next open
+  // starts with only Runs expanded.
+  useEffect(() => {
+    if (!slot) setScenarioOpen(false);
+  }, [slot]);
 
   // Run state lives at the page level; docked chrome only when the drawer slot exists.
   if (!slot) return null;

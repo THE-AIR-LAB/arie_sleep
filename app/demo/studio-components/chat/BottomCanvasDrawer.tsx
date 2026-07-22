@@ -187,22 +187,28 @@ export function BottomCanvasDrawer({
   const [resizing, setResizing] = useState(false);
   const onResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     const startY = e.clientY;
     const startH = height;
     setResizing(true);
     const onMove = (ev: PointerEvent) => {
       const next = startH + (startY - ev.clientY);
-      setHeight(Math.round(Math.max(240, Math.min(window.innerHeight - 72, next))));
+      // Free range: from a short strip up to nearly the full viewport.
+      const minH = 80;
+      const maxH = Math.max(minH, window.innerHeight - 8);
+      setHeight(Math.round(Math.max(minH, Math.min(maxH, next))));
     };
     const onUp = () => {
       setResizing(false);
       document.body.classList.remove("ra-resizing-v");
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
     document.body.classList.add("ra-resizing-v");
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   if (!open) return null;
@@ -212,11 +218,15 @@ export function BottomCanvasDrawer({
         className={"bottom-drawer-resize" + (resizing ? " active" : "")}
         role="separator"
         aria-orientation="horizontal"
+        aria-valuenow={height}
+        aria-valuemin={80}
         aria-label="Resize workflow (drag up or down; double-click to reset)"
         title="Drag to resize"
         onPointerDown={onResizeDown}
         onDoubleClick={() => setHeight(Math.round(window.innerHeight / 3))}
-      />
+      >
+        <span className="bottom-drawer-grabber" aria-hidden />
+      </div>
       <button
         type="button"
         className="bottom-drawer-close-fallback"

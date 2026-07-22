@@ -1,10 +1,17 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Turn } from "../../components/trace/TraceView";
 import { ObservabilityContent } from "./ObservabilityPanel";
 import { ExpertChatContent } from "./ExpertChatPanel";
 import { UploadContent } from "./UploadPanel";
+
+/** Mobile bottom-sheet height (vh). Free drag between these bounds. */
+const SHEET_DEFAULT_VH = 70;
+const SHEET_MIN_VH = 18;
+const SHEET_MAX_VH = 100;
+/** Release below this to dismiss the sheet. */
+const SHEET_DISMISS_VH = 28;
 
 /**
  * A single right-docked drawer that hosts the secondary panels (Observability,
@@ -112,14 +119,22 @@ export function RightDrawer({
   /** Non-admins never see the internal Model Setup / Observability panels. */
   isAdmin?: boolean;
 }) {
-  // Mobile bottom-sheet drag: flick the grabber down to close (or collapse from
-  // full), up to expand to full height. Inert on desktop (the grabber is
-  // display:none there, so these handlers never fire).
-  const [expanded, setExpanded] = useState(false);
-  const [dragDy, setDragDy] = useState(0);
+  // Mobile bottom-sheet: continuous height drag on the grabber (no mid snap).
+  // Inert on desktop (grabber is display:none there).
+  const [sheetVh, setSheetVh] = useState(SHEET_DEFAULT_VH);
   const [dragging, setDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
+  const dragStartVh = useRef(SHEET_DEFAULT_VH);
+  const sheetVhRef = useRef(sheetVh);
+  sheetVhRef.current = sheetVh;
+  const wasOpenRef = useRef(false);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const nowOpen = open.length > 0;
+    if (nowOpen && !wasOpenRef.current) setSheetVh(SHEET_DEFAULT_VH);
+    wasOpenRef.current = nowOpen;
+  }, [open.length]);
 
   // Tabs/panes shown: the full function set on mobile (scrollable, switchable),
   // the opened subset on desktop. Non-admins never get the internal panels on
@@ -132,55 +147,56 @@ export function RightDrawer({
     active && visibleTabIds.includes(active) ? active : visibleTabIds[0] ?? null;
 
   function onGrabDown(e: React.PointerEvent) {
+    e.preventDefault();
     dragStartY.current = e.clientY;
+    dragStartVh.current = sheetVhRef.current;
     setDragging(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
   function onGrabMove(e: React.PointerEvent) {
     if (dragStartY.current === null) return;
-    setDragDy(e.clientY - dragStartY.current);
+    const dy = e.clientY - dragStartY.current; // down = shrink, up = grow
+    const vhPerPx = 100 / Math.max(1, window.innerHeight);
+    const next = dragStartVh.current - dy * vhPerPx;
+    setSheetVh(Math.max(SHEET_MIN_VH, Math.min(SHEET_MAX_VH, next)));
   }
   function onGrabUp() {
     if (dragStartY.current === null) return;
-    const dy = dragDy;
     dragStartY.current = null;
     setDragging(false);
-    setDragDy(0);
-    if (dy > 110) {
-      // Flicked down: collapse from full, otherwise dismiss the whole sheet.
-      if (expanded) setExpanded(false);
-      else {
-        setExpanded(false);
-        onDismiss?.();
-      }
-    } else if (dy < -70) {
-      setExpanded(true); // Flicked up: full height.
+    if (sheetVhRef.current < SHEET_DISMISS_VH) {
+      setSheetVh(SHEET_DEFAULT_VH);
+      onDismiss?.();
     }
-    // Small drag → snap back (no state change).
   }
 
   if (open.length === 0) return null;
 
   return (
     <div
-      className={"obs-panel right-drawer" + (expanded ? " full" : "")}
+      className={"obs-panel right-drawer" + (dragging ? " is-dragging" : "")}
       style={{
         ...(width ? { ["--obs-w" as string]: `${width}px` } : {}),
-        // Live downward-drag feedback; upward drag just expands on release.
-        ...(dragging && dragDy > 0 ? { transform: `translateY(${dragDy}px)` } : {}),
-        ...(dragging ? { transition: "none" } : {}),
+        ...(isMobile
+          ? {
+              height: `${sheetVh}vh`,
+              maxHeight: `${sheetVh}vh`,
+              transition: dragging ? "none" : undefined,
+            }
+          : {}),
       } as React.CSSProperties}
       role="dialog"
       aria-label="Side panels"
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="drawer-grabber-wrap"
+        className={"drawer-grabber-wrap" + (dragging ? " active" : "")}
         onPointerDown={onGrabDown}
         onPointerMove={onGrabMove}
         onPointerUp={onGrabUp}
         onPointerCancel={onGrabUp}
-        title="Drag down to close, up to expand"
+        title="Drag to resize"
+        aria-label="Drag to resize panel"
       >
         <div className="drawer-grabber" />
       </div>

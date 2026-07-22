@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Ic } from "../ra-icons";
 import { FeedbackMenuEditor, type FeedbackEntry } from "../FeedbackControls";
 import { AssistantMark } from "./AssistantMark";
@@ -70,13 +71,23 @@ export function Bubble({
   const [revealControls, setRevealControls] = useState(false);
   /** Which Feedback control the open menu is anchored to (nav = top, foot = bottom). */
   const [feedbackAnchor, setFeedbackAnchor] = useState<"nav" | "foot">("nav");
+  // Mobile: feedback opens as a centered modal instead of a bubble-anchored popover.
+  const [isMobile, setIsMobile] = useState(false);
   const fbNavRef = useRef<HTMLDivElement>(null);
   const fbFootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setRevealControls(false);
   }, [hideControls]);
   useEffect(() => {
-    if (!feedbackEditing) return;
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 900px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  useEffect(() => {
+    if (!feedbackEditing || isMobile) return;
     const onDoc = (e: MouseEvent) => {
       const t = e.target as Node;
       if (fbNavRef.current?.contains(t) || fbFootRef.current?.contains(t)) return;
@@ -84,10 +95,18 @@ export function Bubble({
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [feedbackEditing, onOpenFeedback]);
+  }, [feedbackEditing, onOpenFeedback, isMobile]);
   useEffect(() => {
     if (!feedbackEditing) setFeedbackAnchor("nav");
   }, [feedbackEditing]);
+  useEffect(() => {
+    if (!feedbackEditing || !isMobile) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onOpenFeedback?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [feedbackEditing, isMobile, onOpenFeedback]);
   const controlsVisible = !hideControls || revealControls || feedbackEditing;
   const isUser = m.role === "user";
   const turnId = m.turnId;
@@ -122,22 +141,50 @@ export function Bubble({
     if (!feedbackEditing) onOpenFeedback?.();
   };
 
-  const feedbackMenu =
+  const feedbackEditor =
     showFeedback && feedbackEditing && onSubmitFeedback ? (
+      <FeedbackMenuEditor
+        entries={feedbackEntries ?? []}
+        onSave={(entries) => onSubmitFeedback(entries)}
+        onCancel={() => onOpenFeedback?.()}
+        onRemove={() => onRemoveFeedback?.()}
+      />
+    ) : null;
+
+  const feedbackPopover =
+    !isMobile && feedbackEditor ? (
       <div
         className={"bubble-fb-menu" + (feedbackAnchor === "foot" ? " bubble-fb-menu--foot" : "")}
         role="dialog"
         aria-label="Feedback"
         onClick={(e) => e.stopPropagation()}
       >
-        <FeedbackMenuEditor
-          entries={feedbackEntries ?? []}
-          onSave={(entries) => onSubmitFeedback(entries)}
-          onCancel={() => onOpenFeedback?.()}
-          onRemove={() => onRemoveFeedback?.()}
-        />
+        {feedbackEditor}
       </div>
     ) : null;
+
+  // Portal into .ra-scope so theme tokens + .fb-* styles still apply.
+  const feedbackModalHost =
+    typeof document !== "undefined"
+      ? document.querySelector(".ra-scope") ?? document.body
+      : null;
+  const feedbackModal =
+    isMobile && feedbackEditor && feedbackModalHost
+      ? createPortal(
+          <div
+            className="bubble-fb-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Feedback"
+            onClick={() => onOpenFeedback?.()}
+          >
+            <div className="bubble-fb-modal" onClick={(e) => e.stopPropagation()}>
+              {feedbackEditor}
+            </div>
+          </div>,
+          feedbackModalHost
+        )
+      : null;
 
   const navFeedback = showFeedback ? (
     <div className="bubble-fb-wrap" ref={fbNavRef}>
@@ -152,7 +199,7 @@ export function Bubble({
       >
         <Ic.Edit size={14} />
       </button>
-      {feedbackAnchor === "nav" ? feedbackMenu : null}
+      {feedbackAnchor === "nav" ? feedbackPopover : null}
     </div>
   ) : null;
 
@@ -169,7 +216,7 @@ export function Bubble({
       >
         <Ic.Edit size={14} />
       </button>
-      {feedbackAnchor === "foot" ? feedbackMenu : null}
+      {feedbackAnchor === "foot" ? feedbackPopover : null}
     </div>
   ) : null;
 
@@ -363,6 +410,7 @@ export function Bubble({
       <div className="msg-user-col">
         {shell}
         {overlay}
+        {feedbackModal}
       </div>
     );
   }
@@ -379,6 +427,7 @@ export function Bubble({
         {shell}
       </div>
       {overlay}
+      {feedbackModal}
     </div>
   );
 }
