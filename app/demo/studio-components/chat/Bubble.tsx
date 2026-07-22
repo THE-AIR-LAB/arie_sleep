@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ic } from "../ra-icons";
-import type { FeedbackEntry } from "../FeedbackControls";
+import { FeedbackMenuEditor, type FeedbackEntry } from "../FeedbackControls";
 import { AssistantMark } from "./AssistantMark";
 import { BubbleFullscreen } from "./BubbleFullscreen";
 import {
@@ -27,8 +27,10 @@ export function Bubble({
   hasState = false,
   feedbackMode = false,
   feedbackEntries,
+  feedbackEditing = false,
   onSubmitFeedback,
   onSubmitFeedbackAt,
+  onRemoveFeedback,
   collapsed = false,
   onToggleCollapse,
   hideControls = false,
@@ -48,8 +50,11 @@ export function Bubble({
   /** In feedback mode the fullscreen view becomes editable + submittable. */
   feedbackMode?: boolean;
   feedbackEntries?: FeedbackEntry[];
+  /** True while the per-bubble feedback dropdown is open. */
+  feedbackEditing?: boolean;
   onSubmitFeedback?: (entries: FeedbackEntry[]) => void;
   onSubmitFeedbackAt?: (index: number, entries: FeedbackEntry[]) => void;
+  onRemoveFeedback?: () => void;
   /** When true the bubble is tucked to a single line. */
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -61,12 +66,29 @@ export function Bubble({
   const messages = messagesProp ?? [m];
   const [fullscreen, setFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
-  // When global chrome is hidden, a click can reveal nav/footer for THIS bubble only.
+  // When global chrome is hidden, avatar click reveals nav/footer for THIS bubble only.
   const [revealControls, setRevealControls] = useState(false);
+  /** Which Feedback control the open menu is anchored to (nav = top, foot = bottom). */
+  const [feedbackAnchor, setFeedbackAnchor] = useState<"nav" | "foot">("nav");
+  const fbNavRef = useRef<HTMLDivElement>(null);
+  const fbFootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setRevealControls(false);
   }, [hideControls]);
-  const controlsVisible = !hideControls || revealControls;
+  useEffect(() => {
+    if (!feedbackEditing) return;
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (fbNavRef.current?.contains(t) || fbFootRef.current?.contains(t)) return;
+      onOpenFeedback?.();
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [feedbackEditing, onOpenFeedback]);
+  useEffect(() => {
+    if (!feedbackEditing) setFeedbackAnchor("nav");
+  }, [feedbackEditing]);
+  const controlsVisible = !hideControls || revealControls || feedbackEditing;
   const isUser = m.role === "user";
   const turnId = m.turnId;
   // Tint the bubble once feedback has been left on this message.
@@ -84,11 +106,72 @@ export function Bubble({
   const showFullscreen = !!turnId;
   const showCollapse = !!onToggleCollapse;
   const showCopy = m.text.trim().length > 0;
-  // Turn number + Policy/Observability/State in the top nav; Feedback stays in the footer.
-  const showNavActions = showPolicy || showTrace || showStateBtn;
+  // Turn number + Policy/Observability/State/Feedback in the top nav; Feedback also in the footer.
+  const showNavActions = showPolicy || showTrace || showStateBtn || showFeedback;
   const showTurnN = turnNumber != null;
   const showNav = showNavActions || showCollapse || showFullscreen || showTurnN || showCopy;
   const showFootActions = showFeedback;
+
+  const openFeedback = (anchor: "nav" | "foot") => (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (feedbackEditing && feedbackAnchor === anchor) {
+      onOpenFeedback?.();
+      return;
+    }
+    setFeedbackAnchor(anchor);
+    if (!feedbackEditing) onOpenFeedback?.();
+  };
+
+  const feedbackMenu =
+    showFeedback && feedbackEditing && onSubmitFeedback ? (
+      <div
+        className={"bubble-fb-menu" + (feedbackAnchor === "foot" ? " bubble-fb-menu--foot" : "")}
+        role="dialog"
+        aria-label="Feedback"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <FeedbackMenuEditor
+          entries={feedbackEntries ?? []}
+          onSave={(entries) => onSubmitFeedback(entries)}
+          onCancel={() => onOpenFeedback?.()}
+          onRemove={() => onRemoveFeedback?.()}
+        />
+      </div>
+    ) : null;
+
+  const navFeedback = showFeedback ? (
+    <div className="bubble-fb-wrap" ref={fbNavRef}>
+      <button
+        type="button"
+        className={"trace-act" + (feedbackEditing && feedbackAnchor === "nav" ? " on" : "")}
+        data-tip={feedbackEditing && feedbackAnchor === "nav" ? undefined : "Feedback"}
+        aria-label="Feedback"
+        aria-expanded={feedbackEditing && feedbackAnchor === "nav"}
+        aria-haspopup="dialog"
+        onClick={openFeedback("nav")}
+      >
+        <Ic.Edit size={14} />
+      </button>
+      {feedbackAnchor === "nav" ? feedbackMenu : null}
+    </div>
+  ) : null;
+
+  const footFeedback = showFeedback ? (
+    <div className="bubble-fb-wrap bubble-fb-wrap--foot" ref={fbFootRef}>
+      <button
+        type="button"
+        className={"trace-act" + (feedbackEditing && feedbackAnchor === "foot" ? " on" : "")}
+        data-tip={feedbackEditing && feedbackAnchor === "foot" ? undefined : "Feedback"}
+        aria-label="Feedback"
+        aria-expanded={feedbackEditing && feedbackAnchor === "foot"}
+        aria-haspopup="dialog"
+        onClick={openFeedback("foot")}
+      >
+        <Ic.Edit size={14} />
+      </button>
+      {feedbackAnchor === "foot" ? feedbackMenu : null}
+    </div>
+  ) : null;
 
   const navActions = showNavActions ? (
     <div className="trace-actions">
@@ -107,6 +190,12 @@ export function Bubble({
           <Ic.Grid size={14} />
         </button>
       )}
+      {showFeedback && (showPolicy || showTrace || showStateBtn) ? (
+        <span className="trace-act-div" aria-hidden="true">
+          |
+        </span>
+      ) : null}
+      {navFeedback}
     </div>
   ) : null;
 
@@ -118,9 +207,7 @@ export function Bubble({
           existing={feedbackEntries ?? []}
           onSubmit={(entries) => onSubmitFeedback?.(entries)}
         />
-        <button type="button" className="trace-act" data-tip="Feedback" aria-label="Feedback" onClick={() => onOpenFeedback!()}>
-          <Ic.Edit size={14} />
-        </button>
+        {footFeedback}
       </div>
     </div>
   ) : null;

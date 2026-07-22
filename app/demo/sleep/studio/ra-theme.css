@@ -87,7 +87,7 @@
    toolbar buttons stay). We only normalize the canvas's own warm-greige *surface*
    backgrounds (inspector/compiler panel, tab bar, board, inputs, neutral buttons)
    to white so they match the white theme — the saturated/dark values (orange
-   #c2611f accent, green #1a3d2a node, near-black #1c1b16 border) are left intact.
+   #F05025 accent, green #1a3d2a node, near-black #1c1b16 border) are left intact.
    Scoped to the white chat theme (.ra-mono); the drawer canvas is nested inside
    it, so these also cover the model-setup canvas in the white theme. */
 .ra-scope.ra-mono .bg-\[\#c8c4b4\]{background-color:#f4f4f4 !important;}
@@ -169,9 +169,9 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .border-\[\#c8c4b4\]{
   --text-2:#56534b;
   --text-3:#86806f;
   --text-4:#b1ab9b;
-  --accent:#c2611f;
+  --accent:#F05025;
   --accent-ink:#f6f7f2;
-  --accent-soft:rgba(194,97,31,.13);
+  --accent-soft:rgba(240,80,37,.13);
   --danger:#e0826f;
   --ui:var(--font-sans),system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --serif:var(--font-sans),system-ui,-apple-system,sans-serif;
@@ -345,9 +345,9 @@ body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:non
   position:relative;color:var(--text-2);}
 .ra-scope .conv-item:hover{background:var(--surface);color:var(--text);}
 .ra-scope .conv-item.active{background:var(--surface);color:var(--text);}
-.ra-scope .conv-item.has-feedback{background:#D1E7F3;color:var(--text);}
+.ra-scope .conv-item.has-feedback{background:#B0BEA5;color:var(--text);}
 .ra-scope .conv-item.has-feedback:hover,
-.ra-scope .conv-item.has-feedback.active{background:#D1E7F3;}
+.ra-scope .conv-item.has-feedback.active{background:#B0BEA5;}
 .ra-scope .conv-item.active::before{content:"";position:absolute;left:-10px;top:9px;bottom:9px;width:2.5px;border-radius:3px;background:var(--accent);}
 .ra-scope .conv-title{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ra-scope .conv-rename{flex:1;min-width:0;font:inherit;font-size:14px;color:var(--text);
@@ -860,11 +860,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{
   background:var(--line, #e4e4e4);transition:background .12s,height .12s;}
 .rf-vsplit:hover::before,.rf-vsplit.active::before,
 .sc-vsplit:hover::before,.sc-vsplit.active::before{
-  background:var(--accent, #c2611f);height:2px;}
+  background:var(--accent, #F05025);height:2px;}
 /* Stacked inspector navbar grabber (right of Inspector/Compiler tabs). */
 .rf-inspector-grabber-bar{background:var(--line, #c8c4b4);}
 .rf-inspector-grabber:hover .rf-inspector-grabber-bar,
-.rf-inspector-grabber.active .rf-inspector-grabber-bar{background:var(--accent, #c2611f);}
+.rf-inspector-grabber.active .rf-inspector-grabber-bar{background:var(--accent, #F05025);}
 .ra-scope.ra-mono .rf-inspector-grabber-bar{background:#e4e4e4;}
 .ra-scope.ra-mono .rf-inspector-grabber:hover .rf-inspector-grabber-bar,
 .ra-scope.ra-mono .rf-inspector-grabber.active .rf-inspector-grabber-bar{background:#111;}
@@ -944,14 +944,14 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-grabber.active .
    - real:   tool nodes confirmed by the trace (green = measured, not inferred) */
 .react-flow__node.rf-fire-done,
 .react-flow__node.rf-fire-active{border-radius:0;transition:box-shadow .25s ease;}
-.react-flow__node.rf-fire-done{box-shadow:0 0 0 2px rgba(194,97,31,.55);}
-.react-flow__node.rf-fire-active{box-shadow:0 0 0 3px #c2611f,0 0 18px 3px rgba(194,97,31,.45);
+.react-flow__node.rf-fire-done{box-shadow:0 0 0 2px rgba(240,80,37,.55);}
+.react-flow__node.rf-fire-active{box-shadow:0 0 0 3px #F05025,0 0 18px 3px rgba(240,80,37,.45);
   animation:rfFirePulse 1s ease-in-out infinite;z-index:6;}
 .react-flow__node.rf-fire-real{box-shadow:0 0 0 2.5px #2f8076,0 0 14px 2px rgba(47,128,118,.4);}
 .react-flow__node.rf-fire-active.rf-fire-real{box-shadow:0 0 0 3px #2f8076,0 0 18px 3px rgba(47,128,118,.5);}
 @keyframes rfFirePulse{
-  0%,100%{box-shadow:0 0 0 3px #c2611f,0 0 14px 2px rgba(194,97,31,.35);}
-  50%{box-shadow:0 0 0 4px #c2611f,0 0 22px 5px rgba(194,97,31,.6);}
+  0%,100%{box-shadow:0 0 0 3px #F05025,0 0 14px 2px rgba(240,80,37,.35);}
+  50%{box-shadow:0 0 0 4px #F05025,0 0 22px 5px rgba(240,80,37,.6);}
 }
 /* Traced edges: neutrals stay grey; true/false keep branch colors.
    Line weight is 2× idle (inline strokeWidth: 6) — don't override thinner. */
@@ -1097,7 +1097,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-grabber.active .
   content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;transform:translateX(-50%);
   background:var(--line, #e4e4e4);transition:background .12s,width .12s;}
 .rf-hsplit:hover::before,.rf-hsplit.active::before{
-  background:var(--accent, #c2611f);width:2px;}
+  background:var(--accent, #F05025);width:2px;}
 body.ra-resizing-v,body.ra-resizing-v *{cursor:row-resize !important;user-select:none !important;}
 body.ra-resizing-h,body.ra-resizing-h *{cursor:col-resize !important;user-select:none !important;}
 /* Drawers (side, bottom, mobile sheet, floated Model Setup window) + the
@@ -1484,7 +1484,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .thread-head + .thread.thread-loading{padding-top:0;}
 .ra-scope .thread.thread-loading > *{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
 .ra-scope .thread-inner{width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:22px;}
-.ra-scope .day-divider{display:flex;align-items:center;gap:14px;color:var(--text-4);font-size:11px;letter-spacing:1.6px;}
+.ra-scope .day-divider{display:flex;align-items:center;gap:14px;color:#A5AFBE;font-size:11px;letter-spacing:1.6px;}
 .ra-scope .day-divider::before,.ra-scope .day-divider::after{content:"";flex:1;height:1px;background:var(--line-soft);}
 /* Controls + input share one full-width stack so pill edges match the input box. */
 .ra-scope .composer-stack{width:100%;display:flex;flex-direction:column;gap:8px;}
@@ -1558,6 +1558,18 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   flex:0 0 auto; font-size:12px; font-weight:500; color:var(--text-3); line-height:1.2;
   font-variant-numeric:tabular-nums; min-width:1.25em;}
 .ra-scope .bubble-nav .trace-actions{flex:1 1 auto; min-width:0;}
+.ra-scope .bubble-fb-wrap{position:relative;display:inline-flex;align-items:center;flex:0 0 auto;}
+.ra-scope .bubble-fb-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:50;min-width:min(420px,70vw);
+  opacity:1;background:var(--frame);}
+.ra-scope .bubble-fb-menu--foot{left:auto;right:0;}
+.ra-scope .bubble-fb-wrap--foot{position:relative;}
+.ra-scope .bubble-fb-menu .fb-editor--menu{width:min(420px,70vw);background:var(--frame);opacity:1;
+  box-shadow:0 4px 14px rgba(31,29,24,.08);}
+.ra-scope .msg-ai .bubble:has(.bubble-fb-menu),
+.ra-scope .msg-user:has(.bubble-fb-menu){overflow:visible;}
+.ra-scope .msg-block:has(.bubble-fb-menu){position:relative;z-index:20;}
+.ra-scope .msg-ai:has(.bubble-fb-menu),
+.ra-scope .msg-user-col:has(.bubble-fb-menu){position:relative;z-index:20;}
 .ra-scope .bubble-nav-end{flex:0 0 auto; margin-left:auto; display:inline-flex; align-items:center; gap:6px;}
 .ra-scope .bubble-nav .bubble-collapse{flex:0 0 auto; margin-left:0;}
 .ra-scope .bubble-body{
@@ -1587,8 +1599,8 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .bubble-form-collapsed{display:inline; white-space:nowrap;}
 .ra-scope .bubble-collapse-turn{font-weight:600; color:var(--text-2); margin-right:2px;}
 /* A message that has feedback left on it gets tinted. */
-.ra-scope .msg-ai .bubble.has-feedback{background:#D1E7F3;border-color:#b7d4e6;}
-.ra-scope .msg-user.has-feedback{background:#D1E7F3;border-color:#b7d4e6;}
+.ra-scope .msg-ai .bubble.has-feedback{background:#B0BEA5;border-color:#96a58a;}
+.ra-scope .msg-user.has-feedback{background:#B0BEA5;border-color:#96a58a;}
 /* Inline code stays legible on the tinted bubble. */
 .ra-scope .msg-ai .bubble.has-feedback .bubble-body code{background:rgba(255,255,255,0.5);}
 /* Markdown in assistant bubbles (**bold**, lists, links, headings). */
@@ -1669,9 +1681,18 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .msg-ai .bubble-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;}
 .ra-scope .msg-ai .bubble-col .bubble{flex:0 0 auto;max-width:100%;width:100%;}
 /* Per-reply trace buttons live in the bubble footer. */
-.ra-scope .trace-actions{display:flex;flex-wrap:wrap;gap:6px;opacity:0.72;transition:opacity .12s ease;}
-.ra-scope .msg-ai:hover .trace-actions,
-.ra-scope .msg-user-col:hover .trace-actions{opacity:1;}
+.ra-scope .trace-actions{display:flex;flex-wrap:wrap;gap:6px;}
+.ra-scope .trace-act-div{display:inline-flex;align-items:center;color:var(--text-4);font-size:13px;line-height:1;user-select:none;opacity:.7;}
+/* Fade icons only — never the container (feedback dropdown must stay fully opaque). */
+.ra-scope .trace-actions > .trace-act,
+.ra-scope .trace-actions > .trace-act-div,
+.ra-scope .trace-actions > .bubble-fb-wrap > .trace-act{opacity:0.72;transition:opacity .12s ease;}
+.ra-scope .msg-ai:hover .trace-actions > .trace-act,
+.ra-scope .msg-ai:hover .trace-actions > .trace-act-div,
+.ra-scope .msg-ai:hover .trace-actions > .bubble-fb-wrap > .trace-act,
+.ra-scope .msg-user-col:hover .trace-actions > .trace-act,
+.ra-scope .msg-user-col:hover .trace-actions > .trace-act-div,
+.ra-scope .msg-user-col:hover .trace-actions > .bubble-fb-wrap > .trace-act{opacity:1;}
 .ra-scope .trace-act{display:inline-flex;align-items:center;justify-content:center;gap:0;
   width:28px;height:28px;padding:0;font-family:inherit;font-size:12px;font-weight:400;
   color:var(--text-3);background:transparent;border:none;border-radius:0;
@@ -1933,9 +1954,9 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   border:1px solid var(--line);background:var(--surface);transition:background .12s ease,border-color .12s ease;}
 .ra-scope .sim-run:hover{background:var(--surface-2);}
 .ra-scope .sim-run.active{background:var(--surface-2);border-color:var(--text-3);}
-.ra-scope .sim-run.has-feedback{background:#D1E7F3;border-color:#b7d4e6;}
+.ra-scope .sim-run.has-feedback{background:#B0BEA5;border-color:#96a58a;}
 .ra-scope .sim-run.has-feedback:hover,
-.ra-scope .sim-run.has-feedback.active{background:#D1E7F3;border-color:#b7d4e6;}
+.ra-scope .sim-run.has-feedback.active{background:#B0BEA5;border-color:#96a58a;}
 .ra-scope .sim-run-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .ra-scope .sim-run-scenario{font-family:inherit;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ra-scope .sim-run-meta{display:flex;align-items:center;gap:6px;font-family:inherit;font-size:12px;color:var(--text-3);}
@@ -2197,7 +2218,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   --sc-faint:#9b9889;
   --sc-green:#3a2113;
   --sc-board:#e9e7d8;
-  --sc-accent:#c2611f;
+  --sc-accent:#F05025;
   --sc-sans:var(--font-sans),-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
   --sc-serif:var(--font-sans),-apple-system,system-ui,sans-serif;
   --sc-mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
@@ -2328,7 +2349,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 /* knowledge */
 .sysconf .sc-drop{border:1.4px dashed var(--sc-input-line);border-radius:9px;padding:16px;display:flex;align-items:center;justify-content:center;gap:8px;
   text-align:center;color:var(--sc-ink-2);font-family:var(--sc-serif);font-size:14px;}
-.sysconf .sc-drop.drag{border-color:var(--sc-accent);background:rgba(194,97,31,.06);}
+.sysconf .sc-drop.drag{border-color:var(--sc-accent);background:rgba(240,80,37,.06);}
 .sysconf .sc-drop .browse{text-decoration:underline;text-underline-offset:3px;cursor:pointer;color:var(--sc-ink);}
 .sysconf .sc-drop .fmts{font-family:var(--sc-mono);font-size:10px;letter-spacing:1.2px;color:var(--sc-faint);margin-left:6px;}
 .sysconf .sc-files{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
@@ -2400,10 +2421,10 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .sysconf .sc-curstate-row.unset{opacity:.5;}
 .sysconf .sc-curstate-row.unset .sc-curstate-v{font-weight:400;}
 /* Fields a specific turn extracted, highlighted when opened from a reply's State button. */
-.sysconf .sc-curstate-row.extracted{opacity:1;border:1px solid #B0BEA5;background:#B0BEA5;box-shadow:none;}
-.sysconf .sc-curstate-row.extracted .sc-curstate-k{color:#3d4a35;}
-.ra-scope.ra-mono .sysconf .sc-curstate-row.extracted{border-color:#D1E7F3;background:#D1E7F3;}
-.ra-scope.ra-mono .sysconf .sc-curstate-row.extracted .sc-curstate-k{color:#2a6f8f;}
+.sysconf .sc-curstate-row.extracted{opacity:1;border:1px solid #A5A9BE;background:#A5A9BE;box-shadow:none;}
+.sysconf .sc-curstate-row.extracted .sc-curstate-k{color:#34384a;}
+.ra-scope.ra-mono .sysconf .sc-curstate-row.extracted{border-color:#A5A9BE;background:#A5A9BE;}
+.ra-scope.ra-mono .sysconf .sc-curstate-row.extracted .sc-curstate-k{color:#34384a;}
 /* Edit / Done / + Add — same chrome as Policy tab-bar actions (Fullscreen / Save). */
 .sysconf .sc-curstate-actions{display:flex;align-items:center;gap:4px;margin:0 0 0 auto;padding:0;flex:0 0 auto;}
 .sysconf .sc-var-edit{
@@ -2486,7 +2507,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .sysconf .sc-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center;}
 .sysconf .sc-pill{font-family:var(--sc-mono);font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;border:1.4px solid;border-radius:8px;padding:7px 11px;background:transparent;}
 .sysconf .sc-pill.ctrl{border-color:#caa83f;color:#9c7d1d;}.sysconf .sc-pill.act{border-color:#6f9fd8;color:#3f72bd;}
-.sysconf .sc-pill.end{border-color:#d98aa0;color:#bf5b78;}.sysconf .sc-pill.exp{border-color:#c2611f;background:#c2611f;color:#fff;}
+.sysconf .sc-pill.end{border-color:#d98aa0;color:#bf5b78;}.sysconf .sc-pill.exp{border-color:#F05025;background:#F05025;color:#fff;}
 .sysconf .sc-pill.async{border-color:#7d8ad0;color:#5a64bf;}.sysconf .sc-pill.patch{border-color:#5fb0a6;color:#2f8076;}
 .sysconf .sc-pill.err{border-color:#d98aa0;color:#bf5b78;}.sysconf .sc-pill.muted{border-color:var(--sc-input-line);color:var(--sc-ink-3);}
 .sysconf .sc-tools-sep{width:1px;height:20px;background:var(--sc-line);margin:0 2px;}
@@ -2501,11 +2522,11 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .sysconf .sc-edge-lbl-bg{fill:var(--sc-board);}
 .sysconf .sc-node{position:absolute;border-radius:7px;border:1.5px solid;padding:8px 10px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.05);cursor:grab;user-select:none;}
 .sysconf .sc-node:active{cursor:grabbing;}
-.sysconf .sc-node.sel{box-shadow:0 0 0 2px #c2611f,0 1px 0 rgba(0,0,0,.05);}
+.sysconf .sc-node.sel{box-shadow:0 0 0 2px #F05025,0 1px 0 rgba(0,0,0,.05);}
 .sysconf .sc-node-handle{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);width:11px;height:11px;border-radius:50%;background:#fff;border:1.5px solid #8f8c7a;cursor:crosshair;opacity:0;transition:opacity .12s;}
 .sysconf .sc-node:hover .sc-node-handle,.sysconf .sc-node.sel .sc-node-handle{opacity:1;}
-.sysconf .sc-node-handle:hover{background:#c2611f;border-color:#c2611f;}
-.sysconf .sc-edges path.sc-edge-pending{stroke:#c2611f;stroke-width:1.6;stroke-dasharray:5 4;}
+.sysconf .sc-node-handle:hover{background:#F05025;border-color:#F05025;}
+.sysconf .sc-edges path.sc-edge-pending{stroke:#F05025;stroke-width:1.6;stroke-dasharray:5 4;}
 .sysconf .sc-insp-type{display:inline-block;font-family:var(--sc-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--sc-ink-3);}
 .sysconf .sc-node .nt{font-family:var(--sc-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;display:block;text-align:center;margin-bottom:4px;}
 .sysconf .sc-node .nx{font-family:var(--sc-serif);font-size:12px;line-height:1.32;color:var(--sc-ink);text-align:center;display:block;white-space:pre-line;}
@@ -2671,8 +2692,8 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope .fb-add:hover{ color:var(--text); border-color:var(--text-3); background:var(--surface); }
 .ra-scope .fb-chip{
   display:inline-flex; align-items:center; gap:6px; max-width:100%;
-  padding:4px 10px; border-radius:0; border:1px solid var(--line);
-  background:var(--elevated); color:var(--text-2); font-size:12px; cursor:pointer;
+  padding:4px 10px; border-radius:0; border:1px solid #96a58a;
+  background:#B0BEA5; color:var(--text-2); font-size:12px; cursor:pointer;
 }
 .ra-scope .fb-chip:hover{ border-color:var(--text-3); color:var(--text); }
 .ra-scope .fb-editor{
@@ -2714,7 +2735,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope .fb-types .fb-type.filled:not(.active){ color:var(--text-2); }
 .ra-scope .fb-textarea{
   width:100%; resize:vertical; border:1px solid var(--line); border-radius:0;
-  background:var(--frame); color:var(--text); font:inherit; font-size:13px; padding:8px 10px;
+  background:var(--elevated); color:var(--text); font:inherit; font-size:13px; padding:8px 10px;
 }
 .ra-scope .fb-textarea:focus{ outline:none; border-color:var(--text-3); }
 .ra-scope .fb-actions{ display:flex; align-items:center; gap:8px; }
@@ -2762,9 +2783,12 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope.ra-round .msg-ai .bubble,
 .ra-scope.ra-round .msg-user,
 .ra-scope.ra-round .msg-ai .bubble.bubble-traceable,
+.ra-scope.ra-round .bubble-fb-menu,
 .ra-scope.ra-round .fb-editor,
+.ra-scope.ra-round .fb-editor--menu,
 .ra-scope.ra-round .fb-textarea,
 .ra-scope.ra-round .fb-btn,
+.ra-scope.ra-round .fb-thumbs .fb-thumb,
 .ra-scope.ra-round .fb-banner,
 .ra-scope.ra-round .fb-error-toast{border-radius:var(--radius-sm);}
 .ra-scope.ra-round button.comp-model,

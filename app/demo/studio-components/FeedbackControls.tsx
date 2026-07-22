@@ -93,8 +93,34 @@ export function FeedbackControls({
   );
 }
 
+/** Feedback editor panel for the bubble-nav dropdown (no outer fb-row). */
+export function FeedbackMenuEditor({
+  entries,
+  onSave,
+  onCancel,
+  onRemove,
+}: {
+  entries: FeedbackEntry[];
+  onSave: (entries: FeedbackEntry[]) => void;
+  onCancel: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <FeedbackEditor
+      align="left"
+      variant="menu"
+      initial={entries}
+      hasExisting={entries.length > 0}
+      onSave={onSave}
+      onCancel={onCancel}
+      onRemove={onRemove}
+    />
+  );
+}
+
 function FeedbackEditor({
   align,
+  variant = "row",
   initial,
   hasExisting,
   onSave,
@@ -102,6 +128,7 @@ function FeedbackEditor({
   onRemove,
 }: {
   align: "left" | "right";
+  variant?: "row" | "menu";
   initial: FeedbackEntry[];
   hasExisting: boolean;
   onSave: (entries: FeedbackEntry[]) => void;
@@ -141,75 +168,76 @@ function FeedbackEditor({
     onSave(entries); // empty array → parent clears all feedback on this message
   }
 
-  return (
-    <div className={"fb-row " + align}>
-      <div className="fb-editor">
-        <div className="fb-options">
-          <div className="fb-thumbs">
-            <button
-              className={"fb-thumb up" + (rating === 1 ? " active" : "")}
-              onClick={() => setRating((r) => (r === 1 ? null : 1))}
-              title="Thumbs up"
-            >
-              👍
-            </button>
-            <button
-              className={"fb-thumb down" + (rating === -1 ? " active" : "")}
-              onClick={() => setRating((r) => (r === -1 ? null : -1))}
-              title="Thumbs down"
-            >
-              👎
-            </button>
-          </div>
-          <div className="fb-types">
-            {NOTE_TYPES.map((t) => (
-              <button
-                key={t.key}
-                className={
-                  "fb-type" +
-                  (noteType === t.key ? " active" : "") +
-                  (texts[t.key].trim() ? " filled" : "")
-                }
-                onClick={() => setNoteType(t.key)}
-                title={texts[t.key].trim() ? "Has content" : undefined}
-              >
-                {t.label}
-                {texts[t.key].trim() ? " •" : ""}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <textarea
-          className="fb-textarea"
-          placeholder={
-            noteType === "text_correction"
-              ? "How should this have been worded?"
-              : noteType === "correct_output"
-                ? "What would the ideal response have been?"
-                : "Leave a note…"
-          }
-          value={texts[noteType]}
-          onChange={(e) => setText(noteType, e.target.value)}
-          rows={3}
-          autoFocus
-        />
-
-        <div className="fb-actions">
-          {hasExisting && (
-            <button className="fb-btn danger" onClick={onRemove}>
-              Remove
-            </button>
-          )}
-          <span className="fb-spacer" />
-          <button className="fb-btn ghost" onClick={onCancel}>
-            Cancel
+  const editor = (
+    <div className={"fb-editor" + (variant === "menu" ? " fb-editor--menu" : "")}>
+      <div className="fb-options">
+        <div className="fb-thumbs">
+          <button
+            className={"fb-thumb up" + (rating === 1 ? " active" : "")}
+            onClick={() => setRating((r) => (r === 1 ? null : 1))}
+            title="Thumbs up"
+          >
+            👍
           </button>
-          <button className="fb-btn primary" onClick={save} disabled={!canSave}>
-            Save
+          <button
+            className={"fb-thumb down" + (rating === -1 ? " active" : "")}
+            onClick={() => setRating((r) => (r === -1 ? null : -1))}
+            title="Thumbs down"
+          >
+            👎
           </button>
         </div>
+        <div className="fb-types">
+          {NOTE_TYPES.map((t) => (
+            <button
+              key={t.key}
+              className={
+                "fb-type" +
+                (noteType === t.key ? " active" : "") +
+                (texts[t.key].trim() ? " filled" : "")
+              }
+              onClick={() => setNoteType(t.key)}
+              title={texts[t.key].trim() ? "Has content" : undefined}
+            >
+              {t.label}
+              {texts[t.key].trim() ? " •" : ""}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <textarea
+        className="fb-textarea"
+        placeholder={
+          noteType === "text_correction"
+            ? "How should this have been worded?"
+            : noteType === "correct_output"
+              ? "What would the ideal response have been?"
+              : "Leave a note…"
+        }
+        value={texts[noteType]}
+        onChange={(e) => setText(noteType, e.target.value)}
+        rows={3}
+        autoFocus
+      />
+
+      <div className="fb-actions">
+        {hasExisting && (
+          <button className="fb-btn danger" onClick={onRemove}>
+            Remove
+          </button>
+        )}
+        <span className="fb-spacer" />
+        <button className="fb-btn ghost" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="fb-btn primary" onClick={save} disabled={!canSave}>
+          Save
+        </button>
       </div>
     </div>
   );
+
+  if (variant === "menu") return editor;
+  return <div className={"fb-row " + align}>{editor}</div>;
 }

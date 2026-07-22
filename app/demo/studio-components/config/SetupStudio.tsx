@@ -1445,13 +1445,20 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
     ],
   };
 
+  // One policy canvas per workflow stage, chained via `expand` nodes:
+  // Intake (entry) → Assess → Guide → Follow up. The runtime enters canvases[0]
+  // (Intake) and pulls each downstream stage in when its expand node fires, so
+  // there is no separate "Main" router canvas — every tab is a workflow stage.
   const POLICY_SEED_DOC: CanvasDoc = {
     version: 2,
-    activeId: "main",
+    activeId: "intake",
     canvases: [
       {
-        id: "main",
-        name: "Main",
+        // Intake is the entry canvas: it carries the shared voice + emergency
+        // check, runs the structured history interview while it is incomplete,
+        // and hands off to Assess once a full history is captured.
+        id: "intake",
+        name: "Intake",
         freeText: "",
         graph: {
           nodes: [
@@ -1461,7 +1468,7 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
               position: { x: 340, y: 40 },
               data: {
                 label:
-                  `You are a calm, helpful ${config.assistantNoun}. You will be given the current conversation inputs plus an already-updated ${config.coachNoun} state. Use the updated state to decide the next assistant step.`,
+                  `You are a calm, helpful ${config.assistantNoun}. You'll be given the current conversation plus an already-updated ${config.coachNoun} state. Use it to decide the next assistant step, and keep a warm, plain-spoken tone — one idea per message.`,
               },
             },
             {
@@ -1473,58 +1480,35 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
             {
               id: "urgent",
               type: "action",
-              position: { x: 560, y: 430 },
+              position: { x: 60, y: 430 },
               data: {
                 label: `Advise the ${config.coachNoun} to seek urgent medical help and stop routine coaching.`,
                 actionType: "prompt",
               },
             },
             {
-              id: "continue",
-              type: "action",
-              position: { x: 120, y: 430 },
-              data: { label: `Continue the conversation and coach the ${config.coachNoun}.`, actionType: "prompt" },
-            },
-          ],
-          edges: [
-            { id: "e_s_e", source: "start", target: "emergency" },
-            { id: "e_e_u", source: "emergency", target: "urgent", label: "true" },
-            { id: "e_e_c", source: "emergency", target: "continue", label: "false" },
-          ],
-        },
-      },
-      {
-        // Structured sleep-intake interview: walks the assistant through every
-        // history domain a clinician needs (complaint, schedule, lifestyle,
-        // medical/psych/meds, subjective ratings) so the model reliably captures
-        // a complete sleep history before offering any guidance.
-        id: "intake",
-        name: "Sleep Intake",
-        freeText: "",
-        graph: {
-          nodes: [
-            {
-              id: "start",
-              type: "start",
-              position: { x: 340, y: 40 },
-              data: {
-                label:
-                  `You are conducting a structured sleep intake for a patient. Ask one focused, warm question at a time, confirm each answer, and record it to the ${config.subjectNoun} state. Do not give advice in this canvas — your only goal is to capture a complete sleep history. Use the already-updated state to skip anything already known and ask only for what is still missing.`,
-              },
-            },
-            {
               id: "incomplete",
               type: "condition",
-              position: { x: 340, y: 250 },
+              position: { x: 600, y: 430 },
               data: {
                 label:
                   "the structured sleep intake is still incomplete — one or more of the intake domains below is missing from the state",
               },
             },
             {
+              id: "intro",
+              type: "action",
+              position: { x: 900, y: 610 },
+              data: {
+                label:
+                  `You are conducting a structured sleep intake for the ${config.subjectNoun}. Ask one focused, warm question at a time, confirm each answer, and record it to the ${config.subjectNoun} state. Don't give advice yet — your only goal is to capture a complete sleep history. Use the already-updated state to skip anything already known and ask only for what is still missing.`,
+                actionType: "prompt",
+              },
+            },
+            {
               id: "complaint",
               type: "action",
-              position: { x: 600, y: 430 },
+              position: { x: 900, y: 820 },
               data: {
                 label:
                   `Capture the presenting complaint and its history: the main sleep problem in the ${config.subjectNoun}'s own words, when it began and what changed at onset (e.g. after childbirth or perimenopause), how it has progressed, and how many nights per week it occurs.`,
@@ -1534,7 +1518,7 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
             {
               id: "schedule",
               type: "action",
-              position: { x: 600, y: 640 },
+              position: { x: 900, y: 1030 },
               data: {
                 label:
                   "Capture the sleep schedule and pattern: weeknight and weekend bedtimes, time to fall asleep, number and timing of night awakenings (note any long early-morning awakening), nocturnal urination, hot flashes or pain that wake them, ability to return to sleep, wake time and time out of bed, and daytime function — fatigue, focus / brain fog, and napping.",
@@ -1544,7 +1528,7 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
             {
               id: "lifestyle",
               type: "action",
-              position: { x: 600, y: 870 },
+              position: { x: 900, y: 1260 },
               data: {
                 label:
                   "Capture lifestyle and environment: caffeine (type, amount, timing of last intake), alcohol on weekdays vs weekends, other evening intake (e.g. chocolate), exercise, and the sleep environment — whether they share a bed, partner snoring, and any separate-sleeping arrangement.",
@@ -1554,7 +1538,7 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
             {
               id: "medical",
               type: "action",
-              position: { x: 600, y: 1100 },
+              position: { x: 900, y: 1490 },
               data: {
                 label:
                   `Capture medical, psychiatric and medication history: weight change, cholesterol, joint / muscle pain, allergies / rhinitis, menopausal symptoms, and current medications (e.g. statin, NSAID); mood and anxiety including middle-of-the-night rumination and any history of depression or suicidal ideation; prior sleep medications tried and how the ${config.subjectNoun} responded (e.g. Ambien, trazodone). Finally, ask the ${config.subjectNoun} to rate sleep quality from 0–10 and sleep-related stress from 0–10.`,
@@ -1564,21 +1548,138 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
             {
               id: "wrapup",
               type: "action",
-              position: { x: 100, y: 430 },
+              position: { x: 340, y: 620 },
               data: {
                 label:
                   `All intake domains are captured. Summarize the full sleep history back to the ${config.subjectNoun} in a few sentences, confirm it is accurate, and let them know you're ready to move on to assessment.`,
                 actionType: "prompt",
               },
             },
+            {
+              id: "to_assess",
+              type: "expand",
+              position: { x: 340, y: 820 },
+              data: { label: "Assess" },
+            },
           ],
           edges: [
-            { id: "e_s_i", source: "start", target: "incomplete" },
-            { id: "e_i_complaint", source: "incomplete", target: "complaint", label: "true" },
+            { id: "e_start_em", source: "start", target: "emergency" },
+            { id: "e_em_urgent", source: "emergency", target: "urgent", sourceHandle: "true", label: "true" },
+            { id: "e_em_incomplete", source: "emergency", target: "incomplete", sourceHandle: "false", label: "false" },
+            { id: "e_inc_intro", source: "incomplete", target: "intro", sourceHandle: "true", label: "true" },
+            { id: "e_intro_complaint", source: "intro", target: "complaint" },
             { id: "e_complaint_schedule", source: "complaint", target: "schedule" },
             { id: "e_schedule_lifestyle", source: "schedule", target: "lifestyle" },
             { id: "e_lifestyle_medical", source: "lifestyle", target: "medical" },
-            { id: "e_i_wrapup", source: "incomplete", target: "wrapup", label: "false" },
+            { id: "e_inc_wrapup", source: "incomplete", target: "wrapup", sourceHandle: "false", label: "false" },
+            { id: "e_wrapup_assess", source: "wrapup", target: "to_assess" },
+          ],
+        },
+      },
+      {
+        id: "assess",
+        name: "Assess",
+        freeText: "",
+        graph: {
+          nodes: [
+            {
+              id: "start",
+              type: "start",
+              position: { x: 340, y: 40 },
+              data: {
+                label:
+                  `You are assessing the ${config.coachNoun}'s sleep history. Identify the likely drivers — onset, what maintains it, schedule, and habits (caffeine, alcohol, screens, stress) — and screen for anything that needs a clinician. Use the already-updated state; don't re-ask what intake captured.`,
+              },
+            },
+            {
+              id: "patterns",
+              type: "action",
+              position: { x: 340, y: 250 },
+              data: {
+                label:
+                  `Reflect the key patterns back to the ${config.coachNoun} and share a short, plain-language working hypothesis, then check that it lands with them.`,
+                actionType: "prompt",
+              },
+            },
+            {
+              id: "to_guide",
+              type: "expand",
+              position: { x: 340, y: 460 },
+              data: { label: "Guide" },
+            },
+          ],
+          edges: [
+            { id: "e_assess_start_patterns", source: "start", target: "patterns" },
+            { id: "e_assess_guide", source: "patterns", target: "to_guide" },
+          ],
+        },
+      },
+      {
+        id: "guide",
+        name: "Guide",
+        freeText: "",
+        graph: {
+          nodes: [
+            {
+              id: "start",
+              type: "start",
+              position: { x: 340, y: 40 },
+              data: {
+                label:
+                  `You are guiding the ${config.coachNoun} toward better sleep with warm, practical CBT-I style steps. Suggest, never prescribe.`,
+              },
+            },
+            {
+              id: "recommend",
+              type: "action",
+              position: { x: 340, y: 250 },
+              data: {
+                label:
+                  "Offer 2–4 concrete, personalized recommendations based on the history: a consistent wake time, stimulus-control and sleep-restriction basics, a wind-down routine, and limiting caffeine, alcohol and screens before bed. One or two ideas at a time; invite them to try, not obey.",
+                actionType: "prompt",
+              },
+            },
+            {
+              id: "to_followup",
+              type: "expand",
+              position: { x: 340, y: 460 },
+              data: { label: "Follow up" },
+            },
+          ],
+          edges: [
+            { id: "e_guide_start_recommend", source: "start", target: "recommend" },
+            { id: "e_guide_followup", source: "recommend", target: "to_followup" },
+          ],
+        },
+      },
+      {
+        id: "followup",
+        name: "Follow up",
+        freeText: "",
+        graph: {
+          nodes: [
+            {
+              id: "start",
+              type: "start",
+              position: { x: 340, y: 40 },
+              data: {
+                label:
+                  "You are checking in on how the plan is going and adjusting as needed. Celebrate small wins specifically.",
+              },
+            },
+            {
+              id: "checkin",
+              type: "action",
+              position: { x: 340, y: 250 },
+              data: {
+                label:
+                  `Check the ${config.coachNoun}'s progress since the last plan, celebrate concrete wins, troubleshoot what didn't work, and adjust the plan — or loop back to assessment if the picture has changed.`,
+                actionType: "prompt",
+              },
+            },
+          ],
+          edges: [
+            { id: "e_followup_start_checkin", source: "start", target: "checkin" },
           ],
         },
       },

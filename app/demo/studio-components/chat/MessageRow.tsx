@@ -64,22 +64,27 @@ export function MessageRow({
         // In feedback mode the fullscreen view can edit + submit the reply as feedback.
         feedbackMode={feedbackMode}
         feedbackEntries={entries}
+        feedbackEditing={editing}
         onSubmitFeedback={allowFeedback ? (e) => onSave(index, e) : undefined}
         onSubmitFeedbackAt={allowFeedback ? onSave : undefined}
+        onRemoveFeedback={allowFeedback ? () => onRemove(index) : undefined}
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         hideControls={hideControls}
         turnNumber={turnNumber}
       />
-      <FeedbackControls
-        mode={feedbackMode}
-        entries={entries}
-        editing={editing}
-        align={m.role === "user" ? "right" : "left"}
-        onToggle={() => onToggle(index)}
-        onSave={(e) => onSave(index, e)}
-        onRemove={() => onRemove(index)}
-      />
+      {/* Chip/add only in global feedback mode; the editor opens in the bubble nav dropdown. */}
+      {feedbackMode && !editing ? (
+        <FeedbackControls
+          mode={feedbackMode}
+          entries={entries}
+          editing={false}
+          align={m.role === "user" ? "right" : "left"}
+          onToggle={() => onToggle(index)}
+          onSave={(e) => onSave(index, e)}
+          onRemove={() => onRemove(index)}
+        />
+      ) : null}
     </div>
   );
 }
