@@ -45,9 +45,9 @@
   --text-2:#444444;
   --text-3:#777777;
   --text-4:#a6a6a6;
-  --accent:#111111;
+  --accent:#F05025;
   --accent-ink:#ffffff;
-  --accent-soft:rgba(0,0,0,.06);
+  --accent-soft:rgba(240,80,37,.13);
   --danger:#555555;
 }
 /* Neutral scrollbars + accents that hard-code a hue (no token to catch them). */
@@ -55,8 +55,7 @@
 .ra-scope.ra-mono ::-webkit-scrollbar-thumb{background:#bdbdbd;}
 .ra-scope.ra-mono ::-webkit-scrollbar-thumb:hover{background:#a3a3a3;}
 .ra-scope.ra-mono .online-dot{background:#8a8a8a;box-shadow:0 0 8px #8a8a8a88;}
-/* The mic sets its recording color via an inline style (#F05025); neutralize it. */
-.ra-scope.ra-mono .comp-mic[style*="background"]{background:#111 !important;}
+/* Mic recording keeps the shared orange accent (same as sepia). */
 
 /* The model-setup drawer (.sysconf) only turns white when the chat's Black &
    white theme is on. Its palette is beige by default; here we override just its
@@ -867,10 +866,10 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{
 .rf-inspector-grabber.active .rf-inspector-grabber-bar{background:var(--accent, #F05025);}
 .ra-scope.ra-mono .rf-inspector-grabber-bar{background:#e4e4e4;}
 .ra-scope.ra-mono .rf-inspector-grabber:hover .rf-inspector-grabber-bar,
-.ra-scope.ra-mono .rf-inspector-grabber.active .rf-inspector-grabber-bar{background:#111;}
+.ra-scope.ra-mono .rf-inspector-grabber.active .rf-inspector-grabber-bar{background:#F05025;}
 body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-grabber-bar{background:#e4e4e4;}
 body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-grabber:hover .rf-inspector-grabber-bar,
-body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-grabber.active .rf-inspector-grabber-bar{background:#111;}
+body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-inspector-grabber.active .rf-inspector-grabber-bar{background:#F05025;}
 /* Inspector panel — flatten every text run to one uniform style: same family
    (Inter, killing the monospace node-kind / stepType spans and default <pre>
    monospace), 14px body size, normal case, and base tracking. Removes the
@@ -1573,7 +1572,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .bubble-nav-end{flex:0 0 auto; margin-left:auto; display:inline-flex; align-items:center; gap:6px;}
 .ra-scope .bubble-nav .bubble-collapse{flex:0 0 auto; margin-left:0;}
 .ra-scope .bubble-body{
-  flex:0 0 auto; min-width:0; padding:4px 12px;
+  flex:0 0 auto; min-width:0; padding:10px 12px;
   font-size:var(--bubble-font-size, 16.5px); line-height:1.5;}
 .ra-scope .bubble-body.is-toggleable{cursor:pointer;}
 .ra-scope .bubble-foot{
@@ -1593,8 +1592,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .msg-user.is-collapsed .bubble-body,
 .ra-scope .msg-ai .bubble.is-collapsed .bubble-body{
   overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-  line-height:1.5; display:block; max-height:calc(1.5em + 20px);
-  padding-top:10px; padding-bottom:10px;}
+  line-height:1.5; display:block; max-height:calc(1.5em + 20px);}
 .ra-scope .bubble-collapsed-preview,
 .ra-scope .bubble-form-collapsed{display:inline; white-space:nowrap;}
 .ra-scope .bubble-collapse-turn{font-weight:600; color:var(--text-2); margin-right:2px;}
