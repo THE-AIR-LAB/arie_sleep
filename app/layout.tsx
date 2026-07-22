@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import PostSignInRedirect from "./components/PostSignInRedirect";
 import { ThemeProvider } from "./context/ThemeContext";
 import NavigationOverlay from "./components/NavigationOverlay";
 import { resolveCurrentUser } from "./lib/admin-auth";
+import { THEME_BOOT_SCRIPT } from "./demo/studio-components/chat/theme-boot";
 
 // Logo lettering font (the THE AIR LAB grid).
 const archivo = Archivo({
@@ -78,12 +80,19 @@ export default async function RootLayout({
   return (
     <ClerkProvider publishableKey={publishableKey}>
       <html lang="en" suppressHydrationWarning>
-        {/* suppressHydrationWarning: demo THEME_BOOT_SCRIPT sets data-ra-mono +
+        {/* suppressHydrationWarning: THEME_BOOT_SCRIPT sets data-ra-mono +
             background on <html> before React hydrates (avoids sepia flash). */}
         <body
           className={`${archivo.variable} ${inter.variable} antialiased font-sans`}
           suppressHydrationWarning
         >
+          {/* beforeInteractive must live in the root layout — raw <script> in
+              nested layouts trips React 19 / Next 16. */}
+          <Script
+            id="ra-theme-boot"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
+          />
           <ThemeProvider>
             <NavigationOverlay />
             <PostSignInRedirect />

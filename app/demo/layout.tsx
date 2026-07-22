@@ -1,14 +1,8 @@
-import { THEME_BOOT_SCRIPT } from "./studio-components/chat/constants";
-
 /**
- * Runs before React hydrates so auth-loading + studio splash share the saved
- * mono/sepia backdrop (no white flash when sepia is on).
+ * Demo segment layout. Theme boot script lives in the root layout
+ * (`next/script` beforeInteractive) so React 19 doesn't warn on a raw
+ * <script> rendered from this nested layout.
  */
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-      {children}
-    </>
-  );
+  return children;
 }

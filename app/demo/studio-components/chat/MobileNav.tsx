@@ -114,7 +114,9 @@ export function MobileNav({
           {showFeedbackToggle ? (
             <button
               type="button"
-              className={"mrail-btn" + (highlightFeedback ? " on" : "")}
+              className={
+                "mrail-btn mrail-feedback" + (highlightFeedback ? " on" : "")
+              }
               title={
                 highlightFeedback
                   ? "Hide feedback highlight on bubbles"
