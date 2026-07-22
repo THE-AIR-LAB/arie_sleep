@@ -30,7 +30,6 @@ export function AssistantMark({
       <Avatar
         kind="assistant"
         size={96}
-        ring
         mono={config.avatarMono}
         src={config.avatarSrc}
         className="empty-orb"

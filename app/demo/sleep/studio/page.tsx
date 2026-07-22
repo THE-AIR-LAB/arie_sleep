@@ -34,6 +34,7 @@ const studioChatConfig: StudioChatConfig = {
   assistantMark: "avatar",
   avatarMono: "SA",
   emptyStateHref: "/demo/sleep/studio",
+  emptyStateTitle: "Start a conversation with Therapist",
   emptyStateBody: (
     <>
       Therapist can review your sleep logs, summarise guidance, and help you

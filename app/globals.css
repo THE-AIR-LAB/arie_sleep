@@ -259,9 +259,10 @@ html {
 }
 
 /* Demo studio boot backdrop — driven by html[data-ra-mono] from THEME_BOOT_SCRIPT
-   so auth-loading + splash match sepia/mono before React hydrates. */
+   so auth-loading + splash match sepia/mono before React hydrates.
+   Default (no attribute yet) is sepia. */
 .studio-boot-bg {
-  background-color: #ffffff;
+  background-color: #d8d6c7;
 }
 html[data-ra-mono="0"],
 html[data-ra-mono="0"] body,
@@ -274,14 +275,22 @@ html[data-ra-mono="1"] .studio-boot-bg {
   background-color: #ffffff !important;
 }
 
-/* Clerk: uniform 1px grey borders on form controls */
+/* Clerk: borders must read on sepia (#d8d6c7) — light gray #d1d5db disappears. */
 .cl-socialButtonsBlockButton,
 .cl-formFieldInput,
+.cl-formFieldInput input,
+.cl-input,
 .cl-formButtonPrimary,
 .cl-otpCodeFieldInput,
 .cl-lastAuthenticationStrategyBadge {
-  border: 1px solid #d1d5db !important;
+  border: 1px solid #86806f !important;
   box-shadow: none !important;
+  background-clip: padding-box !important;
+}
+.cl-socialButtonsBlockButton,
+.cl-formButtonPrimary {
+  background-color: transparent !important;
+  background-image: none !important;
 }
 .cl-socialButtonsBlockButton:hover,
 .cl-socialButtonsBlockButton:hover .cl-socialButtonsBlockButtonText {
@@ -297,4 +306,38 @@ html[data-ra-mono="1"] .studio-boot-bg {
 .cl-formFieldLabel {
   font-weight: 400 !important;
   color: #000000 !important;
+}
+
+/* Mobile: Clerk email/password placeholders read oversized — pin input type.
+   Re-assert borders (Clerk nested inputs often drop them on narrow viewports). */
+@media (max-width: 900px) {
+  .cl-socialButtonsBlockButton,
+  .cl-formFieldInput,
+  .cl-formFieldInput input,
+  .cl-input,
+  .cl-formFieldInput__emailAddress,
+  .cl-formFieldInput__password,
+  .cl-formButtonPrimary,
+  .cl-otpCodeFieldInput {
+    border: 1px solid #736766 !important;
+    outline: none !important;
+  }
+  .cl-socialButtonsBlockButton,
+  .cl-formButtonPrimary {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+  .cl-formFieldInput,
+  .cl-formFieldInput input,
+  .cl-input,
+  .cl-formFieldInput__emailAddress,
+  .cl-formFieldInput__password {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+  .cl-formFieldInput::placeholder,
+  .cl-formFieldInput input::placeholder,
+  .cl-input::placeholder {
+    font-size: 12px !important;
+  }
 }

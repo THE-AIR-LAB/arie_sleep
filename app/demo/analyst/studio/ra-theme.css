@@ -5,7 +5,7 @@
    - `.ra-scope`  — the chat surface (light editorial theme, forest-green accent).
    - `.sysconf`   — the System Configuration console (its own self-contained palette).
 
-   Default UI is black & white (`.ra-mono` on by default in the studio page).
+   Default UI is sepia/greige; `.ra-mono` is opt-in via Account → Black & white.
    The light "greige paper" tokens below are the opt-out theme. Transitions are
    restricted to transform/opacity only — token-driven color/background changes
    apply instantly (see handoff note).
@@ -2008,8 +2008,8 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   display:flex;align-items:center;justify-content:center;}
 .ra-scope .comp-send:hover{background:#b3b1a3;color:var(--text);}
 .ra-scope .comp-send:disabled{opacity:.45;cursor:default;}
-.ra-scope .comp-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:12px;padding:0 4px;min-width:0;}
-.ra-scope .comp-input::placeholder{color:var(--text-3);}
+.ra-scope .comp-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:16px !important;padding:0 4px;min-width:0;}
+.ra-scope .comp-input::placeholder{color:var(--text-3);font-size:16px !important;}
 .ra-scope .comp-speaker{width:34px;height:34px;flex:0 0 auto;border-radius:0;color:var(--text-2);display:flex;align-items:center;justify-content:center;}
 .ra-scope .comp-speaker:hover{color:var(--text);background:var(--surface-2);opacity:1;}
 .ra-scope .comp-mic{width:34px;height:34px;flex:0 0 auto;border-radius:0;color:var(--text-2);opacity:.5;display:flex;align-items:center;justify-content:center;}
@@ -2124,7 +2124,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   .ra-scope .bubble-body,
   .ra-scope .msg-user .bubble-body,
   .ra-scope .msg-ai .bubble .bubble-body{font-size:var(--bubble-font-size, 16.5px);line-height:1.45;}
-  .ra-scope .comp-input{font-size:12px;}
+  .ra-scope .comp-input{font-size:16px !important;}
   .ra-scope .typing-status{font-size:12px;}
   /* Mobile: stack suggestion pills vertically so they never overflow the viewport. */
   .ra-scope .suggests{flex-direction:column;flex-wrap:wrap;align-items:center;width:100%;}

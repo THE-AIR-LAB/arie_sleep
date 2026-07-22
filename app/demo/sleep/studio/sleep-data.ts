@@ -284,7 +284,6 @@ export const GUIDELINES: GuidelineTopic[] = [
 export const SUGGESTIONS: { icon: string; label: string }[] = [
   { icon: "Memo", label: "Summarise my sleep log" },
   { icon: "Book", label: "Find guidance on insomnia" },
-  { icon: "Edit", label: "Draft a wind-down routine" },
 ];
 export const ACTION_CHIPS: { icon: string; label: string; prefill?: string }[] = [];
 

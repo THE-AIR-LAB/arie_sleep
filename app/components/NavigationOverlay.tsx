@@ -11,7 +11,7 @@ import {
 
 function applyBootThemeFromStorage() {
   try {
-    const mono = window.localStorage.getItem(MONO_PREF_KEY) !== "0";
+    const mono = window.localStorage.getItem(MONO_PREF_KEY) === "1";
     document.documentElement.setAttribute("data-ra-mono", mono ? "1" : "0");
     document.documentElement.style.backgroundColor = mono
       ? SPLASH_BG_MONO

@@ -9,58 +9,68 @@ type AuthModalProps = {
   redirectAfterLogin?: string;
 };
 
+/** Match studio sepia frame / line tokens. */
+const SEPIA = {
+  bg: "#d8d6c7",
+  line: "#86806f",
+  text: "#1f1d18",
+  textMuted: "#86806f",
+  surface: "#eceadd",
+} as const;
+
 export const clerkAppearance = {
   variables: {
-    colorPrimary: "#000000",
-    colorBackground: "#ffffff",
-    colorText: "#1a1a1a",
-    colorTextSecondary: "#6b7280",
-    colorInputBackground: "#ffffff",
-    colorInputText: "#1a1a1a",
+    colorPrimary: SEPIA.text,
+    colorBackground: SEPIA.bg,
+    colorText: SEPIA.text,
+    colorTextSecondary: SEPIA.textMuted,
+    colorInputBackground: SEPIA.bg,
+    colorInputText: SEPIA.text,
     borderRadius: "0px",
     fontFamily: "var(--font-app)",
-    fontSize: "14px",
+    fontSize: "12px",
   },
   elements: {
-    card: { boxShadow: "none", border: "1px solid rgb(209,213,219)", backgroundColor: "#ffffff" },
+    card: { boxShadow: "none", border: `1px solid ${SEPIA.line}`, backgroundColor: SEPIA.bg },
     cardBox: { boxShadow: "none" },
     header: { display: "none" },
     footer: { display: "none" },
     headerTitle: { display: "none" },
     headerSubtitle: { display: "none" },
     socialButtonsBlockButton: {
-      border: "1px solid #d1d5db !important",
+      border: `1px solid ${SEPIA.line} !important`,
       backgroundColor: "transparent !important",
       backgroundImage: "none !important",
       boxShadow: "none !important",
-      color: "#111827",
+      color: SEPIA.text,
       borderRadius: "0",
       "&:hover": {
-        backgroundColor: "#000000 !important",
-        color: "#ffffff !important",
-        border: "1px solid #d1d5db !important",
+        backgroundColor: `${SEPIA.text} !important`,
+        color: "#f6f7f2 !important",
+        border: `1px solid ${SEPIA.line} !important`,
         boxShadow: "none !important",
       },
     },
     socialButtonsBlockButtonText: { color: "inherit" },
     socialButtonsProviderIcon: { display: "none" },
     lastAuthenticationStrategyBadge: {
-      border: "1px solid #d1d5db !important",
+      border: `1px solid ${SEPIA.line} !important`,
       boxShadow: "none",
-      color: "#6b7280 !important",
-      backgroundColor: "#ffffff !important",
+      color: `${SEPIA.textMuted} !important`,
+      backgroundColor: `${SEPIA.bg} !important`,
     },
-    dividerLine: { backgroundColor: "#d1d5db" },
+    dividerLine: { backgroundColor: SEPIA.line },
     dividerText: "text-gray-500",
-    formFieldLabel: { color: "#000000", fontWeight: "400" },
+    formFieldLabel: { color: SEPIA.text, fontWeight: "400" },
     formFieldInput: {
-      border: "1px solid #d1d5db !important",
-      backgroundColor: "#ffffff !important",
-      color: "#111827",
+      border: `1px solid ${SEPIA.line} !important`,
+      backgroundColor: `${SEPIA.bg} !important`,
+      color: SEPIA.text,
       borderRadius: "0",
       boxShadow: "none !important",
+      fontSize: "12px",
       "&:focus": {
-        border: "1px solid #d1d5db !important",
+        border: `1px solid ${SEPIA.line} !important`,
         boxShadow: "none !important",
         outline: "none !important",
       },
@@ -68,23 +78,23 @@ export const clerkAppearance = {
     formButtonPrimary: {
       backgroundColor: "transparent !important",
       backgroundImage: "none !important",
-      color: "#111827 !important",
-      border: "1px solid #d1d5db !important",
+      color: `${SEPIA.text} !important`,
+      border: `1px solid ${SEPIA.line} !important`,
       borderRadius: "0",
       boxShadow: "none !important",
       "&:hover": {
-        backgroundColor: "#000000 !important",
+        backgroundColor: `${SEPIA.text} !important`,
         backgroundImage: "none !important",
-        color: "#ffffff !important",
-        border: "1px solid #d1d5db !important",
+        color: "#f6f7f2 !important",
+        border: `1px solid ${SEPIA.line} !important`,
         boxShadow: "none !important",
       },
     },
     formButtonPrimary__hover: {
-      backgroundColor: "#000000 !important",
+      backgroundColor: `${SEPIA.text} !important`,
       backgroundImage: "none !important",
-      color: "#ffffff !important",
-      border: "1px solid #d1d5db !important",
+      color: "#f6f7f2 !important",
+      border: `1px solid ${SEPIA.line} !important`,
       boxShadow: "none !important",
     },
     footerActionLink: "text-black underline",
@@ -92,8 +102,8 @@ export const clerkAppearance = {
     identityPreviewEditButton: "text-black",
     formResendCodeLink: "text-black",
     otpCodeFieldInput: {
-      border: "1px solid #d1d5db !important",
-      backgroundColor: "#ffffff",
+      border: `1px solid ${SEPIA.line} !important`,
+      backgroundColor: SEPIA.bg,
       borderRadius: "0",
       boxShadow: "none !important",
     },
@@ -124,9 +134,13 @@ export default function AuthModal({ redirectAfterLogin }: AuthModalProps) {
   }, [isLoaded, isSignedIn, redirect, router]);
 
   return (
-    <div className="min-h-screen bg-[#ffffff]">
-      <div className="px-4 py-3 border-b border-gray-300">
-        <Link href="/demo" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
+    <div className="min-h-screen" style={{ backgroundColor: SEPIA.bg }}>
+      <div className="px-4 py-3" style={{ borderBottom: `1px solid ${SEPIA.line}` }}>
+        <Link
+          href="/demo"
+          className="inline-flex items-center gap-1.5 text-sm transition-colors"
+          style={{ color: SEPIA.textMuted }}
+        >
           ← Back
         </Link>
       </div>
@@ -146,18 +160,18 @@ export default function AuthModal({ redirectAfterLogin }: AuthModalProps) {
             appearance={clerkAppearance}
           />
         )}
-        <p className="text-sm text-gray-600 font-serif">
+        <p className="text-sm font-serif" style={{ color: SEPIA.textMuted }}>
           {mode === "signin" ? (
             <>
               Don&apos;t have an account?{" "}
-              <button onClick={() => setMode("signup")} className="underline text-gray-900 hover:text-gray-600">
+              <button onClick={() => setMode("signup")} className="underline hover:opacity-70" style={{ color: SEPIA.text }}>
                 Sign up
               </button>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <button onClick={() => setMode("signin")} className="underline text-gray-900 hover:text-gray-600">
+              <button onClick={() => setMode("signin")} className="underline hover:opacity-70" style={{ color: SEPIA.text }}>
                 Sign in
               </button>
             </>

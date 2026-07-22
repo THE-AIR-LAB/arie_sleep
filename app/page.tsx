@@ -10,6 +10,12 @@ import SiteLogo from "./components/SiteLogo";
 // Where a signed-in visitor lands after auth — the studio chooser.
 const AFTER_SIGN_IN_PATH = "/demo";
 
+/** Match studio / AuthModal sepia frame. */
+const SEPIA_BG = "#d8d6c7";
+const SEPIA_TEXT = "#1f1d18";
+const SEPIA_MUTED = "#86806f";
+const SEPIA_LINE = "#a8a698";
+
 // Shared width so the intro copy and the Clerk sign-in card line up exactly.
 const CONTENT_WIDTH = "25rem";
 
@@ -57,7 +63,7 @@ function Splash() {
       className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-700 ${
         phase === "fading" ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
-      style={{ backgroundColor: "#ffffff" }}
+      style={{ backgroundColor: SEPIA_BG }}
     >
       <SiteLogo size={120} />
     </div>
@@ -78,28 +84,36 @@ function HomeContent() {
   return (
     <main
       className="flex min-h-[100dvh] flex-col items-center px-6 pb-12 pt-24"
-      style={{ backgroundColor: "#ffffff" }}
+      style={{ backgroundColor: SEPIA_BG, color: SEPIA_TEXT }}
     >
       <Splash />
       <p
-        className="font-normal text-black"
+        className="font-normal"
         style={{
           fontFamily: "var(--font-inter), Inter, system-ui, sans-serif",
           letterSpacing: "normal",
           fontSize: "16px",
           fontWeight: 400,
+          color: SEPIA_TEXT,
         }}
       >
         The AI Research lab
       </p>
+      <div className="mt-6">
+        <SiteLogo size={96} href={false} />
+      </div>
 
       <div className="mt-10 flex w-full flex-col items-center justify-start">
       {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
+        <p className="text-sm" style={{ color: SEPIA_MUTED }}>Loading…</p>
       ) : user ? (
         <Link
           href={AFTER_SIGN_IN_PATH}
-          className="rounded-full border border-black/20 bg-white px-6 py-3 text-center text-sm font-bold text-black transition hover:bg-black hover:text-white"
+          className="border bg-transparent px-6 py-3 text-center text-sm font-normal transition-colors"
+          style={{
+            borderColor: SEPIA_LINE,
+            color: SEPIA_TEXT,
+          }}
         >
           Open the studio
         </Link>
@@ -123,13 +137,14 @@ function HomeContent() {
               appearance={homeAppearance}
             />
           )}
-          <p className="text-sm text-gray-600">
+          <p className="text-sm" style={{ color: SEPIA_MUTED }}>
             {mode === "signin" ? (
               <>
                 Don&apos;t have an account?{" "}
                 <button
                   onClick={() => setMode("signup")}
-                  className="text-gray-900 underline hover:text-gray-600"
+                  className="underline hover:opacity-70"
+                  style={{ color: SEPIA_TEXT }}
                 >
                   Sign up
                 </button>
@@ -139,7 +154,8 @@ function HomeContent() {
                 Already have an account?{" "}
                 <button
                   onClick={() => setMode("signin")}
-                  className="text-gray-900 underline hover:text-gray-600"
+                  className="underline hover:opacity-70"
+                  style={{ color: SEPIA_TEXT }}
                 >
                   Sign in
                 </button>

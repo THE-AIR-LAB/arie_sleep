@@ -89,14 +89,14 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   const [streaming, setStreaming] = useState("");
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  // Black & white theme preference (persisted). Default ON — adds `.ra-mono`
-  // to the root scope. Explicit "0" in localStorage keeps the greige palette.
+  // Black & white theme preference (persisted). Default OFF — sepia/greige
+  // palette. Explicit "1" in localStorage adds `.ra-mono`.
   const [monoTheme, setMonoTheme] = useState(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof window === "undefined") return false;
     try {
-      return window.localStorage.getItem(MONO_PREF_KEY) !== "0";
+      return window.localStorage.getItem(MONO_PREF_KEY) === "1";
     } catch {
-      return true;
+      return false;
     }
   });
   useEffect(() => {
