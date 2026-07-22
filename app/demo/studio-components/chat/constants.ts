@@ -7,6 +7,15 @@ export const SIM_TITLE_PREFIX = "Simulation · ";
 export const TTS_PREF_KEY = "sleep-studio-tts-autoplay";
 /** v2: black & white is the default; old key auto-wrote "0" for greige. */
 export const MONO_PREF_KEY = "sleep-studio-mono-theme-v2";
+/** Splash / auth-loading / document backdrop — match studio frame tokens. */
+export const SPLASH_BG_MONO = "#ffffff";
+export const SPLASH_BG_SEPIA = "#d8d6c7";
+/**
+ * Inline boot script for demo layouts: sets `html[data-ra-mono]` + document
+ * background from localStorage before React paints, so the auth loader and
+ * studio splash don't flash white when sepia is saved.
+ */
+export const THEME_BOOT_SCRIPT = `(function(){try{var m=localStorage.getItem(${JSON.stringify(MONO_PREF_KEY)})!=="0";document.documentElement.setAttribute("data-ra-mono",m?"1":"0");document.documentElement.style.backgroundColor=m?${JSON.stringify(SPLASH_BG_MONO)}:${JSON.stringify(SPLASH_BG_SEPIA)};}catch(e){}})();`;
 /** Rounded UI chrome (pills, soft bubbles). Default ON — explicit "0" keeps sharp corners. */
 export const ROUND_PREF_KEY = "sleep-studio-round-ui";
 /** Mobile bottom-sheet: which tab to reopen the drawer on. Remembered across

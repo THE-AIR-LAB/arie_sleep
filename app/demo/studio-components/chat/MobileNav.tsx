@@ -24,6 +24,7 @@ export function MobileNav({
   selectedModel = OPENAI_MODEL,
   onSelectModel,
   onOpenV2Modal,
+  hidden = false,
 }: {
   onOpen: () => void;
   isAdmin?: boolean;
@@ -36,6 +37,8 @@ export function MobileNav({
   selectedModel?: string;
   onSelectModel?: (model: ChatModelId) => void;
   onOpenV2Modal?: () => void;
+  /** When the header pill collapses to avatar-only, hide the whole rail. */
+  hidden?: boolean;
 }) {
   const [threadMenuOpen, setThreadMenuOpen] = useState(false);
   const threadMenuRef = useRef<HTMLDivElement>(null);
@@ -52,6 +55,12 @@ export function MobileNav({
 
   const showControlsLabel = hideBubbleControls ? "Show controls" : "Hide controls";
   const collapseLabel = allCollapsed ? "Expand all" : "Collapse all";
+
+  useEffect(() => {
+    if (hidden) setThreadMenuOpen(false);
+  }, [hidden]);
+
+  if (hidden) return null;
 
   return (
     <nav className="mobile-railnav" aria-label="Menu">

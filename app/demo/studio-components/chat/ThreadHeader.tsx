@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { AssistantMark } from "./AssistantMark";
 import type { StudioChatConfig } from "./types";
 
@@ -11,6 +10,8 @@ export function ThreadHeader({
   onToggleHideBubbleControls,
   allCollapsed = false,
   onToggleCollapseAll,
+  avatarOnly = false,
+  onToggleAvatarOnly,
 }: {
   config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref">;
   showThreadControls?: boolean;
@@ -18,15 +19,15 @@ export function ThreadHeader({
   onToggleHideBubbleControls?: () => void;
   allCollapsed?: boolean;
   onToggleCollapseAll?: () => void;
+  avatarOnly?: boolean;
+  onToggleAvatarOnly?: () => void;
 }) {
-  const [avatarOnly, setAvatarOnly] = useState(false);
-
   return (
     <div className={"thread-head" + (avatarOnly ? " is-avatar-only" : "")}>
       <button
         type="button"
         className="th-avatar-toggle"
-        onClick={() => setAvatarOnly((v) => !v)}
+        onClick={() => onToggleAvatarOnly?.()}
         title={avatarOnly ? "Expand header" : "Collapse to avatar"}
         aria-label={avatarOnly ? "Expand header" : "Collapse to avatar"}
         aria-expanded={!avatarOnly}

@@ -22,6 +22,8 @@ import {
   ADMIN_ONLY_DRAWERS,
   MOBILE_DRAWER_TAB_KEY,
   MONO_PREF_KEY,
+  SPLASH_BG_MONO,
+  SPLASH_BG_SEPIA,
   PANEL_TABS,
   ROUND_PREF_KEY,
   SIM_TITLE_PREFIX,
@@ -99,6 +101,11 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     } catch {
       // ignore
     }
+    // Keep boot backdrop in sync when the user toggles Black & white.
+    document.documentElement.setAttribute("data-ra-mono", monoTheme ? "1" : "0");
+    document.documentElement.style.backgroundColor = monoTheme
+      ? SPLASH_BG_MONO
+      : SPLASH_BG_SEPIA;
   }, [monoTheme]);
   // Rounded UI preference (persisted). Default ON — adds `.ra-round` for pills /
   // soft bubbles. Explicit "0" keeps the sharp / square chrome.
@@ -140,6 +147,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   // the composer input; TODAY stays at the top of the message list.
   const [collapsedByIdx, setCollapsedByIdx] = useState<Record<number, boolean>>({});
   const [hideBubbleControls, setHideBubbleControls] = useState(true);
+  const [avatarOnly, setAvatarOnly] = useState(false);
   const [threadFullscreen, setThreadFullscreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ChatModelId>(OPENAI_MODEL);
   useEffect(() => {
@@ -1158,6 +1166,8 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                   for (let i = 0; i < messages.length; i++) next[i] = true;
                   setCollapsedByIdx(next);
                 }}
+                avatarOnly={avatarOnly}
+                onToggleAvatarOnly={() => setAvatarOnly((v) => !v)}
               />
             ) : null}
             {threadLoading ? (
@@ -1282,6 +1292,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 }
               }}
               onOpenV2Modal={() => openV2Modal(v2Training)}
+              hidden={avatarOnly}
             />
           )}
           {openDrawers.length > 0 && (
@@ -1413,27 +1424,9 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   );
 }
 
-function readMonoPref(): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    return window.localStorage.getItem(MONO_PREF_KEY) !== "0";
-  } catch {
-    return true;
-  }
-}
-
-/** Splash / auth-loading backdrop — white in mono, frame greige in sepia. */
-function splashBg(mono: boolean): string {
-  return mono ? "#ffffff" : "#d8d6c7";
-}
-
 function StudioLoading({ studioPath }: { studioPath: string }) {
-  const [mono] = useState(readMonoPref);
   return (
-    <div
-      className="flex flex-1 items-center justify-center"
-      style={{ backgroundColor: splashBg(mono) }}
-    >
+    <div className="studio-boot-bg flex flex-1 items-center justify-center">
       <SiteLogo size={120} href={studioPath} />
     </div>
   );
@@ -1443,7 +1436,6 @@ function StudioSplash({ ready, studioPath }: { ready: boolean; studioPath: strin
   const [phase, setPhase] = useState<"hold" | "fading" | "gone">("hold");
   const [minElapsed, setMinElapsed] = useState(false);
   const [entered, setEntered] = useState(false);
-  const [mono] = useState(readMonoPref);
 
   useEffect(() => {
     const r = requestAnimationFrame(() => setEntered(true));
@@ -1467,10 +1459,9 @@ function StudioSplash({ ready, studioPath }: { ready: boolean; studioPath: strin
   return (
     <div
       className={
-        "fixed inset-0 z-[200] flex items-center justify-center transition-opacity duration-700 " +
+        "studio-boot-bg fixed inset-0 z-[200] flex items-center justify-center transition-opacity duration-700 " +
         (phase === "fading" ? "pointer-events-none opacity-0" : "opacity-100")
       }
-      style={{ backgroundColor: splashBg(mono) }}
     >
       <div
         className={
@@ -1500,7 +1491,7 @@ function StudioGate({ config }: { config: StudioChatConfig }) {
 export function StudioPage({ config }: { config: StudioChatConfig }) {
   return (
     <AuthProvider>
-      <div className="flex flex-col" style={{ height: "100dvh" }}>
+      <div className="studio-boot-bg flex flex-col" style={{ height: "100dvh" }}>
         <StudioGate config={config} />
       </div>
     </AuthProvider>

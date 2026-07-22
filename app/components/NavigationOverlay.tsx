@@ -3,6 +3,23 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import SiteLogo from "./SiteLogo";
+import {
+  MONO_PREF_KEY,
+  SPLASH_BG_MONO,
+  SPLASH_BG_SEPIA,
+} from "../demo/studio-components/chat/constants";
+
+function applyBootThemeFromStorage() {
+  try {
+    const mono = window.localStorage.getItem(MONO_PREF_KEY) !== "0";
+    document.documentElement.setAttribute("data-ra-mono", mono ? "1" : "0");
+    document.documentElement.style.backgroundColor = mono
+      ? SPLASH_BG_MONO
+      : SPLASH_BG_SEPIA;
+  } catch {
+    // ignore
+  }
+}
 
 export default function NavigationOverlay() {
   const pathname = usePathname();
@@ -22,6 +39,8 @@ export default function NavigationOverlay() {
       const currentPath = window.location.pathname;
 
       if (newPath !== currentPath) {
+        // Sync sepia/mono before paint so the overlay isn’t stuck white.
+        applyBootThemeFromStorage();
         setIsVisible(true);
       }
     };
@@ -37,10 +56,10 @@ export default function NavigationOverlay() {
 
   if (!isVisible) return null;
 
-  // Match StudioSplash / StudioLoading so assistant selection doesn’t flash the
-  // old cream bouncing-dots loader before the studio entry screen.
+  // Match StudioSplash / StudioLoading — backdrop follows html[data-ra-mono]
+  // (set by demo THEME_BOOT_SCRIPT / studio mono toggle) so sepia doesn’t flash white.
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white">
+    <div className="studio-boot-bg fixed inset-0 z-[9999] flex items-center justify-center">
       <SiteLogo size={120} href={false} />
     </div>
   );

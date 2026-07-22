@@ -258,6 +258,22 @@ html {
   }
 }
 
+/* Demo studio boot backdrop — driven by html[data-ra-mono] from THEME_BOOT_SCRIPT
+   so auth-loading + splash match sepia/mono before React hydrates. */
+.studio-boot-bg {
+  background-color: #ffffff;
+}
+html[data-ra-mono="0"],
+html[data-ra-mono="0"] body,
+html[data-ra-mono="0"] .studio-boot-bg {
+  background-color: #d8d6c7 !important;
+}
+html[data-ra-mono="1"],
+html[data-ra-mono="1"] body,
+html[data-ra-mono="1"] .studio-boot-bg {
+  background-color: #ffffff !important;
+}
+
 /* Clerk: uniform 1px grey borders on form controls */
 .cl-socialButtonsBlockButton,
 .cl-formFieldInput,
