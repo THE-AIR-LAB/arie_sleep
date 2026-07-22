@@ -73,6 +73,15 @@ export function Bubble({
   const [feedbackAnchor, setFeedbackAnchor] = useState<"nav" | "foot">("nav");
   // Mobile: feedback opens as a centered modal instead of a bubble-anchored popover.
   const [isMobile, setIsMobile] = useState(false);
+  // Bubble width (px); drag left or right edge — no visible handle.
+  const [widthPx, setWidthPx] = useState<number | null>(null);
+  // Left offset within thread-inner while custom-sized (keeps the opposite edge stable).
+  const [leftPx, setLeftPx] = useState<number | null>(null);
+  /** Natural/default width to magnet-snap back to while dragging. */
+  const defaultWidthRef = useRef<number | null>(null);
+  /** For AI rows: distance from msg-ai left → bubble left (avatar + gap). */
+  const aiChromeRef = useRef(41);
+  const bubbleRef = useRef<HTMLDivElement>(null);
   const fbNavRef = useRef<HTMLDivElement>(null);
   const fbFootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -360,8 +369,130 @@ export function Bubble({
     (hasFeedback ? " has-feedback" : "") +
     (collapsed ? " is-collapsed" : "");
 
+  const onWidthDrag = (edge: "left" | "right") => (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = bubbleRef.current;
+    if (!el) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    const startX = e.clientX;
+    const startRect = el.getBoundingClientRect();
+    const startW = startRect.width;
+    const main = el.closest(".main") as HTMLElement | null;
+    const thread = el.closest(".thread") as HTMLElement | null;
+    const inner = el.closest(".thread-inner") as HTMLElement | null;
+    const boundsEl = main ?? thread;
+    const br = boundsEl?.getBoundingClientRect();
+    const padL =
+      boundsEl === thread && thread
+        ? parseFloat(getComputedStyle(thread).paddingLeft) || 0
+        : 12;
+    const padR =
+      boundsEl === thread && thread
+        ? parseFloat(getComputedStyle(thread).paddingRight) || 0
+        : 12;
+    const minLeft = br ? br.left + padL : 0;
+    const maxRight = br ? br.right - padR : window.innerWidth - 12;
+    // Anchor coords in thread-inner space (fallback: viewport).
+    const originLeft = inner?.getBoundingClientRect().left ?? 0;
+    const startLeft = leftPx ?? Math.round(startRect.left - originLeft);
+    const startRight = startLeft + startW;
+    if (leftPx == null) setLeftPx(startLeft);
+
+    if (widthPx == null || defaultWidthRef.current == null) {
+      defaultWidthRef.current = startW;
+    }
+    let correctW = defaultWidthRef.current;
+    if (!isUser) {
+      const msgAi = el.closest(".msg-ai");
+      if (msgAi) {
+        aiChromeRef.current = Math.max(
+          0,
+          Math.round(startRect.left - msgAi.getBoundingClientRect().left)
+        );
+      }
+      if (inner) {
+        const chrome = aiChromeRef.current;
+        correctW = Math.max(180, Math.floor(inner.clientWidth - chrome));
+        if (widthPx == null) defaultWidthRef.current = correctW;
+      }
+    }
+    const SNAP = 18;
+    const minW = 180;
+    let lastW = startW;
+    document.body.classList.add("ra-resizing");
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      let nextW: number;
+      let nextLeft = startLeft;
+      if (edge === "right") {
+        // Left edge fixed; right edge follows the pointer.
+        nextW = startW + dx;
+        const maxW = Math.floor(maxRight - startRect.left);
+        nextW = Math.max(minW, Math.min(maxW, nextW));
+      } else {
+        // Right edge fixed; left edge follows the pointer.
+        nextW = startW - dx;
+        const maxW = Math.floor(startRect.right - minLeft);
+        nextW = Math.max(minW, Math.min(maxW, nextW));
+        nextLeft = startRight - nextW;
+      }
+      nextW = Math.round(nextW);
+      nextLeft = Math.round(nextLeft);
+      if (Math.abs(nextW - correctW) <= SNAP) {
+        nextW = correctW;
+        if (edge === "left") nextLeft = startRight - nextW;
+      }
+      lastW = nextW;
+      setWidthPx(nextW);
+      setLeftPx(nextLeft);
+    };
+    const onUp = () => {
+      document.body.classList.remove("ra-resizing");
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (Math.abs(lastW - correctW) <= SNAP) {
+        setWidthPx(null);
+        setLeftPx(null);
+      }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
+
+  const edgeHit = (edge: "left" | "right") => (
+    <div
+      aria-hidden
+      onPointerDown={onWidthDrag(edge)}
+      style={{
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        width: 10,
+        [edge]: 0,
+        cursor: "col-resize",
+        touchAction: "none",
+        zIndex: 3,
+      }}
+    />
+  );
+
+  const widthStyle =
+    widthPx != null
+      ? { width: widthPx, maxWidth: "none", flex: "0 0 auto" as const }
+      : null;
+
   const shell = (
-    <div className={shellClass + (!controlsVisible ? " hide-controls" : "")}>
+    <div
+      ref={bubbleRef}
+      className={shellClass + (!controlsVisible ? " hide-controls" : "")}
+      style={{
+        position: "relative",
+        ...widthStyle,
+      }}
+    >
       {controlsVisible && showNav && (
         <div className="bubble-nav">
           {showTurnN && !collapsed ? <span className="trace-turn-n">{turnNumber}.</span> : null}
@@ -402,28 +533,107 @@ export function Bubble({
         )}
       </div>
       {controlsVisible && footActions && <div className="bubble-foot">{footActions}</div>}
+      {edgeHit("left")}
+      {edgeHit("right")}
     </div>
   );
 
   if (isUser) {
     return (
-      <div className="msg-user-col">
+      <div
+        className="msg-user-col"
+        style={
+          widthPx != null
+            ? {
+                width: widthPx,
+                maxWidth: "none",
+                alignSelf: "flex-start",
+                marginLeft: leftPx ?? undefined,
+                boxSizing: "border-box",
+              }
+            : undefined
+        }
+      >
         {shell}
         {overlay}
         {feedbackModal}
       </div>
     );
   }
+  const isWidthExpanded = widthPx != null;
+  const resetBubbleWidth = () => {
+    setWidthPx(null);
+    setLeftPx(null);
+  };
+
   return (
-    <div className="msg-ai">
-      {avatarToggleProps ? (
-        <button {...avatarToggleProps}>
+    <div
+      className="msg-ai"
+      style={
+        isWidthExpanded && leftPx != null
+          ? {
+              alignSelf: "flex-start",
+              maxWidth: "none",
+              width: "auto",
+              overflow: "visible",
+              // Position the row so the bubble's left edge matches leftPx.
+              marginLeft: leftPx - aiChromeRef.current,
+            }
+          : undefined
+      }
+    >
+      <div
+        style={{
+          flex: "0 0 auto",
+          alignSelf: "flex-start",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        {avatarToggleProps ? (
+          <button {...avatarToggleProps}>
+            <AssistantMark variant="bubble" config={config} />
+          </button>
+        ) : (
           <AssistantMark variant="bubble" config={config} />
-        </button>
-      ) : (
-        <AssistantMark variant="bubble" config={config} />
-      )}
-      <div className="bubble-col">
+        )}
+        {isWidthExpanded ? (
+          <button
+            type="button"
+            aria-label="Reset bubble width"
+            title="Reset width"
+            onClick={resetBubbleWidth}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              border: "1px solid var(--line)",
+              background: "var(--surface)",
+              color: "var(--text-2)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              margin: 0,
+              cursor: "pointer",
+              flex: "0 0 auto",
+              lineHeight: 0,
+            }}
+          >
+            <Ic.Minimize size={13} stroke={1.7} />
+          </button>
+        ) : null}
+      </div>
+      <div
+        className="bubble-col"
+        style={
+          isWidthExpanded
+            ? { flex: "0 0 auto", width: widthPx, maxWidth: "none", overflow: "visible" }
+            : undefined
+        }
+      >
         {shell}
       </div>
       {overlay}

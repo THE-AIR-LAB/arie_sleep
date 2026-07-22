@@ -497,15 +497,28 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   useEffect(() => {
     const s = Number(localStorage.getItem("ra-sidebar-w"));
     if (s) setSidebarWidth(Math.max(240, Math.min(520, s)));
-    // Half the screen is the default width; allow dragging up to 75% of it.
-    const half = Math.round(window.innerWidth / 2);
-    const min = 320;
-    const max = Math.max(half, Math.round(window.innerWidth * 0.75));
-    setObsBounds({ min, max, def: half });
+    // Half the screen is the default; drag nearly full-width (leave room for the rail).
+    const syncObsBounds = () => {
+      const half = Math.round(window.innerWidth / 2);
+      const min = 320;
+      const max = Math.max(half, window.innerWidth - 56);
+      setObsBounds({ min, max, def: half });
+      setObsWidth((prev) =>
+        prev == null ? prev : Math.max(min, Math.min(max, prev))
+      );
+    };
+    syncObsBounds();
+    window.addEventListener("resize", syncObsBounds);
     // Only adopt a persisted width if the user previously resized; otherwise stay
     // null so the CSS 50vw default applies.
     const o = Number(localStorage.getItem("ra-obs-w2"));
-    if (o) setObsWidth(Math.max(min, Math.min(max, o)));
+    if (o) {
+      const half = Math.round(window.innerWidth / 2);
+      const min = 320;
+      const max = Math.max(half, window.innerWidth - 56);
+      setObsWidth(Math.max(min, Math.min(max, o)));
+    }
+    return () => window.removeEventListener("resize", syncObsBounds);
   }, []);
   useEffect(() => {
     localStorage.setItem("ra-sidebar-w", String(sidebarWidth));

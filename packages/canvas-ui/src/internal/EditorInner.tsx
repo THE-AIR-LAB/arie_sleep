@@ -2210,7 +2210,7 @@ export function EditorInner<TOutput>({
       const raw = window.localStorage.getItem(canvasShareKey);
       if (!raw) return;
       const n = Number(raw);
-      if (Number.isFinite(n) && n >= 0.2 && n <= 0.8) setCanvasShare(n);
+      if (Number.isFinite(n) && n >= 0.08 && n <= 0.92) setCanvasShare(n);
     } catch {
       // ignore
     }
@@ -3677,6 +3677,7 @@ export function EditorInner<TOutput>({
     const sideBySide = splitPanels || (fullscreen && !isNarrowViewport);
     const beginSplitResize = (e: ReactPointerEvent, horizontal: boolean) => {
       e.preventDefault();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
       const body = canvasBodyRef.current;
       if (!body) return;
       const rect = body.getBoundingClientRect();
@@ -3690,27 +3691,34 @@ export function EditorInner<TOutput>({
       const onMove = (ev: PointerEvent) => {
         const delta = (horizontal ? ev.clientX : ev.clientY) - startPos;
         const next = startShare + delta / axisSize;
-        // Stacked: keep ≥46px for Inspector/Compiler tabs.
+        // Stacked (side drawer): keep a sliver for the board and ≥46px for
+        // Inspector/Compiler tabs — otherwise free drag between them.
         if (!horizontal && axisSize > 0) {
           const minInspector = 46 + 7;
+          const minCanvas = 48;
           const maxShare = Math.max(
-            0.15,
-            Math.min(0.85, 1 - minInspector / axisSize)
+            0.08,
+            Math.min(0.92, 1 - minInspector / axisSize)
           );
-          const minShare = Math.min(0.2, maxShare);
+          const minShare = Math.min(
+            maxShare,
+            Math.max(0.08, minCanvas / axisSize)
+          );
           setCanvasShare(Math.max(minShare, Math.min(maxShare, next)));
           return;
         }
-        setCanvasShare(Math.max(0.2, Math.min(0.8, next)));
+        setCanvasShare(Math.max(0.15, Math.min(0.85, next)));
       };
       const onUp = () => {
         setSplitDragging(false);
         document.body.classList.remove(resizeClass);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
       };
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
     };
     return (
     <div

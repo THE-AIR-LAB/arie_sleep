@@ -30,6 +30,7 @@ export function ResizeHandle({
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     const startX = e.clientX;
     const startW = width;
     setActive(true);
@@ -44,9 +45,11 @@ export function ResizeHandle({
       document.body.classList.remove("ra-resizing");
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   const style: React.CSSProperties =
