@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Turn } from "../../../components/trace/TraceView";
 import type { SimRunControls } from "../SimulationPanel";
+import type { CanvasDoc } from "../../../components/canvas/Canvas";
 
 export interface Message {
   role: "user" | "ai";
@@ -85,6 +86,12 @@ export type StudioChatConfig = {
   emptyStateBody: React.ReactNode;
   /** "Primary agent: …" line embedded in the Overall Workflow canvas seed. */
   emptyStatePrimaryAgent: string;
+  /**
+   * Builds the bottom "Workflow" drawer seed. Defaults to the shared
+   * Overall Workflow overview (one canvas of stage boxes). Studios can override
+   * to render one canvas per workflow stage instead (see the sleep therapist).
+   */
+  buildWorkflowSeed?: (primaryAgent: string) => CanvasDoc;
   /** Optional domain-specific help copy shown in the bottom workflow drawer. Reserved for future use. */
   workflowHelpText?: string;
   /** What to call the human on the other end of the chat in comments/telemetry (not user-facing). */

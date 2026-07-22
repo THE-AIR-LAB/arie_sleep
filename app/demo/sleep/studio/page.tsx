@@ -4,6 +4,7 @@ import "./ra-theme.css";
 import { SetupBar, turnExtractedStateKeys } from "./config/page";
 import { SimulationPanel } from "./SimulationPanel";
 import { ACTION_CHIPS, SUGGESTIONS } from "./sleep-data";
+import { buildSleepWorkflowSeed } from "./workflow-seed";
 import { createStudioPage } from "../../studio-components/chat/StudioApp";
 import type { StudioChatConfig } from "../../studio-components/chat/types";
 import type { Turn } from "../../../components/trace/TraceView";
@@ -34,7 +35,7 @@ const studioChatConfig: StudioChatConfig = {
   assistantMark: "avatar",
   avatarMono: "SA",
   emptyStateHref: "/demo/sleep/studio",
-  emptyStateTitle: "Start a conversation with Therapist",
+  emptyStateTitle: "Therapist",
   emptyStateBody: (
     <>
       Therapist can review your sleep logs, summarise guidance, and help you
@@ -42,6 +43,7 @@ const studioChatConfig: StudioChatConfig = {
     </>
   ),
   emptyStatePrimaryAgent: "Primary agent: Therapist",
+  buildWorkflowSeed: buildSleepWorkflowSeed,
   subjectNoun: "patient",
   apiTopic: "sleep",
   suggestions: SUGGESTIONS,

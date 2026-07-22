@@ -59,8 +59,11 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   const SetupBar = config.SetupBar;
   const SimulationPanel = config.SimulationPanel;
   const workflowSeed = useMemo(
-    () => createBottomWorkflowSeed(config.emptyStatePrimaryAgent),
-    [config.emptyStatePrimaryAgent]
+    () =>
+      (config.buildWorkflowSeed ?? createBottomWorkflowSeed)(
+        config.emptyStatePrimaryAgent
+      ),
+    [config.buildWorkflowSeed, config.emptyStatePrimaryAgent]
   );
   const { user, isAdmin, signOut, roleLoaded } = useAuth();
   // The studio assembles behind the splash overlay; this flag tells the splash
@@ -1112,6 +1115,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
             <>
               <Sidebar
                 productName={config.productName}
+                studioPath={config.studioPath}
                 convos={regularConvos}
                 activeId={activeId}
                 onSelect={onSelect}
@@ -1345,6 +1349,8 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 onRename={onRename}
                 query={query}
                 setQuery={setQuery}
+                productName={config.productName}
+                studioPath={config.studioPath}
               />
             }
             accountContent={

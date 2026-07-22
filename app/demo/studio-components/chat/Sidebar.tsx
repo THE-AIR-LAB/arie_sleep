@@ -6,6 +6,7 @@ import { Ic } from "../ra-icons";
 import { Avatar } from "../ra-shared";
 import { BUBBLE_FONT_LABELS, type BubbleFontSize } from "./constants";
 import { ConvList } from "./ConvList";
+import { StudioSwitcher } from "./StudioSwitcher";
 import type { Conversation } from "./types";
 
 // Copy for the bottom-left "How to use the studio" help panel. Each section maps to a
@@ -50,6 +51,7 @@ export const ADMIN_ITEMS = [
 
 export function Sidebar({
   productName,
+  studioPath,
   convos,
   activeId,
   onSelect,
@@ -79,6 +81,7 @@ export function Sidebar({
   width,
 }: {
   productName: string;
+  studioPath: string;
   convos: Conversation[];
   activeId: string | null;
   onSelect: (id: string) => void;
@@ -115,8 +118,12 @@ export function Sidebar({
       style={{ ["--side-w" as string]: `${width}px` } as React.CSSProperties}
     >
       <div className="side-head">
-        <div>
-          <div className="side-title">{productName}</div>
+        <div className="side-title-wrap">
+          <StudioSwitcher
+            productName={productName}
+            studioPath={studioPath}
+            variant="sidebar"
+          />
         </div>
         <button className="icon-btn side-close" title="Close sidebar" aria-label="Close sidebar" onClick={onClose}>
           <Ic.Close size={17} />

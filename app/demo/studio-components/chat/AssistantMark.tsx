@@ -21,7 +21,7 @@ export function AssistantMark({
 }) {
   if (config.assistantMark === "avatar") {
     if (variant === "th") {
-      return <Avatar kind="assistant" size={18} ring mono={config.avatarMono} src={config.avatarSrc} />;
+      return <Avatar kind="assistant" size={28} mono={config.avatarMono} src={config.avatarSrc} />;
     }
     if (variant === "bubble") {
       return <Avatar kind="assistant" size={28} mono={config.avatarMono} src={config.avatarSrc} />;

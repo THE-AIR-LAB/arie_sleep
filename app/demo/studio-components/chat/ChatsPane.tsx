@@ -2,6 +2,7 @@
 
 import { Ic } from "../ra-icons";
 import { ConvList } from "./ConvList";
+import { StudioSwitcher } from "./StudioSwitcher";
 import type { Conversation } from "./types";
 
 /* ---------------- unified mobile drawer panes ---------------- */
@@ -17,6 +18,8 @@ export function ChatsPane({
   onRename,
   query,
   setQuery,
+  productName,
+  studioPath,
 }: {
   convos: Conversation[];
   activeId: string | null;
@@ -27,9 +30,18 @@ export function ChatsPane({
   onRename: (id: string, title: string) => void;
   query: string;
   setQuery: (v: string) => void;
+  productName: string;
+  studioPath: string;
 }) {
   return (
     <div className="drawer-pane">
+      <div className="chats-studio-row">
+        <StudioSwitcher
+          productName={productName}
+          studioPath={studioPath}
+          variant="pane"
+        />
+      </div>
       <button className="newbtn" onClick={onNew}>
         <span className="nb-ic"><Ic.Plus size={17} /></span> New conversation
       </button>

@@ -62,3 +62,10 @@ export const PANEL_TABS: DrawerId[] = [
 /** Panels that expose internal wiring (model/prompt setup, step-by-step traces).
  *  Only admins may see or open these; non-admins get the plain chat surface. */
 export const ADMIN_ONLY_DRAWERS: DrawerId[] = ["modelsetup", "observability", "simulation"];
+
+/** Demo studios — shared by the header + mobile Chats switchers. */
+export const STUDIO_OPTIONS = [
+  { label: "Analyst", href: "/demo/analyst/studio" },
+  { label: "Council", href: "/demo/law/studio" },
+  { label: "Therapist", href: "/demo/sleep/studio" },
+] as const;

@@ -188,41 +188,38 @@ export function Bubble({
     />
   ) : null;
 
-  // Body click: collapsed → expand + show controls; expanded → collapse + hide controls.
-  const bodyToggleProps =
-    onToggleCollapse || hideControls
-      ? {
-          role: "button" as const,
-          tabIndex: 0,
-          title: collapsed
-            ? "Click to expand and show controls"
-            : "Click to collapse",
-          onClick: () => {
-            const sel = typeof window !== "undefined" ? window.getSelection() : null;
-            if (sel && !sel.isCollapsed && (sel.toString() || "").length > 0) return;
-            if (typeof window !== "undefined") window.getSelection()?.removeAllRanges();
-            if (collapsed) {
-              onToggleCollapse?.();
-              if (hideControls) setRevealControls(true);
-              return;
-            }
-            onToggleCollapse?.();
-            setRevealControls(false);
-          },
-          onKeyDown: (e: React.KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              if (collapsed) {
-                onToggleCollapse?.();
-                if (hideControls) setRevealControls(true);
-                return;
-              }
-              onToggleCollapse?.();
-              setRevealControls(false);
-            }
-          },
-        }
-      : {};
+  // Body click only expands/collapses — never reveals per-bubble controls.
+  const bodyToggleProps = onToggleCollapse
+    ? {
+        role: "button" as const,
+        tabIndex: 0,
+        title: collapsed ? "Click to expand" : "Click to collapse",
+        onClick: () => {
+          const sel = typeof window !== "undefined" ? window.getSelection() : null;
+          if (sel && !sel.isCollapsed && (sel.toString() || "").length > 0) return;
+          if (typeof window !== "undefined") window.getSelection()?.removeAllRanges();
+          onToggleCollapse();
+        },
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggleCollapse();
+          }
+        },
+      }
+    : {};
+
+  // When global chrome is hidden, avatar click reveals/hides this bubble's controls.
+  const avatarToggleProps = hideControls
+    ? {
+        type: "button" as const,
+        className: "bubble-avatar-toggle" + (revealControls ? " on" : ""),
+        title: revealControls ? "Hide controls" : "Show controls",
+        "aria-label": revealControls ? "Hide message controls" : "Show message controls",
+        "aria-pressed": revealControls,
+        onClick: () => setRevealControls((v) => !v),
+      }
+    : null;
 
   const shellClass =
     (isUser ? "msg-user" : "bubble") +
@@ -243,10 +240,7 @@ export function Bubble({
         </div>
       )}
       <div
-        className={
-          "bubble-body" +
-          (onToggleCollapse || hideControls ? " is-toggleable" : "")
-        }
+        className={"bubble-body" + (onToggleCollapse ? " is-toggleable" : "")}
         {...bodyToggleProps}
       >
             {collapsed ? (
@@ -287,7 +281,13 @@ export function Bubble({
   }
   return (
     <div className="msg-ai">
-      <AssistantMark variant="bubble" config={config} />
+      {avatarToggleProps ? (
+        <button {...avatarToggleProps}>
+          <AssistantMark variant="bubble" config={config} />
+        </button>
+      ) : (
+        <AssistantMark variant="bubble" config={config} />
+      )}
       <div className="bubble-col">
         {shell}
       </div>

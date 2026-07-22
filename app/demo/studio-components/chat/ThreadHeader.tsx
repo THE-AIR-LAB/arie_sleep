@@ -13,7 +13,10 @@ export function ThreadHeader({
   avatarOnly = false,
   onToggleAvatarOnly,
 }: {
-  config: Pick<StudioChatConfig, "productName" | "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref">;
+  config: Pick<
+    StudioChatConfig,
+    "productName" | "assistantMark" | "avatarMono" | "avatarSrc" | "emptyStateHref"
+  >;
   showThreadControls?: boolean;
   hideBubbleControls?: boolean;
   onToggleHideBubbleControls?: () => void;
