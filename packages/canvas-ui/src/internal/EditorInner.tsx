@@ -2170,6 +2170,8 @@ export function EditorInner<TOutput>({
   // Node + canvas-action toolbar (Control structure, Prompt, Expand, Terminate,
   // Delete selected). Collapsed by default; expand via Tools.
   const [toolbarOpen, setToolbarOpen] = useState(false);
+  // Bottom-right caret: hide/show Tools, Fullscreen, zoom, and Save chrome.
+  const [canvasMenusOpen, setCanvasMenusOpen] = useState(true);
   const [isControlStructureMenuOpen, setIsControlStructureMenuOpen] = useState(false);
   const [copiedQuestion, setCopiedQuestion] = useState<string | null>(null);
   const controlStructureMenuRef = useRef<HTMLDivElement | null>(null);
@@ -3428,8 +3430,8 @@ export function EditorInner<TOutput>({
           }}
         />
         <Background />
-        {/* Zoom top-right — hidden when the board is too short for chrome. */}
-        {boardChromeVisible ? (
+        {/* Zoom top-right — hidden when the board is too short or menus are tucked. */}
+        {boardChromeVisible && canvasMenusOpen ? (
           <Controls showInteractive={false} position="top-right" orientation="vertical" />
         ) : null}
         {graphTag && graphFrame && (
@@ -3454,175 +3456,215 @@ export function EditorInner<TOutput>({
         )}
       </ReactFlow>
       ) : null}
-      {/* Tools — top-left. Fullscreen — bottom-left. Save — bottom-right.
-          Hidden when board height would make top/bottom controls overlap. */}
+      {/* Tools — top-left. Fullscreen — bottom-left. Save + menus caret — bottom-right.
+          Menus tuck via the caret; also hidden when the board is too short. */}
       {!canvasIsCollapsed && boardChromeVisible && (
         <>
-          {toolbarOpen && (
-            <div className="rf-canvas-tools absolute top-14 left-3 z-20 flex max-w-[calc(100%-4.5rem)] flex-col overflow-y-auto overflow-x-hidden rounded-none border border-[#c8c4b4] bg-white p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {startToolbarKinds.map((k) => {
-                  const alreadyPresent = (active?.nodes ?? []).some(
-                    (n) => n.type === k.kind
-                  );
-                  const tip = alreadyPresent
-                    ? "This canvas already has a Start node."
-                    : k.toolbarDescription ?? "Add the Start node.";
-                  return (
-                    <ToolTipWrap key={k.kind} tip={tip}>
+          {canvasMenusOpen && (
+            <>
+              {toolbarOpen && (
+                <div className="rf-canvas-tools absolute top-14 left-3 z-20 flex max-w-[calc(100%-4.5rem)] flex-col overflow-y-auto overflow-x-hidden rounded-none border border-[#c8c4b4] bg-white p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {startToolbarKinds.map((k) => {
+                      const alreadyPresent = (active?.nodes ?? []).some(
+                        (n) => n.type === k.kind
+                      );
+                      const tip = alreadyPresent
+                        ? "This canvas already has a Start node."
+                        : k.toolbarDescription ?? "Add the Start node.";
+                      return (
+                        <ToolTipWrap key={k.kind} tip={tip}>
+                          <button
+                            type="button"
+                            onClick={() => addNode(k)}
+                            disabled={alreadyPresent}
+                            className={`rf-tool-btn ${k.toolbarClassName} disabled:cursor-not-allowed disabled:bg-[#d5dcd0] disabled:text-[#1c1b16] disabled:border-[#b8c2ad]`}
+                          >
+                            {k.toolbarLabel}
+                          </button>
+                        </ToolTipWrap>
+                      );
+                    })}
+                    {controlStructureKinds.length > 0 && (
+                      <ToolTipWrap
+                        tip={
+                          isControlStructureMenuOpen
+                            ? ""
+                            : "Add a branch or loop (condition, while, for)."
+                        }
+                      >
+                        <div className="relative" ref={controlStructureMenuRef}>
+                          <button
+                            type="button"
+                            onClick={() => setIsControlStructureMenuOpen((open) => !open)}
+                            className="rf-tool-btn border border-[#FFD100] text-[#3d3838] bg-[#FFD100] hover:bg-[#f0c400]"
+                            aria-haspopup="menu"
+                            aria-expanded={isControlStructureMenuOpen}
+                          >
+                            + Control structure
+                          </button>
+                          {isControlStructureMenuOpen && (
+                            <div
+                              className="absolute left-0 top-full z-30 mt-2 min-w-[14rem] rounded-none border border-[#c8c4b4] bg-[#f7f4e8] p-2 shadow-xl"
+                              role="menu"
+                            >
+                              <div className="mb-2 px-2 text-[14px] font-sans text-gray-500">
+                                Choose node type
+                              </div>
+                              <div className="space-y-1">
+                                {controlStructureKinds.map((k) => (
+                                  <button
+                                    key={k.kind}
+                                    type="button"
+                                    onClick={() => addNode(k)}
+                                    title={k.toolbarDescription}
+                                    className="flex w-full items-center justify-between rounded-none px-2 py-2 text-left text-[14px] font-sans text-gray-700 hover:bg-[#ece7d6]"
+                                    role="menuitem"
+                                  >
+                                    <span>{k.toolbarLabel.replace(/^\+\s*/, "")}</span>
+                                    <span className="font-mono text-[12px] lowercase text-gray-500">
+                                      {k.kind}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </ToolTipWrap>
+                    )}
+                    {directToolbarKinds.map((k) => (
+                      <ToolTipWrap
+                        key={k.kind}
+                        tip={k.toolbarDescription ?? `Add a ${k.kind} node.`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => addNode(k)}
+                          className={`rf-tool-btn ${k.toolbarClassName}`}
+                        >
+                          {k.toolbarLabel}
+                        </button>
+                      </ToolTipWrap>
+                    ))}
+                    <div className="w-px h-5 bg-[#c8c4b4] mx-1" />
+                    <ToolTipWrap tip="Remove the selected node or edge.">
                       <button
                         type="button"
-                        onClick={() => addNode(k)}
-                        disabled={alreadyPresent}
-                        className={`rf-tool-btn ${k.toolbarClassName} disabled:cursor-not-allowed disabled:bg-[#d5dcd0] disabled:text-[#1c1b16] disabled:border-[#b8c2ad]`}
+                        disabled={
+                          (!selectedId && !selectedCollapsedEdgeId) ||
+                          (Boolean(selectedNode) && selectedNodeNonEditable)
+                        }
+                        onClick={deleteSelected}
+                        className="rf-tool-btn border border-gray-400 text-gray-700 bg-transparent hover:bg-gray-100 disabled:opacity-40"
                       >
-                        {k.toolbarLabel}
+                        Delete selected
                       </button>
                     </ToolTipWrap>
-                  );
-                })}
-                {controlStructureKinds.length > 0 && (
-                  <ToolTipWrap
-                    tip={
-                      isControlStructureMenuOpen
-                        ? ""
-                        : "Add a branch or loop (condition, while, for)."
-                    }
+                  </div>
+                </div>
+              )}
+              <div className="rf-canvas-chrome rf-canvas-chrome--tools absolute top-3 left-3 z-20 flex items-center rounded-none border border-[#c8c4b4] bg-white p-0">
+                <button
+                  type="button"
+                  onClick={() => setToolbarOpen((o) => !o)}
+                  aria-expanded={toolbarOpen}
+                  className="rf-canvas-tab-btn"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="12"
+                    height="12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`transition-transform ${toolbarOpen ? "rotate-90" : ""}`}
                   >
-                    <div className="relative" ref={controlStructureMenuRef}>
-                      <button
-                        type="button"
-                        onClick={() => setIsControlStructureMenuOpen((open) => !open)}
-                        className="rf-tool-btn border border-[#FFD100] text-[#3d3838] bg-[#FFD100] hover:bg-[#f0c400]"
-                        aria-haspopup="menu"
-                        aria-expanded={isControlStructureMenuOpen}
-                      >
-                        + Control structure
-                      </button>
-                      {isControlStructureMenuOpen && (
-                        <div
-                          className="absolute left-0 top-full z-30 mt-2 min-w-[14rem] rounded-none border border-[#c8c4b4] bg-[#f7f4e8] p-2 shadow-xl"
-                          role="menu"
-                        >
-                          <div className="mb-2 px-2 text-[14px] font-sans text-gray-500">
-                            Choose node type
-                          </div>
-                          <div className="space-y-1">
-                            {controlStructureKinds.map((k) => (
-                              <button
-                                key={k.kind}
-                                type="button"
-                                onClick={() => addNode(k)}
-                                title={k.toolbarDescription}
-                                className="flex w-full items-center justify-between rounded-none px-2 py-2 text-left text-[14px] font-sans text-gray-700 hover:bg-[#ece7d6]"
-                                role="menuitem"
-                              >
-                                <span>{k.toolbarLabel.replace(/^\+\s*/, "")}</span>
-                                <span className="font-mono text-[12px] lowercase text-gray-500">
-                                  {k.kind}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </ToolTipWrap>
-                )}
-                {directToolbarKinds.map((k) => (
-                  <ToolTipWrap
-                    key={k.kind}
-                    tip={k.toolbarDescription ?? `Add a ${k.kind} node.`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => addNode(k)}
-                      className={`rf-tool-btn ${k.toolbarClassName}`}
-                    >
-                      {k.toolbarLabel}
-                    </button>
-                  </ToolTipWrap>
-                ))}
-                <div className="w-px h-5 bg-[#c8c4b4] mx-1" />
-                <ToolTipWrap tip="Remove the selected node or edge.">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                  Tools
+                </button>
+              </div>
+              <div className="rf-canvas-chrome rf-canvas-chrome--fs absolute bottom-3 left-3 z-20 flex items-center rounded-none border border-[#c8c4b4] bg-white p-0">
+                {!fullscreen ? (
                   <button
                     type="button"
-                    disabled={
-                      (!selectedId && !selectedCollapsedEdgeId) ||
-                      (Boolean(selectedNode) && selectedNodeNonEditable)
-                    }
-                    onClick={deleteSelected}
-                    className="rf-tool-btn border border-gray-400 text-gray-700 bg-transparent hover:bg-gray-100 disabled:opacity-40"
+                    onClick={() => {
+                      setInspectorMaximized(false);
+                      setCanvasFullscreen(true);
+                    }}
+                    aria-label="Fullscreen"
+                    title="Fullscreen"
+                    className="rf-canvas-tab-btn"
                   >
-                    Delete selected
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+                    </svg>
+                    Fullscreen
                   </button>
-                </ToolTipWrap>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCanvasFullscreen(false);
+                      setInspectorMaximized(false);
+                    }}
+                    aria-label="Exit fullscreen"
+                    title="Exit fullscreen (Esc)"
+                    className="rf-canvas-tab-btn"
+                  >
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                    Close
+                  </button>
+                )}
               </div>
-            </div>
+            </>
           )}
-          <div className="rf-canvas-chrome rf-canvas-chrome--tools absolute top-3 left-3 z-20 flex items-center rounded-none border border-[#c8c4b4] bg-white p-0">
-            <button
-              type="button"
-              onClick={() => setToolbarOpen((o) => !o)}
-              aria-expanded={toolbarOpen}
-              className="rf-canvas-tab-btn"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="12"
-                height="12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform ${toolbarOpen ? "rotate-90" : ""}`}
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-              Tools
-            </button>
-          </div>
-          <div className="rf-canvas-chrome rf-canvas-chrome--fs absolute bottom-3 left-3 z-20 flex items-center rounded-none border border-[#c8c4b4] bg-white p-0">
-            {!fullscreen ? (
+          {/* Height matches Fullscreen chrome so the square caret centers on it. */}
+          <div className="rf-canvas-chrome-bottom-right absolute bottom-3 right-3 z-20 flex items-center justify-end gap-2">
+            {canvasMenusOpen && tabBarTrailing ? (
+              <div className="rf-canvas-chrome rf-canvas-chrome--save flex items-center rounded-none border border-[#c8c4b4] bg-white p-0">
+                <div className="rf-canvas-tab-trailing flex items-center">{tabBarTrailing}</div>
+              </div>
+            ) : null}
+            <div className="rf-canvas-chrome rf-canvas-chrome--menus flex items-center justify-center rounded-none border border-[#c8c4b4] bg-white p-0">
               <button
                 type="button"
                 onClick={() => {
-                  setInspectorMaximized(false);
-                  setCanvasFullscreen(true);
+                  setCanvasMenusOpen((open) => {
+                    if (open) {
+                      setToolbarOpen(false);
+                      setIsControlStructureMenuOpen(false);
+                    }
+                    return !open;
+                  });
                 }}
-                aria-label="Fullscreen"
-                title="Fullscreen"
+                aria-expanded={canvasMenusOpen}
+                aria-label={canvasMenusOpen ? "Hide canvas menus" : "Show canvas menus"}
+                title={canvasMenusOpen ? "Hide menus" : "Show menus"}
                 className="rf-canvas-tab-btn"
               >
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+                <svg
+                  viewBox="0 0 24 24"
+                  width="12"
+                  height="12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform ${canvasMenusOpen ? "rotate-90" : "-rotate-90"}`}
+                  aria-hidden="true"
+                >
+                  <path d="M9 6l6 6-6 6" />
                 </svg>
-                Fullscreen
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setCanvasFullscreen(false);
-                  setInspectorMaximized(false);
-                }}
-                aria-label="Exit fullscreen"
-                title="Exit fullscreen (Esc)"
-                className="rf-canvas-tab-btn"
-              >
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-                Close
-              </button>
-            )}
-          </div>
-          {tabBarTrailing ? (
-            <div className="rf-canvas-chrome rf-canvas-chrome--save absolute bottom-3 right-3 z-20 flex items-center rounded-none border border-[#c8c4b4] bg-white p-0">
-              <div className="rf-canvas-tab-trailing flex items-center">{tabBarTrailing}</div>
             </div>
-          ) : null}
+          </div>
         </>
       )}
     </div>
@@ -3687,10 +3729,10 @@ export function EditorInner<TOutput>({
           those rows so "Main" lines up with Knowledge / Model Setup when the
           docked body side padding is zeroed. Tab label padding 0 2px hugs the
           underline like the rows above. */}
-      <div className={`rf-canvas-tabs ${fullscreen ? "flex" : "hidden lg:flex"} h-[46px] min-h-[46px] flex-nowrap items-center border-b border-[#c8c4b4] py-0 pl-4 pr-2`}>
-        {/* Titles scroll under a pinned (i) when the drawer is narrow — never wrap the end chrome. */}
-        <div className="rf-canvas-tab-scroll min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
-          <div className="flex h-[46px] min-w-min items-center gap-x-[22px]">
+      <div className={`rf-canvas-tabs ${fullscreen ? "flex" : "hidden lg:flex"} min-h-[46px] flex-nowrap items-start border-b border-[#c8c4b4] py-0 pl-4 pr-2`}>
+        {/* Titles wrap onto new rows when the drawer is narrow — never clip a pill mid-label. */}
+        <div className="rf-canvas-tab-scroll min-w-0 flex-1 overflow-x-hidden overflow-y-visible">
+          <div className="rf-canvas-tab-list flex min-h-[46px] w-full flex-wrap items-center gap-x-[22px] gap-y-1 py-1">
             {canvases.map((c) => {
               const isActive = c.id === activeId;
               const isRenaming = renamingId === c.id;

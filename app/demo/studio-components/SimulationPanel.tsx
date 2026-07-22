@@ -132,8 +132,9 @@ export function SimulationPanel({
   slot?: HTMLElement | null;
 }) {
   const [scenario, setScenario] = useState("");
-  // Collapse toggle for the scenario field (its label acts as the header).
+  // Collapse toggles for the scenario field and the runs list (labels act as headers).
   const [scenarioOpen, setScenarioOpen] = useState(true);
+  const [runsOpen, setRunsOpen] = useState(true);
   // Kept as a string so the field can be cleared while editing (e.g. wiping "110"
   // to type a new value). Normalized to a valid count on blur and when a run starts.
   const [turns, setTurns] = useState("10");
@@ -333,117 +334,134 @@ export function SimulationPanel({
           </button>
         </div>
         {scenarioOpen && (
-          <textarea
-            id="sim-scenario"
-            className="sim-textarea"
-            placeholder={config.scenarioPlaceholder}
-            value={scenario}
-            onChange={(e) => setScenario(e.target.value)}
-            disabled={running}
-            rows={4}
-          />
+          <>
+            <textarea
+              id="sim-scenario"
+              className="sim-textarea"
+              placeholder={config.scenarioPlaceholder}
+              value={scenario}
+              onChange={(e) => setScenario(e.target.value)}
+              disabled={running}
+              rows={4}
+            />
+            <div className="sim-row">
+              <label className="sim-label" htmlFor="sim-turns">Turns</label>
+              <input
+                id="sim-turns"
+                className="sim-turns"
+                type="text"
+                inputMode="numeric"
+                value={turns}
+                // Accept only digits, and allow empty so the field can be cleared to retype.
+                onChange={(e) => setTurns(e.target.value.replace(/[^0-9]/g, ""))}
+                // Normalize to at least one turn once you leave the field.
+                onBlur={() => setTurns((v) => String(Math.max(1, Math.floor(Number(v)) || 1)))}
+                disabled={running}
+              />
+              {running ? (
+                // Pause/Stop live in the drawer tab bar (next to ×) while running.
+                <span className="sim-btn-lead sim-running-hint">
+                  {paused ? "Simulation paused" : "Simulation running…"}
+                </span>
+              ) : (
+                <button type="button" className="sim-btn sim-btn-run sim-btn-lead" onClick={run}>Run simulation</button>
+              )}
+            </div>
+            {status && <div className="sim-status">{status}</div>}
+            {error && <div className="sim-error">{error}</div>}
+          </>
         )}
-        <div className="sim-row">
-          <label className="sim-label" htmlFor="sim-turns">Turns</label>
-          <input
-            id="sim-turns"
-            className="sim-turns"
-            type="text"
-            inputMode="numeric"
-            value={turns}
-            // Accept only digits, and allow empty so the field can be cleared to retype.
-            onChange={(e) => setTurns(e.target.value.replace(/[^0-9]/g, ""))}
-            // Normalize to at least one turn once you leave the field.
-            onBlur={() => setTurns((v) => String(Math.max(1, Math.floor(Number(v)) || 1)))}
-            disabled={running}
-          />
-          {running ? (
-            // Pause/Stop live in the drawer tab bar (next to ×) while running.
-            <span className="sim-btn-lead sim-running-hint">
-              {paused ? "Simulation paused" : "Simulation running…"}
-            </span>
-          ) : (
-            <button type="button" className="sim-btn sim-btn-run sim-btn-lead" onClick={run}>Run simulation</button>
-          )}
-        </div>
-        {status && <div className="sim-status">{status}</div>}
-        {error && <div className="sim-error">{error}</div>}
       </div>
 
-      <div className="sim-runs">
+      <div className={"sim-runs" + (runsOpen ? "" : " is-collapsed")}>
         <div className="sim-runs-head">
-          Runs<span className="sim-runs-count">{runs.length}</span>
+          <button
+            type="button"
+            className="sim-scenario-toggle"
+            onClick={() => setRunsOpen((v) => !v)}
+            aria-expanded={runsOpen}
+            title={runsOpen ? "Collapse" : "Expand"}
+          >
+            <span className="sim-label">Runs</span>
+            <Ic.Chevron size={13} style={runsOpen ? undefined : { transform: "rotate(-90deg)" }} />
+          </button>
+          {/* Right-aligned with the Run simulation button in the setup row above. */}
+          <span className="sim-runs-count" aria-label={`${runs.length} runs`}>
+            {runs.length}
+          </span>
         </div>
-        {runs.length === 0 ? (
-          <div className="sim-runs-empty">No runs yet. Configure a scenario above and press Run.</div>
-        ) : (
-          <div className="sim-runs-list">
-            {runs.map((r) => {
-              const { turns: parsedTurns, scenario: scLabel } = parseRunTitle(r.title, config.improvisedLabel);
-              // Prefer the actual number of turns the run produced (assistant
-              // replies); fall back to the requested count parsed from the title.
-              const turnsLabel =
-                r.turnCount && r.turnCount > 0
-                  ? `${r.turnCount} ${r.turnCount === 1 ? "turn" : "turns"}`
-                  : parsedTurns;
-              const when = relativeTime(r.updatedAt);
-              return (
-                <div
-                  key={r.id}
-                  className={
-                    "sim-run" +
-                    (r.id === activeRunId ? " active" : "") +
-                    (r.hasFeedback ? " has-feedback" : "")
-                  }
-                  role="button"
-                  tabIndex={0}
-                  title="Open this run in the chat window"
-                  onClick={() => onSelectRun?.(r.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onSelectRun?.(r.id);
+        {runsOpen && (
+          runs.length === 0 ? (
+            <div className="sim-runs-empty">No runs yet. Configure a scenario above and press Run.</div>
+          ) : (
+            <div className="sim-runs-list">
+              {runs.map((r) => {
+                const { turns: parsedTurns, scenario: scLabel } = parseRunTitle(r.title, config.improvisedLabel);
+                // Prefer the actual number of turns the run produced (assistant
+                // replies); fall back to the requested count parsed from the title.
+                const turnsLabel =
+                  r.turnCount && r.turnCount > 0
+                    ? `${r.turnCount} ${r.turnCount === 1 ? "turn" : "turns"}`
+                    : parsedTurns;
+                const when = relativeTime(r.updatedAt);
+                return (
+                  <div
+                    key={r.id}
+                    className={
+                      "sim-run" +
+                      (r.id === activeRunId ? " active" : "") +
+                      (r.hasFeedback ? " has-feedback" : "")
                     }
-                  }}
-                >
-                  <div className="sim-run-body">
-                    <div className="sim-run-scenario">{scLabel}</div>
-                    <div className="sim-run-meta">
-                      {turnsLabel && <span>{turnsLabel}</span>}
-                      {turnsLabel && when && <span className="sim-run-dot">·</span>}
-                      {when && <span>{when}</span>}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="sim-run-info"
-                    title="View this run's scenario"
-                    aria-label="View this run's scenario"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setInfoRun(r);
+                    role="button"
+                    tabIndex={0}
+                    title="Open this run in the chat window"
+                    onClick={() => onSelectRun?.(r.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelectRun?.(r.id);
+                      }
                     }}
                   >
-                    <Ic.Info size={15} />
-                  </button>
-                  {onDeleteRun && (
+                    <div className="sim-run-body">
+                      <div className="sim-run-scenario">{scLabel}</div>
+                      <div className="sim-run-meta">
+                        {turnsLabel && <span>{turnsLabel}</span>}
+                        {turnsLabel && when && <span className="sim-run-dot">·</span>}
+                        {when && <span>{when}</span>}
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      className="sim-run-del"
-                      title="Delete this run"
-                      aria-label="Delete this run"
+                      className="sim-run-info"
+                      title="View this run's scenario"
+                      aria-label="View this run's scenario"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteRun(r.id);
+                        setInfoRun(r);
                       }}
                     >
-                      <Ic.Trash size={15} />
+                      <Ic.Info size={15} />
                     </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    {onDeleteRun && (
+                      <button
+                        type="button"
+                        className="sim-run-del"
+                        title="Delete this run"
+                        aria-label="Delete this run"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteRun(r.id);
+                        }}
+                      >
+                        <Ic.Trash size={15} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
 

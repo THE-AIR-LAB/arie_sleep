@@ -12,6 +12,9 @@ export function ThreadHeader({
   onToggleCollapseAll,
   avatarOnly = false,
   onToggleAvatarOnly,
+  showFeedbackToggle = false,
+  highlightFeedback = false,
+  onToggleHighlightFeedback,
 }: {
   config: Pick<
     StudioChatConfig,
@@ -24,6 +27,10 @@ export function ThreadHeader({
   onToggleCollapseAll?: () => void;
   avatarOnly?: boolean;
   onToggleAvatarOnly?: () => void;
+  /** Only when this conversation has at least one feedback entry. */
+  showFeedbackToggle?: boolean;
+  highlightFeedback?: boolean;
+  onToggleHighlightFeedback?: () => void;
 }) {
   return (
     <div className={"thread-head" + (avatarOnly ? " is-avatar-only" : "")}>
@@ -78,6 +85,21 @@ export function ThreadHeader({
               </button>
             </div>
           )}
+          {showFeedbackToggle ? (
+            <button
+              type="button"
+              className={"thread-collapse-all thread-feedback-toggle" + (highlightFeedback ? " on" : "")}
+              onClick={onToggleHighlightFeedback}
+              aria-pressed={highlightFeedback}
+              title={
+                highlightFeedback
+                  ? "Hide feedback highlight on bubbles"
+                  : "Highlight bubbles that have feedback"
+              }
+            >
+              Feedback
+            </button>
+          ) : null}
         </div>
       )}
     </div>

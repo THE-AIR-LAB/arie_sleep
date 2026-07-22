@@ -88,6 +88,8 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   const [messages, setMessages] = useState<Message[]>([]);
   // True while a selected conversation/simulation run is fetching into the thread.
   const [threadLoading, setThreadLoading] = useState(false);
+  // Simulations open at the first bubble; regular chats follow the latest turn.
+  const [threadScrollAnchor, setThreadScrollAnchor] = useState<"start" | "end">("end");
   const threadLoadSeqRef = useRef(0);
   const [streaming, setStreaming] = useState("");
   const [input, setInput] = useState("");
@@ -166,6 +168,9 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   const [collapsedByIdx, setCollapsedByIdx] = useState<Record<number, boolean>>({});
   const [hideBubbleControls, setHideBubbleControls] = useState(true);
   const [avatarOnly, setAvatarOnly] = useState(false);
+  // Tint bubbles that have feedback (green). Off by default; pill toggle only
+  // appears when this conversation actually has feedback entries.
+  const [highlightFeedback, setHighlightFeedback] = useState(false);
   const [threadFullscreen, setThreadFullscreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ChatModelId>(OPENAI_MODEL);
   useEffect(() => {
@@ -180,6 +185,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     setHideBubbleControls(true);
     setCollapsedByIdx({});
     setThreadFullscreen(false);
+    setHighlightFeedback(false);
   }, [activeId]);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -470,6 +476,13 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   );
   const [feedbackMode, setFeedbackMode] = useState(false); // per-bubble feedback
   const [feedbackByIdx, setFeedbackByIdx] = useState<Record<number, FeedbackEntry[]>>({});
+  const hasThreadFeedback = useMemo(
+    () => Object.values(feedbackByIdx).some((entries) => entries.length > 0),
+    [feedbackByIdx]
+  );
+  useEffect(() => {
+    if (!hasThreadFeedback) setHighlightFeedback(false);
+  }, [hasThreadFeedback]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(300); // px, resizable
   // Right drawer width. `null` means "use the CSS default" (half the screen, via
@@ -604,10 +617,10 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
-  const loadMessages = useCallback(async (id: string) => {
+  const loadMessages = useCallback(async (id: string): Promise<Message[]> => {
     try {
       const res = await fetch(`/api/conversations/${id}/messages`);
-      if (!res.ok) { setMessages([]); setTurns([]); return; }
+      if (!res.ok) { setMessages([]); setTurns([]); return []; }
       const { messages: rows } = (await res.json()) as {
         messages: Array<{
           id: string;
@@ -662,9 +675,11 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
       }
       setMessages(rebuiltMessages);
       setTurns(rebuiltTurns);
+      return rebuiltMessages;
     } catch {
       setMessages([]);
       setTurns([]);
+      return [];
     }
   }, []);
 
@@ -877,9 +892,15 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     setFeedbackByIdx({});
     setEditingIdx(null);
     setTurns([]); // reset the policy trace / observability
+    setThreadScrollAnchor("end");
     speakNextAssistantRef.current = false;
     stopSpeaking();
   };
+
+  // Live replies (including an in-progress simulation) should follow the latest turn.
+  useEffect(() => {
+    if (typing || streaming) setThreadScrollAnchor("end");
+  }, [typing, streaming]);
   const onNew = () => {
     resetConversation();
     setMenuOpen(false);
@@ -924,7 +945,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     [convos]
   );
 
-  const onSelect = (id: string) => {
+  const onSelect = (id: string, opts?: { asSimulation?: boolean }) => {
     setActiveId(id);
     setStreaming("");
     setEditingIdx(null);
@@ -938,8 +959,21 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     setMenuOpen(false);
     const seq = ++threadLoadSeqRef.current;
     setThreadLoading(true);
-    void Promise.all([loadMessages(id), loadFeedback(id)]).finally(() => {
-      if (seq === threadLoadSeqRef.current) setThreadLoading(false);
+    const isSim =
+      !!opts?.asSimulation ||
+      convos.some((c) => c.id === id && c.title.startsWith(SIM_TITLE_PREFIX));
+    // Pin before messages arrive so the thread never lands on the latest turn.
+    setThreadScrollAnchor(isSim ? "start" : "end");
+    void Promise.all([loadMessages(id), loadFeedback(id)]).then(([msgs]) => {
+      if (seq !== threadLoadSeqRef.current) return;
+      setThreadLoading(false);
+      // Simulation runs open collapsed so the long thread is scannable.
+      if (isSim && msgs.length > 0) {
+        const next: Record<number, boolean> = {};
+        for (let i = 0; i < msgs.length; i++) next[i] = true;
+        setCollapsedByIdx(next);
+        setThreadScrollAnchor("start");
+      }
     });
   };
   const onRename = async (id: string, title: string) => {
@@ -1153,7 +1187,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 def={300}
               />
             </>
-          ) : (
+          ) : avatarOnly ? null : (
             <SidebarRail onExpand={() => setSidebarOpen(true)} onNew={onNew} />
           )}
           <main className="main">
@@ -1190,6 +1224,9 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 }}
                 avatarOnly={avatarOnly}
                 onToggleAvatarOnly={() => setAvatarOnly((v) => !v)}
+                showFeedbackToggle={hasThreadFeedback}
+                highlightFeedback={highlightFeedback}
+                onToggleHighlightFeedback={() => setHighlightFeedback((v) => !v)}
               />
             ) : null}
             {threadLoading ? (
@@ -1217,6 +1254,8 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 collapsedByIdx={collapsedByIdx}
                 setCollapsedByIdx={setCollapsedByIdx}
                 hideBubbleControls={hideBubbleControls}
+                scrollAnchor={threadScrollAnchor}
+                highlightFeedback={highlightFeedback}
               />
             ) : (
               <EmptyState config={config} onSuggest={send} onUpload={() => openDrawer("upload")} compact={canvasOpen} />
@@ -1275,18 +1314,21 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
 
           {/* Right rail: Workflow launcher; admins also get Model Setup.
               Docked at the right edge when no drawer is open; when a drawer IS
-              open it floats at the drawer's left edge and tracks its width. */}
-          <RightRail
-            panelOpen={openDrawers.length > 0}
-            onTogglePanel={() =>
-              openDrawers.length > 0 ? closeAllDrawers() : openDrawer("modelsetup")
-            }
-            isAdmin={isAdmin}
-            canvasOpen={canvasOpen}
-            onToggleCanvas={() => setCanvasOpen((v) => !v)}
-            floating={openDrawers.length > 0}
-            rightOffset={obsWidth ?? obsBounds.def}
-          />
+              open it floats at the drawer's left edge and tracks its width.
+              Hidden with the left rail when the header collapses to avatar-only. */}
+          {!avatarOnly ? (
+            <RightRail
+              panelOpen={openDrawers.length > 0}
+              onTogglePanel={() =>
+                openDrawers.length > 0 ? closeAllDrawers() : openDrawer("modelsetup")
+              }
+              isAdmin={isAdmin}
+              canvasOpen={canvasOpen}
+              onToggleCanvas={() => setCanvasOpen((v) => !v)}
+              floating={openDrawers.length > 0}
+              rightOffset={obsWidth ?? obsBounds.def}
+            />
+          ) : null}
           {openDrawers.length === 0 && (
             <MobileNav
               onOpen={openMobileDrawer}
@@ -1422,7 +1464,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
               onRunControls={onSimRunControls}
               runs={simulationRuns}
               activeRunId={activeId}
-              onSelectRun={onSelect}
+              onSelectRun={(id) => onSelect(id, { asSimulation: true })}
               onDeleteRun={onDelete}
               slot={simulationSlot}
             />

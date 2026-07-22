@@ -373,58 +373,63 @@ function KnowledgePane({
   };
 
   return (
-    <div className="sc-pane-inner">
+    <div className="sc-pane-inner sc-knowledge-pane">
       <div className="sc-pane-head">
         <span className="sc-lbl">Step 1</span>
         <h1>Knowledge</h1>
         <p>Collect the materials the model should draw from — uploaded files and structured datasets.</p>
       </div>
 
-      <div className="sc-list-head sc-knowledge-head" style={{ marginTop: 0 }}>
-        <span className="sc-lbl sc-knowledge-dataset">
-          Dataset: {GUIDELINE_ITEMS_DATASET_NAME} · {guidelineItems.length} rows
-        </span>
-        <div className="sc-knowledge-actions">
-          <button type="button" className="sc-var-edit" onClick={addRow}>
-            + Add guideline
-          </button>
-          <button
-            type="button"
-            className="sc-var-edit"
-            onClick={() => fileRef.current?.click()}
-          >
-            + Add file
-          </button>
+      {/* Sticky nav: dataset actions + drop stay put while guidelines scroll. */}
+      <div className="sc-knowledge-nav">
+        <div className="sc-list-head sc-knowledge-head" style={{ marginTop: 0 }}>
+          <span className="sc-lbl sc-knowledge-dataset">
+            Dataset: {GUIDELINE_ITEMS_DATASET_NAME} · {guidelineItems.length} rows
+          </span>
+          <div className="sc-knowledge-actions">
+            <button type="button" className="sc-var-edit" onClick={addRow}>
+              + Add guideline
+            </button>
+            <button
+              type="button"
+              className="sc-var-edit"
+              onClick={() => fileRef.current?.click()}
+            >
+              + Add file
+            </button>
+          </div>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          style={{ display: "none" }}
+          onChange={(e) => e.target.files && add(e.target.files)}
+        />
+        <div
+          className={"sc-drop sc-drop--compact sc-knowledge-drop" + (drag ? " drag" : "")}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDrag(true);
+          }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDrag(false);
+            if (e.dataTransfer.files) add(e.dataTransfer.files);
+          }}
+        >
+          <span>
+            Drop files here or{" "}
+            <span className="browse" onClick={() => fileRef.current?.click()}>
+              browse
+            </span>
+          </span>
+          <span className="fmts">PDF · TXT · MD · DOCX</span>
         </div>
       </div>
-      <input
-        ref={fileRef}
-        type="file"
-        multiple
-        style={{ display: "none" }}
-        onChange={(e) => e.target.files && add(e.target.files)}
-      />
-      <div
-        className={"sc-drop sc-drop--compact sc-knowledge-drop" + (drag ? " drag" : "")}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDrag(true);
-        }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDrag(false);
-          if (e.dataTransfer.files) add(e.dataTransfer.files);
-        }}
-      >
-        <span>
-          Drop files here or{" "}
-          <span className="browse" onClick={() => fileRef.current?.click()}>
-            browse
-          </span>
-        </span>
-        <span className="fmts">PDF · TXT · MD · DOCX</span>
-      </div>
+
+      <div className="sc-knowledge-body">
       {files.length > 0 && (
         <div className="sc-files" style={{ marginBottom: 10 }}>
           {files.map((f, i) => (
@@ -501,6 +506,7 @@ function KnowledgePane({
             </div>
           );
         })}
+      </div>
       </div>
 
       {pendingDelete !== null && (
