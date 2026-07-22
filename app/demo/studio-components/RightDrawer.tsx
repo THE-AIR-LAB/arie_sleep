@@ -6,12 +6,23 @@ import { ObservabilityContent } from "./ObservabilityPanel";
 import { ExpertChatContent } from "./ExpertChatPanel";
 import { UploadContent } from "./UploadPanel";
 
-/** Mobile bottom-sheet height (vh). Free drag between these bounds. */
-const SHEET_DEFAULT_VH = 70;
-const SHEET_MIN_VH = 18;
-const SHEET_MAX_VH = 100;
-/** Release below this to dismiss the sheet. */
-const SHEET_DISMISS_VH = 28;
+/** Mobile bottom-sheet height as a fraction of the *visible* viewport. */
+const SHEET_DEFAULT_FRAC = 0.7;
+const SHEET_MIN_FRAC = 0.18;
+/** Leave a top gap so the sheet can't ride under Chrome's URL / bookmark bar. */
+const SHEET_TOP_GAP_PX = 20;
+/** Release below this fraction to dismiss the sheet. */
+const SHEET_DISMISS_FRAC = 0.28;
+
+/** Visible viewport height (excludes browser chrome that classic `100vh` ignores). */
+function visibleViewportHeight(): number {
+  if (typeof window === "undefined") return 0;
+  return Math.round(window.visualViewport?.height ?? window.innerHeight);
+}
+
+function sheetMaxPx(): number {
+  return Math.max(120, visibleViewportHeight() - SHEET_TOP_GAP_PX);
+}
 
 /**
  * A single right-docked drawer that hosts the secondary panels (Observability,
@@ -119,22 +130,47 @@ export function RightDrawer({
   /** Non-admins never see the internal Model Setup / Observability panels. */
   isAdmin?: boolean;
 }) {
-  // Mobile bottom-sheet: continuous height drag on the grabber (no mid snap).
+  // Mobile bottom-sheet: continuous height drag on the grabber (px vs visual viewport).
   // Inert on desktop (grabber is display:none there).
-  const [sheetVh, setSheetVh] = useState(SHEET_DEFAULT_VH);
+  const [sheetPx, setSheetPx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
-  const dragStartVh = useRef(SHEET_DEFAULT_VH);
-  const sheetVhRef = useRef(sheetVh);
-  sheetVhRef.current = sheetVh;
+  const dragStartPx = useRef(0);
+  const sheetPxRef = useRef(sheetPx);
+  sheetPxRef.current = sheetPx;
   const wasOpenRef = useRef(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
     const nowOpen = open.length > 0;
-    if (nowOpen && !wasOpenRef.current) setSheetVh(SHEET_DEFAULT_VH);
+    if (nowOpen && !wasOpenRef.current) {
+      setSheetPx(Math.round(visibleViewportHeight() * SHEET_DEFAULT_FRAC));
+    }
     wasOpenRef.current = nowOpen;
   }, [open.length]);
+
+  // Keep the sheet inside the visible viewport when the URL bar shows/hides.
+  useEffect(() => {
+    if (!isMobile || open.length === 0) return;
+    const clamp = () => {
+      const max = sheetMaxPx();
+      const min = Math.round(visibleViewportHeight() * SHEET_MIN_FRAC);
+      setSheetPx((h) => {
+        const base = h > 0 ? h : Math.round(visibleViewportHeight() * SHEET_DEFAULT_FRAC);
+        return Math.max(min, Math.min(max, base));
+      });
+    };
+    clamp();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", clamp);
+    vv?.addEventListener("scroll", clamp);
+    window.addEventListener("resize", clamp);
+    return () => {
+      vv?.removeEventListener("resize", clamp);
+      vv?.removeEventListener("scroll", clamp);
+      window.removeEventListener("resize", clamp);
+    };
+  }, [isMobile, open.length]);
 
   // Tabs/panes shown: the full function set on mobile (scrollable, switchable),
   // the opened subset on desktop. Non-admins never get the internal panels on
@@ -149,28 +185,31 @@ export function RightDrawer({
   function onGrabDown(e: React.PointerEvent) {
     e.preventDefault();
     dragStartY.current = e.clientY;
-    dragStartVh.current = sheetVhRef.current;
+    dragStartPx.current = sheetPxRef.current;
     setDragging(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
   function onGrabMove(e: React.PointerEvent) {
     if (dragStartY.current === null) return;
     const dy = e.clientY - dragStartY.current; // down = shrink, up = grow
-    const vhPerPx = 100 / Math.max(1, window.innerHeight);
-    const next = dragStartVh.current - dy * vhPerPx;
-    setSheetVh(Math.max(SHEET_MIN_VH, Math.min(SHEET_MAX_VH, next)));
+    const min = Math.round(visibleViewportHeight() * SHEET_MIN_FRAC);
+    const max = sheetMaxPx();
+    setSheetPx(Math.round(Math.max(min, Math.min(max, dragStartPx.current - dy))));
   }
   function onGrabUp() {
     if (dragStartY.current === null) return;
     dragStartY.current = null;
     setDragging(false);
-    if (sheetVhRef.current < SHEET_DISMISS_VH) {
-      setSheetVh(SHEET_DEFAULT_VH);
+    const dismissAt = visibleViewportHeight() * SHEET_DISMISS_FRAC;
+    if (sheetPxRef.current < dismissAt) {
+      setSheetPx(Math.round(visibleViewportHeight() * SHEET_DEFAULT_FRAC));
       onDismiss?.();
     }
   }
 
   if (open.length === 0) return null;
+
+  const mobileSheetH = sheetPx > 0 ? sheetPx : Math.round(visibleViewportHeight() * SHEET_DEFAULT_FRAC);
 
   return (
     <div
@@ -179,8 +218,8 @@ export function RightDrawer({
         ...(width ? { ["--obs-w" as string]: `${width}px` } : {}),
         ...(isMobile
           ? {
-              height: `${sheetVh}vh`,
-              maxHeight: `${sheetVh}vh`,
+              height: mobileSheetH,
+              maxHeight: mobileSheetH,
               transition: dragging ? "none" : undefined,
             }
           : {}),

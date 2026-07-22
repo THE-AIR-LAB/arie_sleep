@@ -193,9 +193,11 @@ export function BottomCanvasDrawer({
     setResizing(true);
     const onMove = (ev: PointerEvent) => {
       const next = startH + (startY - ev.clientY);
-      // Free range: from a short strip up to nearly the full viewport.
+      // Cap to the visible viewport (not classic 100vh) and leave a top gap so
+      // the drawer can't ride under Chrome's URL / bookmark bar on mobile.
       const minH = 80;
-      const maxH = Math.max(minH, window.innerHeight - 8);
+      const visible = window.visualViewport?.height ?? window.innerHeight;
+      const maxH = Math.max(minH, Math.round(visible - 20));
       setHeight(Math.round(Math.max(minH, Math.min(maxH, next))));
     };
     const onUp = () => {
