@@ -538,33 +538,74 @@ export function Bubble({
     </div>
   );
 
+  const isWidthExpanded = widthPx != null;
+  const resetBubbleWidth = () => {
+    setWidthPx(null);
+    setLeftPx(null);
+  };
+  // Absolutely positioned on the right so showing/hiding never shifts the bubble.
+  const resetWidthBtn = isWidthExpanded ? (
+    <button
+      type="button"
+      aria-label="Reset bubble width"
+      title="Reset width"
+      onClick={resetBubbleWidth}
+      style={{
+        position: "absolute",
+        top: 2,
+        left: "100%",
+        marginLeft: 8,
+        width: 28,
+        height: 28,
+        borderRadius: "50%",
+        border: "1px solid var(--line)",
+        background: "var(--surface)",
+        color: "var(--text-2)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 0,
+        cursor: "pointer",
+        lineHeight: 0,
+        zIndex: 4,
+      }}
+    >
+      <Ic.Minimize size={13} stroke={1.7} />
+    </button>
+  ) : null;
+
+  // Attach reset control to the shell (already position:relative) without layout jump.
+  const shellWithReset = (
+    <>
+      {shell}
+      {resetWidthBtn}
+    </>
+  );
+
   if (isUser) {
     return (
       <div
         className="msg-user-col"
         style={
-          widthPx != null
+          isWidthExpanded
             ? {
                 width: widthPx,
                 maxWidth: "none",
                 alignSelf: "flex-start",
                 marginLeft: leftPx ?? undefined,
                 boxSizing: "border-box",
+                position: "relative",
+                overflow: "visible",
               }
-            : undefined
+            : { position: "relative", overflow: "visible" }
         }
       >
-        {shell}
+        {shellWithReset}
         {overlay}
         {feedbackModal}
       </div>
     );
   }
-  const isWidthExpanded = widthPx != null;
-  const resetBubbleWidth = () => {
-    setWidthPx(null);
-    setLeftPx(null);
-  };
 
   return (
     <div
@@ -582,59 +623,28 @@ export function Bubble({
           : undefined
       }
     >
-      <div
-        style={{
-          flex: "0 0 auto",
-          alignSelf: "flex-start",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        {avatarToggleProps ? (
-          <button {...avatarToggleProps}>
-            <AssistantMark variant="bubble" config={config} />
-          </button>
-        ) : (
+      {avatarToggleProps ? (
+        <button {...avatarToggleProps}>
           <AssistantMark variant="bubble" config={config} />
-        )}
-        {isWidthExpanded ? (
-          <button
-            type="button"
-            aria-label="Reset bubble width"
-            title="Reset width"
-            onClick={resetBubbleWidth}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              border: "1px solid var(--line)",
-              background: "var(--surface)",
-              color: "var(--text-2)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              margin: 0,
-              cursor: "pointer",
-              flex: "0 0 auto",
-              lineHeight: 0,
-            }}
-          >
-            <Ic.Minimize size={13} stroke={1.7} />
-          </button>
-        ) : null}
-      </div>
+        </button>
+      ) : (
+        <AssistantMark variant="bubble" config={config} />
+      )}
       <div
         className="bubble-col"
         style={
           isWidthExpanded
-            ? { flex: "0 0 auto", width: widthPx, maxWidth: "none", overflow: "visible" }
-            : undefined
+            ? {
+                flex: "0 0 auto",
+                width: widthPx,
+                maxWidth: "none",
+                overflow: "visible",
+                position: "relative",
+              }
+            : { position: "relative", overflow: "visible" }
         }
       >
-        {shell}
+        {shellWithReset}
       </div>
       {overlay}
       {feedbackModal}
