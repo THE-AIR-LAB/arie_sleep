@@ -3373,6 +3373,9 @@ export function EditorInner<TOutput>({
         nodeTypes={nodeTypes}
         edgeTypes={CANVAS_EDGE_TYPES}
         connectionLineType={ConnectionLineType.Bezier}
+        // Default RF floor is 0.5 — allow stepping much further out on large graphs.
+        minZoom={0.1}
+        maxZoom={2}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         proOptions={REACT_FLOW_PRO_OPTIONS}
