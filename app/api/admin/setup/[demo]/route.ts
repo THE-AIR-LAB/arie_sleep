@@ -727,7 +727,14 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       );
     }
 
-    await replaceCanvases(supabase, "policy_canvases", cfg.setupTable, setupId, policyCanvasRows);
+    // Guard the policy-canvas replace the same way workflow/state canvases are
+    // guarded: only when the caller actually sends `policyCanvases`. A partial
+    // save that omits them (e.g. the studio's workflow-only save) must leave the
+    // stored policy canvases untouched — an unconditional replace here would
+    // delete them all (delete-then-insert with an empty set).
+    if (body.policyCanvases !== undefined) {
+      await replaceCanvases(supabase, "policy_canvases", cfg.setupTable, setupId, policyCanvasRows);
+    }
 
     if (body.statePolicyCanvases !== undefined) {
       await replaceCanvases(
@@ -750,14 +757,38 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
   let executionPlanError: string | undefined;
 
   try {
+    // When a partial save omits policy/state canvases, those rows were left
+    // untouched above — so build the execution plan from what is actually
+    // stored, not from the empty body, to keep the plan and the persisted
+    // canvases in sync.
+    const effectivePolicyRows: SetupCanvasRow[] =
+      body.policyCanvases !== undefined
+        ? policyCanvasRows
+        : ((await fetchCanvases(
+            supabase,
+            "policy_canvases",
+            cfg.setupTable,
+            setupId
+          )) as SetupCanvasRow[]);
+    const effectiveStateRows: SetupCanvasRow[] =
+      body.statePolicyCanvases !== undefined
+        ? statePolicyCanvasRows
+        : ((await fetchCanvases(
+            supabase,
+            "state_policy_canvases",
+            cfg.setupTable,
+            setupId,
+            { ignoreMissingTable: true }
+          )) as SetupCanvasRow[]);
+
     const executionPlan = await generateExecutionPlanAtSetupTime({
       stateSchema: normalizeStateSchemaForPlanner(incomingConfig.state_schema),
       stateUpdatePrompt:
         typeof incomingConfig.state_update_prompt === "string" ? incomingConfig.state_update_prompt : "",
       policyExecutionPrompt:
         typeof incomingConfig.policy_prompt === "string" ? incomingConfig.policy_prompt : "",
-      stateCanvasDoc: buildCanvasDocFromRows(statePolicyCanvasRows),
-      policyCanvasDoc: buildCanvasDocFromRows(policyCanvasRows),
+      stateCanvasDoc: buildCanvasDocFromRows(effectiveStateRows),
+      policyCanvasDoc: buildCanvasDocFromRows(effectivePolicyRows),
     });
 
     await saveExecutionPlan(supabase, cfg.setupTable, setupId, executionPlan);
