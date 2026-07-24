@@ -1,25 +1,25 @@
-/* workflow-seed.ts — the Research studio's canvases, mirrored 1:1 from the DB.
+/* workflow-seed.ts — the Research studio's canvases.
 
-   Source: general_orchestration_daemon_drafts / c2b2f46c-3c3e-451a-a4cb-1b8acaf86115,
-   agent_connections[id=93c45cc3-f6b8-4e76-8831-b9632ffdfb03] and the top-level
-   workflow/policy/state_policy canvas tables (DEMO_1_LONGEVITY Supabase project).
+   Source of the daemon canvases: general_orchestration_daemon_drafts /
+   c2b2f46c-3c3e-451a-a4cb-1b8acaf86115, agent_connections[id=93c45cc3-...] and
+   the top-level workflow/policy/state_policy canvas tables (DEMO_1_LONGEVITY).
 
    Three seeds are exported:
      · buildResearchWorkflowSeed — the bottom "Workflow" drawer: all seven pulled
-       canvases as tabs (Overall Workflow, the task-environment policy/state/reward,
-       and the analyst-side policy/state/reward).
-     · buildResearchPolicySeed  — Model Setup → Policy: the analyst screening
-       decision flow (stage1TargetPolicy).
-     · buildResearchStateSeed   — Model Setup → State: the analyst state-update flow
-       (stage1TargetState).
+       daemon canvases mirrored 1:1 as tabs (read-only reference of the setup).
+     · buildResearchPolicySeed  — Model Setup -> Policy: a CHAT-NATIVE screening
+       decision flow. Unlike the daemon policy (which emits an agent-action JSON
+       commit), this compiles to a conversational screening prompt, so saving it
+       from Model Setup reproduces the intended chat behavior. Kept in sync with
+       the policy_canvases row stored for /demo/research/input.
+     · buildResearchStateSeed   — Model Setup -> State: the chat-native
+       state-extraction canvas, kept in sync with the stored state canvas.
 
-   The two starter-state canvases share the id "starter-state-canvas" in the DB;
-   the target-side one is re-keyed to "starter-state-canvas-target" so it can
-   coexist with the source-side one. All node/edge content is otherwise verbatim. */
+   These seeds are only the fallback shown until the saved DB canvas hydrates. */
 
 import type { CanvasDoc } from "../../../components/canvas/Canvas";
 
-/** Bottom-drawer seed: the DB canvases mirrored 1:1 as tabs. */
+/** Bottom-drawer seed: the DB daemon canvases mirrored 1:1 as tabs. */
 export function buildResearchWorkflowSeed(_primaryAgent: string): CanvasDoc {
   return {
     "version": 2,
@@ -1443,527 +1443,307 @@ export function buildResearchWorkflowSeed(_primaryAgent: string): CanvasDoc {
   };
 }
 
-/** Model Setup → Policy seed: the analyst screening decision flow. */
+/** Model Setup -> Policy seed: chat-native screening decision flow. */
 export function buildResearchPolicySeed(): CanvasDoc {
   return {
     "version": 2,
-    "activeId": "starter-policy-canvas",
+    "activeId": "research-screening-policy",
     "canvases": [
       {
-        "id": "starter-policy-canvas",
-        "name": "stage1TargetPolicy",
+        "id": "research-screening-policy",
+        "name": "Screening",
         "graph": {
-          "edges": [
-            {
-              "id": "66bc7387-7f13-47f1-a071-4212e935c28d",
-              "source": "7c25ee38-4150-44cb-9603-8749d6e345f3",
-              "target": "e7eb683d-d2e6-401d-ad32-64c0b9025f92",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "c7e27d39-e0c7-402c-8516-af94e82d289f",
-              "source": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
-              "target": "809e7341-11f8-4826-a7b8-900e661ad973",
-              "sourceHandle": "true",
-              "targetHandle": null
-            },
-            {
-              "id": "f69bad83-45c6-4cc0-8347-524f55275794",
-              "source": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
-              "target": "a424fe03-35ef-4ee8-9493-f4af4e9990fa",
-              "sourceHandle": "false",
-              "targetHandle": null
-            },
-            {
-              "id": "d0770d79-da09-4564-acbf-f3230c7ab955",
-              "source": "e7eb683d-d2e6-401d-ad32-64c0b9025f92",
-              "target": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "13ffd07d-d124-475c-845a-1c46199f6fd5",
-              "source": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
-              "target": "3792279d-f3e4-4014-83c8-1258050d9b9f",
-              "sourceHandle": "true",
-              "targetHandle": null
-            },
-            {
-              "id": "a8b5ee8a-86f9-405c-b8b7-60b329b32674",
-              "source": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
-              "target": "a2b33ced-e6c2-4cdc-811f-411f1ae321f7",
-              "sourceHandle": "false",
-              "targetHandle": null
-            },
-            {
-              "id": "87309658-6715-4d8b-a80a-2e68d223b9c8",
-              "source": "809e7341-11f8-4826-a7b8-900e661ad973",
-              "target": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "c2f2802a-3773-4bb6-a4be-83d75b2aef25",
-              "source": "3792279d-f3e4-4014-83c8-1258050d9b9f",
-              "target": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "060b7839-0e30-4873-b8a5-5826d0c94a6b",
-              "source": "starter-policy-start",
-              "target": "7c25ee38-4150-44cb-9603-8749d6e345f3",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "171a7a55-dfdd-4d93-aca9-63e7f80d2991",
-              "source": "df380f46-b899-4172-9a9b-f70c7263def0",
-              "target": "081abc16-6418-4d3e-9b95-194e0e9ff3d3",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "49e1a81f-8389-4ccf-9be8-5ea5e2a95d03",
-              "source": "c1ba2fa3-c4a3-4e75-9acc-bb8c1cf191d1",
-              "target": "8d678036-c9d6-4f6f-9fc0-00cd7f471ebb",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "dfd58df1-1814-4bb2-808e-ae29cdee6da9",
-              "source": "8d678036-c9d6-4f6f-9fc0-00cd7f471ebb",
-              "target": "df380f46-b899-4172-9a9b-f70c7263def0",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "ff8c99f1-43fe-41f0-be41-cf053656c764",
-              "source": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
-              "target": "c1ba2fa3-c4a3-4e75-9acc-bb8c1cf191d1",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "d4e79420-0188-47ad-96af-f87a782f5298",
-              "source": "a424fe03-35ef-4ee8-9493-f4af4e9990fa",
-              "target": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "496adba1-33f1-4234-9b65-a9b98aeb8b5e",
-              "source": "a2b33ced-e6c2-4cdc-811f-411f1ae321f7",
-              "target": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
-              "sourceHandle": null,
-              "targetHandle": null
-            }
-          ],
           "nodes": [
             {
-              "id": "starter-policy-start",
-              "data": {
-                "label": "Start screening task\n\nTask-environment lifecycle contract: use the selected task profile as input, complete every policy step, and send exactly one final response to the task environment."
-              },
+              "id": "start",
               "type": "start",
               "position": {
-                "x": 220,
-                "y": -36
+                "x": 320,
+                "y": 20
+              },
+              "data": {
+                "label": "You are a disciplined equity research analyst running an initial idea-generation screening. You will be given the current conversation plus an already-updated screening state. Use the state to decide the next step and never re-ask for something the state already captures. Be concise, specific, and balanced. This is general research for idea generation, not investment advice."
               }
             },
             {
-              "id": "7c25ee38-4150-44cb-9603-8749d6e345f3",
-              "data": {
-                "label": "Review company profile and available context to orient on business and recent changes",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
-              "position": {
-                "x": 220,
-                "y": 210
-              }
-            },
-            {
-              "id": "e7eb683d-d2e6-401d-ad32-64c0b9025f92",
-              "data": {
-                "label": "Perform preliminary financial valuation and balance sheet screening",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
-              "position": {
-                "x": 220,
-                "y": 380
-              }
-            },
-            {
-              "id": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
-              "data": {
-                "label": "Are recent disclosures available"
-              },
+              "id": "emergency",
               "type": "condition",
               "position": {
-                "x": 220,
-                "y": 550
+                "x": 320,
+                "y": 200
+              },
+              "data": {
+                "label": "the emergency flag in the state is set to true"
               }
             },
             {
-              "id": "809e7341-11f8-4826-a7b8-900e661ad973",
-              "data": {
-                "label": "Read the most decision-relevant disclosure sections selectively",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
+              "id": "urgent",
+              "type": "action",
               "position": {
-                "x": -100,
-                "y": 720
+                "x": 60,
+                "y": 360
+              },
+              "data": {
+                "label": "Stop routine screening and tell the user that the urgent risk (for example possible bankruptcy, fraud, or a covenant breach) should be resolved or independently verified before continuing.",
+                "actionType": "prompt"
               }
             },
             {
-              "id": "a424fe03-35ef-4ee8-9493-f4af4e9990fa",
-              "data": {
-                "label": "Proceed without disclosure review"
-              },
-              "type": "continue",
+              "id": "orient",
+              "type": "action",
               "position": {
-                "x": 540,
-                "y": 720
+                "x": 560,
+                "y": 360
+              },
+              "data": {
+                "label": "Orient: from the company profile and any context provided, restate in one or two sentences what the business does and what recently changed.",
+                "actionType": "prompt"
               }
             },
             {
-              "id": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
-              "data": {
-                "label": "Is peer or consensus context available"
+              "id": "value",
+              "type": "action",
+              "position": {
+                "x": 560,
+                "y": 540
               },
+              "data": {
+                "label": "Value: give a quick read on valuation and balance-sheet health versus the company's own history and its peers. Qualitative judgement is fine when hard data is thin.",
+                "actionType": "prompt"
+              }
+            },
+            {
+              "id": "disclosures",
               "type": "condition",
               "position": {
-                "x": 220,
-                "y": 890
+                "x": 560,
+                "y": 720
+              },
+              "data": {
+                "label": "recent disclosures or filings are available for the company"
               }
             },
             {
-              "id": "3792279d-f3e4-4014-83c8-1258050d9b9f",
-              "data": {
-                "label": "Test whether valuation quality and catalysts are already reflected in expectations",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
+              "id": "read_disclosures",
+              "type": "action",
               "position": {
-                "x": -100,
-                "y": 1060
+                "x": 320,
+                "y": 880
+              },
+              "data": {
+                "label": "Read the few most decision-relevant disclosure points and note what they change about the thesis.",
+                "actionType": "prompt"
               }
             },
             {
-              "id": "a2b33ced-e6c2-4cdc-811f-411f1ae321f7",
-              "data": {
-                "label": "Proceed without peer expectation check"
-              },
+              "id": "no_disclosures",
               "type": "continue",
               "position": {
-                "x": 540,
-                "y": 1060
+                "x": 800,
+                "y": 880
+              },
+              "data": {
+                "label": "Proceed without a disclosure review."
               }
             },
             {
-              "id": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
-              "data": {
-                "label": "Form initial hypothesis key investigation questions reasons not to continue screening decision and confidence",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
+              "id": "expectations",
+              "type": "condition",
               "position": {
-                "x": 220,
-                "y": 1230
+                "x": 560,
+                "y": 1040
+              },
+              "data": {
+                "label": "peer or consensus context is available"
               }
             },
             {
-              "id": "c1ba2fa3-c4a3-4e75-9acc-bb8c1cf191d1",
-              "data": {
-                "label": "Task-environment lifecycle contract: only after every preceding policy step is complete, assemble the completed solution and send it as the sole final action to the task environment. Return exactly one abstract action JSON object shaped {\"targetAgentId\":\"905cdf83-5970-4598-8642-dea17852cc99\",\"operations\":[{\"type\":\"display\",\"payload\":FINAL_OUTPUT}]}. Replace FINAL_OUTPUT with exactly one JSON value matching this authoritative final output format: {\"type\":\"object\",\"required\":[\"Initial Hypothesis\",\"Questions Requiring Investigation\",\"Reasons NOT to Continue\",\"Screening Decision\",\"Confidence\"],\"properties\":{\"Initial Hypothesis\":{\"type\":\"string\"},\"Questions Requiring Investigation\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Reasons NOT to Continue\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Screening Decision\":{\"type\":\"string\",\"enum\":[\"Reject\",\"Watchlist\",\"Advance to full research\"],\"description\":\"Reject: do not invest and remove from active consideration. Watchlist: interesting but insufficient evidence; continue monitoring. Advance to full research: worth deeper investigation; begin detailed due diligence.\"},\"Confidence\":{\"type\":\"string\"}},\"additionalProperties\":false}. Do not put agent_latest_action, reward, environment_notes, Markdown, a code fence, or explanatory wrapper text inside the Display payload.",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
+              "id": "test_expectations",
+              "type": "action",
               "position": {
-                "x": 220,
-                "y": 1570
+                "x": 320,
+                "y": 1200
+              },
+              "data": {
+                "label": "Test whether the company's quality and catalysts are already reflected in peer or consensus expectations.",
+                "actionType": "prompt"
               }
             },
             {
-              "id": "081abc16-6418-4d3e-9b95-194e0e9ff3d3",
-              "data": {
-                "label": "Finish after final note is sent"
+              "id": "no_expectations",
+              "type": "continue",
+              "position": {
+                "x": 800,
+                "y": 1200
               },
+              "data": {
+                "label": "Proceed without a peer expectation check."
+              }
+            },
+            {
+              "id": "decide",
+              "type": "action",
+              "position": {
+                "x": 560,
+                "y": 1360
+              },
+              "data": {
+                "label": "Deliver the screening note with these fields: Initial Hypothesis; Questions Requiring Investigation; Reasons NOT to Continue; Screening Decision (Reject, Watchlist, or Advance to full research); and Confidence (low, medium, or high). Keep it concise and balanced.",
+                "actionType": "prompt"
+              }
+            },
+            {
+              "id": "done",
               "type": "terminate_stage",
               "position": {
-                "x": 312,
-                "y": 1876
+                "x": 600,
+                "y": 1560
+              },
+              "data": {
+                "label": "Finish after the screening note is delivered."
               }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e_start_emergency",
+              "source": "start",
+              "target": "emergency"
             },
             {
-              "id": "df380f46-b899-4172-9a9b-f70c7263def0",
-              "data": {
-                "label": "Action",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
-              "position": {
-                "x": 220,
-                "y": 1730
-              }
+              "id": "e_emergency_urgent",
+              "source": "emergency",
+              "target": "urgent",
+              "sourceHandle": "true",
+              "label": "true"
             },
             {
-              "id": "8d678036-c9d6-4f6f-9fc0-00cd7f471ebb",
-              "data": {
-                "label": "Action",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
-              "position": {
-                "x": 220,
-                "y": 1730
-              }
+              "id": "e_emergency_orient",
+              "source": "emergency",
+              "target": "orient",
+              "sourceHandle": "false",
+              "label": "false"
+            },
+            {
+              "id": "e_urgent_done",
+              "source": "urgent",
+              "target": "done"
+            },
+            {
+              "id": "e_orient_value",
+              "source": "orient",
+              "target": "value"
+            },
+            {
+              "id": "e_value_disclosures",
+              "source": "value",
+              "target": "disclosures"
+            },
+            {
+              "id": "e_disclosures_read",
+              "source": "disclosures",
+              "target": "read_disclosures",
+              "sourceHandle": "true",
+              "label": "true"
+            },
+            {
+              "id": "e_disclosures_skip",
+              "source": "disclosures",
+              "target": "no_disclosures",
+              "sourceHandle": "false",
+              "label": "false"
+            },
+            {
+              "id": "e_read_expectations",
+              "source": "read_disclosures",
+              "target": "expectations"
+            },
+            {
+              "id": "e_skip_expectations",
+              "source": "no_disclosures",
+              "target": "expectations"
+            },
+            {
+              "id": "e_expectations_test",
+              "source": "expectations",
+              "target": "test_expectations",
+              "sourceHandle": "true",
+              "label": "true"
+            },
+            {
+              "id": "e_expectations_skip",
+              "source": "expectations",
+              "target": "no_expectations",
+              "sourceHandle": "false",
+              "label": "false"
+            },
+            {
+              "id": "e_test_decide",
+              "source": "test_expectations",
+              "target": "decide"
+            },
+            {
+              "id": "e_skip_decide",
+              "source": "no_expectations",
+              "target": "decide"
+            },
+            {
+              "id": "e_decide_done",
+              "source": "decide",
+              "target": "done"
             }
           ]
         },
-        "freeText": "Analyst receives the company context, performs pragmatic screening, and returns one concise final note JSON with the required fields.\n\nTask-environment lifecycle contract: preserve the inferred policy and enforce the task handoff and terminal-output contract around it."
+        "freeText": "Chat-native screening policy for the Research studio. Compiles to a conversational idea-generation screening prompt (no daemon action/commit nodes), so saving from Model Setup reproduces the intended behavior."
       }
     ]
   };
 }
 
-/** Model Setup → State seed: the analyst state-update flow. */
+/** Model Setup -> State seed: chat-native state-extraction flow. */
 export function buildResearchStateSeed(): CanvasDoc {
   return {
     "version": 2,
-    "activeId": "starter-state-canvas-target",
+    "activeId": "research-screening-state",
     "canvases": [
       {
-        "id": "starter-state-canvas-target",
-        "name": "stage1TargetState",
+        "id": "research-screening-state",
+        "name": "Main",
         "graph": {
-          "edges": [
-            {
-              "id": "starter-state-start-to-ingress",
-              "source": "starter-state-start",
-              "target": "starter-state-ingress-append",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "starter-state-ingress-to-summary-gate",
-              "source": "starter-state-ingress-append",
-              "target": "starter-state-summary-gate-memory-size",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "starter-state-summary-gate-true",
-              "source": "starter-state-summary-gate",
-              "target": "starter-state-update-summary",
-              "sourceHandle": "true",
-              "targetHandle": null
-            },
-            {
-              "id": "starter-state-summary-to-clear",
-              "source": "starter-state-update-summary",
-              "target": "starter-state-clear-new-events",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "starter-state-summary-gate-memory-size-to-condition",
-              "source": "starter-state-summary-gate-memory-size",
-              "target": "starter-state-summary-gate",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "5815f2ee-1900-466c-b0c5-5cd45936861a",
-              "source": "starter-state-summary-gate",
-              "target": "a144e131-803f-4bcb-a229-060bb32f9c9d",
-              "sourceHandle": "false",
-              "targetHandle": null
-            },
-            {
-              "id": "9dd15181-7d7e-4404-866a-b8ae160d8f1a",
-              "source": "starter-state-clear-new-events",
-              "target": "a144e131-803f-4bcb-a229-060bb32f9c9d",
-              "sourceHandle": null,
-              "targetHandle": null
-            },
-            {
-              "id": "fb45ebf2-1775-4502-90f0-180b21da1192",
-              "source": "a144e131-803f-4bcb-a229-060bb32f9c9d",
-              "target": "b8925323-1f4f-4b72-9074-6c2763dd0801",
-              "sourceHandle": "true",
-              "targetHandle": null
-            },
-            {
-              "id": "859429bf-5a3b-49f2-9041-7ba942f690e4",
-              "source": "a144e131-803f-4bcb-a229-060bb32f9c9d",
-              "target": "80547d08-8caf-4f67-8ae8-af62c01467ce",
-              "sourceHandle": "false",
-              "targetHandle": null
-            }
-          ],
           "nodes": [
             {
-              "id": "starter-state-start",
-              "data": {
-                "label": "Observe target-side task input"
-              },
+              "id": "start",
               "type": "start",
               "position": {
-                "x": 200,
+                "x": 360,
                 "y": 40
+              },
+              "data": {
+                "label": "You are a careful state-tracking assistant for an investment idea-generation screening tool. Update only the screening state using the previous known state plus the latest user message. Return exactly one JSON object and nothing else."
               }
             },
             {
-              "id": "starter-state-ingress-append",
-              "data": {
-                "label": "Add agent_latest_observation and agent_latest_reward to new_events.",
-                "actionType": "code",
-                "actionTypeSource": "auto",
-                "localInputFields": [
-                  {
-                    "name": "agent_latest_observation",
-                    "type": "string"
-                  },
-                  {
-                    "name": "agent_latest_reward",
-                    "type": "string"
-                  }
-                ],
-                "executableCodeOps": [
-                  {
-                    "kind": "append_list_item",
-                    "field": "new_events",
-                    "source": {
-                      "kind": "latest_observation_and_reward_event"
-                    }
-                  }
-                ]
-              },
-              "type": "code",
+              "id": "rules",
+              "type": "action",
               "position": {
-                "x": 200,
-                "y": 190
+                "x": 320,
+                "y": 300
+              },
+              "data": {
+                "label": "State rules:\n- company: the name or ticker of the company being screened, or blank if not yet given.\n- sector: the company's sector or industry if stated or clearly implied, else blank.\n- initial_hypothesis: a one-sentence working thesis for why this could or could not be an idea worth pursuing; blank until enough is known.\n- questions_to_investigate: the open questions that most need answering before a decision; empty until there are any.\n- reasons_not_to_continue: concrete red flags or reasons to stop; empty if none.\n- screening_decision: one of \"Reject\", \"Watchlist\", or \"Advance to full research\"; blank until a decision is reached.\n- confidence: \"low\", \"medium\", or \"high\"; blank until decided.\n- emergency: true only if the user raises an urgent risk (for example imminent bankruptcy, fraud, or a covenant breach) that should halt normal screening, otherwise false.\n- summary: a short running summary of the screening so far; blank at the start.\n- turn_count: increment by 1 each user turn.\nOnly fill a field when the conversation supports it; otherwise leave it unchanged.",
+                "actionType": "prompt"
               }
-            },
+            }
+          ],
+          "edges": [
             {
-              "id": "starter-state-summary-gate",
-              "data": {
-                "label": "memory_over_limit is true"
-              },
-              "type": "condition",
-              "position": {
-                "x": 200,
-                "y": 510
-              }
-            },
-            {
-              "id": "starter-state-update-summary",
-              "data": {
-                "label": "Update summary with a concise summary of summary plus new_events.",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
-              "position": {
-                "x": 20,
-                "y": 670
-              }
-            },
-            {
-              "id": "starter-state-clear-new-events",
-              "data": {
-                "label": "Set new_events to empty list.",
-                "actionType": "code",
-                "actionTypeSource": "auto",
-                "executableCodeOps": [
-                  {
-                    "kind": "set_field",
-                    "field": "new_events",
-                    "source": {
-                      "kind": "constant",
-                      "value": []
-                    }
-                  }
-                ]
-              },
-              "type": "code",
-              "position": {
-                "x": 20,
-                "y": 820
-              }
-            },
-            {
-              "id": "starter-state-summary-gate-memory-size",
-              "data": {
-                "label": "Measure whether summary plus new_events exceeds 4000 characters.",
-                "actionType": "code",
-                "codeSource": "\nconst textLength = (value: unknown): number => {\n  if (value === null || value === undefined) return 0;\n  if (typeof value === \"string\") return value.length;\n  return JSON.stringify(value).length;\n};\n\nconst memoryLength =\n  textLength(ctx.state.summary) +\n  textLength(ctx.state.new_events);\n\nreturn {\n  setLocals: {\n    memory_over_limit: memoryLength > 4000,\n  },\n};\n",
-                "codeLanguage": "typescript",
-                "actionTypeSource": "auto",
-                "codeLocalOutputFields": [
-                  {
-                    "name": "memory_over_limit",
-                    "type": "boolean"
-                  }
-                ]
-              },
-              "type": "code",
-              "position": {
-                "x": 200,
-                "y": 350
-              }
-            },
-            {
-              "id": "a144e131-803f-4bcb-a229-060bb32f9c9d",
-              "data": {
-                "label": "Has source delivered company task package"
-              },
-              "type": "condition",
-              "position": {
-                "x": 420,
-                "y": 720
-              }
-            },
-            {
-              "id": "b8925323-1f4f-4b72-9074-6c2763dd0801",
-              "data": {
-                "label": "Await task package from source"
-              },
-              "type": "continue",
-              "position": {
-                "x": 740,
-                "y": 890
-              }
-            },
-            {
-              "id": "80547d08-8caf-4f67-8ae8-af62c01467ce",
-              "data": {
-                "label": "Prepare state values for initial_hypothesis questions_requiring_investigation reasons_not_to_continue screening_decision and confidence",
-                "actionType": "prompt",
-                "actionTypeSource": "auto"
-              },
-              "type": "prompt",
-              "position": {
-                "x": 420,
-                "y": 1230
-              }
+              "id": "e_start_rules",
+              "source": "start",
+              "target": "rules"
             }
           ]
         },
-        "freeText": "Receives the delivered task package as observation, reads only the provided context fields, and stores the final note fields before returning them."
+        "freeText": "Chat-native state-tracking canvas for the Research studio. Compiles to the screening state-extraction prompt, so saving from Model Setup reproduces the intended behavior."
       }
     ]
   };
