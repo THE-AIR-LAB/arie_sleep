@@ -60,6 +60,7 @@ export const ADMIN_ONLY_DRAWERS: DrawerId[] = ["modelsetup", "observability", "s
 /** Demo studios — shared by the header + mobile Chats switchers. */
 export const STUDIO_OPTIONS = [
   { label: "Analyst", href: "/demo/analyst/studio" },
+  { label: "Market Researcher", href: "/demo/research/studio" },
   { label: "Council", href: "/demo/law/studio" },
   { label: "Therapist", href: "/demo/sleep/studio" },
 ] as const;

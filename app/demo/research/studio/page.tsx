@@ -19,21 +19,21 @@ function deriveWorkflowStage(turn: Turn | null | undefined): string | null {
 }
 
 const studioChatConfig: StudioChatConfig = {
-  productName: "Research",
+  productName: "Market Researcher",
   studioPath: "/demo/research/studio",
   assistantMark: "logo",
   avatarSrc: "/analyst.png",
   emptyStateHref: "/demo/research/studio",
-  emptyStateTitle: "Research",
+  emptyStateTitle: "Market Researcher",
   emptyStateBody: (
     <>
-      Research runs the investment idea-generation screening: it reviews a
+      Market Researcher runs the investment idea-generation screening: it reviews a
       company profile, values the business, reads disclosures and peer
       expectations, and returns a structured screening note with a
       recommendation. General research, not investment advice.
     </>
   ),
-  emptyStatePrimaryAgent: "Primary agent: Research analyst",
+  emptyStatePrimaryAgent: "Primary agent: Market Researcher",
   buildWorkflowSeed: buildResearchWorkflowSeed,
   subjectNoun: "user",
   apiTopic: "research",
