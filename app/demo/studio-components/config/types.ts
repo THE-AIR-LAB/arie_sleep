@@ -1,6 +1,7 @@
 /** Shared types for the Sleep / Council / Analyst studio "Model Setup" experience. */
 
 import type { FlowEdge, FlowNode, NodeType } from "../flow-types";
+import type { CanvasDoc } from "../../../components/canvas/Canvas";
 
 export type { FlowEdge, FlowNode, NodeType };
 
@@ -41,6 +42,14 @@ export type StudioSetupConfig = {
   coachNoun: string;
   /** Noun for the intake subject, e.g. "patient" | "user". */
   subjectNoun: string;
+  /**
+   * Optional per-studio override for the Model Setup → Policy seed canvas shown
+   * until (or instead of) a saved DB config hydrates. Defaults to the built-in
+   * sleep-style Intake/Assess/Guide/Follow-up seed when omitted.
+   */
+  policySeedDoc?: CanvasDoc;
+  /** Optional per-studio override for the Model Setup → State seed canvas. */
+  stateSeedDoc?: CanvasDoc;
 };
 
 /** The per-studio seed content from each studio's own `sleep-data.ts`. */

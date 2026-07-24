@@ -1777,8 +1777,47 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{display:none !important;}
 }
 .ra-scope .bubble-nav{overflow:visible;}
+/* Keep shells clipped so long JSON/pre lines can't spill past rounded corners.
+   Feedback menus still escape via `:has(.bubble-fb-menu){overflow:visible}` above. */
 .ra-scope .msg-ai .bubble,
-.ra-scope .msg-user{overflow:visible;}
+.ra-scope .msg-user{overflow:hidden;}
+.ra-scope .bubble-body{
+  overflow-wrap:anywhere;word-break:break-word;min-width:0;}
+/* Structured JSON replies — readable fields instead of a monospace wall. */
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-prose{margin:0 0 .75em;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json{
+  margin:0;display:flex;flex-direction:column;gap:12px;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-row{
+  display:flex;flex-direction:column;gap:4px;min-width:0;
+  padding:0 0 12px;border-bottom:1px solid var(--line-soft);}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-row:last-child{
+  padding-bottom:0;border-bottom:none;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-key{
+  margin:0;font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.4px;
+  text-transform:uppercase;color:var(--text-3);line-height:1.3;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-val{
+  margin:0;min-width:0;font-family:var(--serif);font-size:inherit;line-height:1.5;
+  color:var(--text);overflow-wrap:anywhere;word-break:break-word;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-text,
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-scalar{display:block;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-empty{color:var(--text-3);font-style:italic;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-list{
+  margin:0;padding:0 0 0 1.15em;display:flex;flex-direction:column;gap:6px;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-list li{
+  margin:0;padding:0;line-height:1.45;overflow-wrap:anywhere;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-stack{
+  display:flex;flex-direction:column;gap:10px;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-json-card{
+  padding:10px 12px;border:1px solid var(--line-soft);background:var(--surface-2);}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-md-pre,
+.ra-scope .msg-ai .bubble .bubble-body pre{
+  margin:.35em 0 .55em;padding:10px 12px;max-width:100%;box-sizing:border-box;
+  overflow-x:hidden;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.86em;line-height:1.45;
+  background:var(--surface-2);border:1px solid var(--line-soft);border-radius:0;}
+.ra-scope .msg-ai .bubble .bubble-body .bubble-md-pre code,
+.ra-scope .msg-ai .bubble .bubble-body pre code{
+  background:transparent;padding:0;font-size:inherit;white-space:inherit;}
 
 .ra-scope .msg-actions{display:flex;gap:4px;margin-top:8px;opacity:0;}
 .ra-scope .msg-ai:hover .msg-actions{opacity:1;}

@@ -32,6 +32,12 @@ export const DEMO_SETUP: Record<DemoKey, DemoSetupConfig> = {
     filesBucket: "analyst-input-files",
     endpoint: "/demo/analyst/input",
   },
+  // Research reuses the analyst_inputs table, isolated by its own endpoint row.
+  research: {
+    setupTable: "analyst_inputs",
+    filesBucket: "analyst-input-files",
+    endpoint: "/demo/research/input",
+  },
   dnd: {
     setupTable: "dnd_inputs",
     filesBucket: "dnd-input-files",

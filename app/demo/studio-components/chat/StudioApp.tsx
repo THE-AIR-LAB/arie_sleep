@@ -54,6 +54,7 @@ import { MoveToV2Modal } from "./MoveToV2Modal";
 import { Thread } from "./Thread";
 import { ThreadHeader } from "./ThreadHeader";
 import type { Conversation, Message, StudioChatConfig } from "./types";
+import { pickSampleConversation, resolveSamplePreset } from "./sample-presets";
 
 export function StudioApp({ config }: { config: StudioChatConfig }) {
   const SetupBar = config.SetupBar;
@@ -958,6 +959,18 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     [convos]
   );
 
+  // Sample-project bootstrap (`?sample=1` / `?sample=analyst`): apply once after
+  // role + conversations are ready. Chrome first, then pick a conversation;
+  // Controls / Feedback re-apply after the activeId reset effect.
+  const sampleAppliedRef = useRef(false);
+  const sampleFollowUpRef = useRef<{
+    hideBubbleControls?: boolean;
+    highlightFeedback?: boolean;
+  } | null>(null);
+  const [sampleSetupSection, setSampleSetupSection] = useState<
+    "policy" | "state" | "knowledge" | null
+  >(null);
+
   const onSelect = (id: string, opts?: { asSimulation?: boolean }) => {
     setActiveId(id);
     setStreaming("");
@@ -989,6 +1002,66 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
       }
     });
   };
+
+  // `?sample=1` / `?sample=analyst` — open the studio as a ready-made analysis view.
+  useEffect(() => {
+    if (sampleAppliedRef.current) return;
+    if (!roleLoaded || !convosLoaded || !isAdmin) return;
+    if (typeof window === "undefined") return;
+    const raw = new URLSearchParams(window.location.search).get("sample");
+    const preset = resolveSamplePreset(raw, config.apiTopic);
+    if (!preset) return;
+    sampleAppliedRef.current = true;
+
+    if (preset.sidebarOpen != null) setSidebarOpen(preset.sidebarOpen);
+    if (preset.sidebarWidth != null) {
+      setSidebarWidth(Math.max(240, Math.min(520, preset.sidebarWidth)));
+    }
+    if (preset.obsWidth !== undefined) setObsWidth(preset.obsWidth);
+    if (preset.openDrawers) setOpenDrawers(preset.openDrawers);
+    if (preset.activeDrawer !== undefined) setActiveDrawer(preset.activeDrawer);
+    if (preset.canvasOpen != null) setCanvasOpen(preset.canvasOpen);
+    if (preset.canvasHeightFrac != null) {
+      setCanvasHeight(Math.round(window.innerHeight * preset.canvasHeightFrac));
+    }
+    if (preset.setupSection) setSampleSetupSection(preset.setupSection);
+
+    sampleFollowUpRef.current = {
+      hideBubbleControls: preset.hideBubbleControls,
+      highlightFeedback: preset.highlightFeedback,
+    };
+
+    const pick = pickSampleConversation(regularConvos, simulationRuns, preset);
+    if (pick) onSelect(pick.id, { asSimulation: pick.asSimulation });
+
+    if (preset.policyCanvasId) {
+      const canvasId = preset.policyCanvasId;
+      // Wait a frame so Model Setup is open and SetupBar can receive the signal.
+      requestAnimationFrame(() => {
+        setPolicyCanvasSelect((prev) => ({ canvasId, n: prev.n + 1 }));
+      });
+    }
+    // Intentionally once-per-mount for a given sample URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleLoaded, convosLoaded, isAdmin, config.apiTopic, regularConvos, simulationRuns]);
+
+  // Re-apply Controls / Feedback after activeId's reset effect clears them.
+  useEffect(() => {
+    const follow = sampleFollowUpRef.current;
+    if (!follow || !activeId) return;
+    const id = requestAnimationFrame(() => {
+      if (follow.hideBubbleControls != null) {
+        setHideBubbleControls(follow.hideBubbleControls);
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!sampleFollowUpRef.current?.highlightFeedback) return;
+    if (hasThreadFeedback) setHighlightFeedback(true);
+  }, [hasThreadFeedback, activeId]);
+
   const onRename = async (id: string, title: string) => {
     const next = title.trim();
     if (!next) return;
@@ -1465,7 +1538,17 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
           {/* SetupBar is mounted here (page level), not inside the drawer, so its
               popped-out floating window survives the drawer closing. It portals
               its docked view into the drawer's Model Setup slot when open. */}
-          {isAdmin && <SetupBar turns={turns} slot={modelSetupSlot} onTopDockChange={setTopDockH} policyFocus={policyFocus} stateFocus={stateFocus} policyCanvasSelect={policyCanvasSelect} />}
+          {isAdmin && (
+            <SetupBar
+              turns={turns}
+              slot={modelSetupSlot}
+              onTopDockChange={setTopDockH}
+              policyFocus={policyFocus}
+              stateFocus={stateFocus}
+              policyCanvasSelect={policyCanvasSelect}
+              initialSection={sampleSetupSection}
+            />
+          )}
           {/* SimulationPanel is mounted here (page level) for the same reason:
               closing the drawer must not tear down a live run or clear Pause/Stop. */}
           {isAdmin && (

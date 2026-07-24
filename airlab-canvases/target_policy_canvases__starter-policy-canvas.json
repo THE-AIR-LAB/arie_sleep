@@ -1,0 +1,286 @@
+{
+  "id": "starter-policy-canvas",
+  "name": "stage1TargetPolicy",
+  "graph": {
+    "edges": [
+      {
+        "id": "66bc7387-7f13-47f1-a071-4212e935c28d",
+        "source": "7c25ee38-4150-44cb-9603-8749d6e345f3",
+        "target": "e7eb683d-d2e6-401d-ad32-64c0b9025f92",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "c7e27d39-e0c7-402c-8516-af94e82d289f",
+        "source": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
+        "target": "809e7341-11f8-4826-a7b8-900e661ad973",
+        "sourceHandle": "true",
+        "targetHandle": null
+      },
+      {
+        "id": "f69bad83-45c6-4cc0-8347-524f55275794",
+        "source": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
+        "target": "a424fe03-35ef-4ee8-9493-f4af4e9990fa",
+        "sourceHandle": "false",
+        "targetHandle": null
+      },
+      {
+        "id": "d0770d79-da09-4564-acbf-f3230c7ab955",
+        "source": "e7eb683d-d2e6-401d-ad32-64c0b9025f92",
+        "target": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "13ffd07d-d124-475c-845a-1c46199f6fd5",
+        "source": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
+        "target": "3792279d-f3e4-4014-83c8-1258050d9b9f",
+        "sourceHandle": "true",
+        "targetHandle": null
+      },
+      {
+        "id": "a8b5ee8a-86f9-405c-b8b7-60b329b32674",
+        "source": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
+        "target": "a2b33ced-e6c2-4cdc-811f-411f1ae321f7",
+        "sourceHandle": "false",
+        "targetHandle": null
+      },
+      {
+        "id": "87309658-6715-4d8b-a80a-2e68d223b9c8",
+        "source": "809e7341-11f8-4826-a7b8-900e661ad973",
+        "target": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "c2f2802a-3773-4bb6-a4be-83d75b2aef25",
+        "source": "3792279d-f3e4-4014-83c8-1258050d9b9f",
+        "target": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "060b7839-0e30-4873-b8a5-5826d0c94a6b",
+        "source": "starter-policy-start",
+        "target": "7c25ee38-4150-44cb-9603-8749d6e345f3",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "171a7a55-dfdd-4d93-aca9-63e7f80d2991",
+        "source": "df380f46-b899-4172-9a9b-f70c7263def0",
+        "target": "081abc16-6418-4d3e-9b95-194e0e9ff3d3",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "49e1a81f-8389-4ccf-9be8-5ea5e2a95d03",
+        "source": "c1ba2fa3-c4a3-4e75-9acc-bb8c1cf191d1",
+        "target": "8d678036-c9d6-4f6f-9fc0-00cd7f471ebb",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "dfd58df1-1814-4bb2-808e-ae29cdee6da9",
+        "source": "8d678036-c9d6-4f6f-9fc0-00cd7f471ebb",
+        "target": "df380f46-b899-4172-9a9b-f70c7263def0",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "ff8c99f1-43fe-41f0-be41-cf053656c764",
+        "source": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
+        "target": "c1ba2fa3-c4a3-4e75-9acc-bb8c1cf191d1",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "d4e79420-0188-47ad-96af-f87a782f5298",
+        "source": "a424fe03-35ef-4ee8-9493-f4af4e9990fa",
+        "target": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "496adba1-33f1-4234-9b65-a9b98aeb8b5e",
+        "source": "a2b33ced-e6c2-4cdc-811f-411f1ae321f7",
+        "target": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
+        "sourceHandle": null,
+        "targetHandle": null
+      }
+    ],
+    "nodes": [
+      {
+        "id": "starter-policy-start",
+        "data": {
+          "label": "Start screening task\n\nTask-environment lifecycle contract: use the selected task profile as input, complete every policy step, and send exactly one final response to the task environment."
+        },
+        "type": "start",
+        "position": {
+          "x": 220,
+          "y": -36
+        }
+      },
+      {
+        "id": "7c25ee38-4150-44cb-9603-8749d6e345f3",
+        "data": {
+          "label": "Review company profile and available context to orient on business and recent changes",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 220,
+          "y": 210
+        }
+      },
+      {
+        "id": "e7eb683d-d2e6-401d-ad32-64c0b9025f92",
+        "data": {
+          "label": "Perform preliminary financial valuation and balance sheet screening",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 220,
+          "y": 380
+        }
+      },
+      {
+        "id": "3635e275-1414-45b4-b58b-bbbc2e4bd035",
+        "data": {
+          "label": "Are recent disclosures available"
+        },
+        "type": "condition",
+        "position": {
+          "x": 220,
+          "y": 550
+        }
+      },
+      {
+        "id": "809e7341-11f8-4826-a7b8-900e661ad973",
+        "data": {
+          "label": "Read the most decision-relevant disclosure sections selectively",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": -100,
+          "y": 720
+        }
+      },
+      {
+        "id": "a424fe03-35ef-4ee8-9493-f4af4e9990fa",
+        "data": {
+          "label": "Proceed without disclosure review"
+        },
+        "type": "continue",
+        "position": {
+          "x": 540,
+          "y": 720
+        }
+      },
+      {
+        "id": "7e6d9c3c-126d-47e1-8bf1-ddeddd83dfba",
+        "data": {
+          "label": "Is peer or consensus context available"
+        },
+        "type": "condition",
+        "position": {
+          "x": 220,
+          "y": 890
+        }
+      },
+      {
+        "id": "3792279d-f3e4-4014-83c8-1258050d9b9f",
+        "data": {
+          "label": "Test whether valuation quality and catalysts are already reflected in expectations",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": -100,
+          "y": 1060
+        }
+      },
+      {
+        "id": "a2b33ced-e6c2-4cdc-811f-411f1ae321f7",
+        "data": {
+          "label": "Proceed without peer expectation check"
+        },
+        "type": "continue",
+        "position": {
+          "x": 540,
+          "y": 1060
+        }
+      },
+      {
+        "id": "a390a5b0-ead7-4c8e-9cfc-b25c4c31f380",
+        "data": {
+          "label": "Form initial hypothesis key investigation questions reasons not to continue screening decision and confidence",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 220,
+          "y": 1230
+        }
+      },
+      {
+        "id": "c1ba2fa3-c4a3-4e75-9acc-bb8c1cf191d1",
+        "data": {
+          "label": "Task-environment lifecycle contract: only after every preceding policy step is complete, assemble the completed solution and send it as the sole final action to the task environment. Return exactly one abstract action JSON object shaped {\"targetAgentId\":\"905cdf83-5970-4598-8642-dea17852cc99\",\"operations\":[{\"type\":\"display\",\"payload\":FINAL_OUTPUT}]}. Replace FINAL_OUTPUT with exactly one JSON value matching this authoritative final output format: {\"type\":\"object\",\"required\":[\"Initial Hypothesis\",\"Questions Requiring Investigation\",\"Reasons NOT to Continue\",\"Screening Decision\",\"Confidence\"],\"properties\":{\"Initial Hypothesis\":{\"type\":\"string\"},\"Questions Requiring Investigation\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Reasons NOT to Continue\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Screening Decision\":{\"type\":\"string\",\"enum\":[\"Reject\",\"Watchlist\",\"Advance to full research\"],\"description\":\"Reject: do not invest and remove from active consideration. Watchlist: interesting but insufficient evidence; continue monitoring. Advance to full research: worth deeper investigation; begin detailed due diligence.\"},\"Confidence\":{\"type\":\"string\"}},\"additionalProperties\":false}. Do not put agent_latest_action, reward, environment_notes, Markdown, a code fence, or explanatory wrapper text inside the Display payload.",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 220,
+          "y": 1570
+        }
+      },
+      {
+        "id": "081abc16-6418-4d3e-9b95-194e0e9ff3d3",
+        "data": {
+          "label": "Finish after final note is sent"
+        },
+        "type": "terminate_stage",
+        "position": {
+          "x": 312,
+          "y": 1876
+        }
+      },
+      {
+        "id": "df380f46-b899-4172-9a9b-f70c7263def0",
+        "data": {
+          "label": "Action",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 220,
+          "y": 1730
+        }
+      },
+      {
+        "id": "8d678036-c9d6-4f6f-9fc0-00cd7f471ebb",
+        "data": {
+          "label": "Action",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 220,
+          "y": 1730
+        }
+      }
+    ]
+  },
+  "freeText": "Analyst receives the company context, performs pragmatic screening, and returns one concise final note JSON with the required fields.\n\nTask-environment lifecycle contract: preserve the inferred policy and enforce the task handoff and terminal-output contract around it."
+}

@@ -1,0 +1,90 @@
+{
+  "id": "starter-reward-canvas",
+  "name": "Task environment final solution quality",
+  "graph": {
+    "edges": [
+      {
+        "id": "starter-reward-start-to-score",
+        "source": "starter-reward-start",
+        "target": "starter-reward-default-score",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "starter-reward-score-to-calculate",
+        "source": "starter-reward-default-score",
+        "target": "starter-reward-calculate",
+        "sourceHandle": null,
+        "targetHandle": null
+      }
+    ],
+    "nodes": [
+      {
+        "id": "starter-reward-start",
+        "data": {
+          "label": "This is the task environment agent's quality evaluator. Treat final_output_format as the authoritative JSON contract for agent_latest_observation: {\"type\":\"object\",\"required\":[\"Initial Hypothesis\",\"Questions Requiring Investigation\",\"Reasons NOT to Continue\",\"Screening Decision\",\"Confidence\"],\"properties\":{\"Initial Hypothesis\":{\"type\":\"string\"},\"Questions Requiring Investigation\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Reasons NOT to Continue\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Screening Decision\":{\"type\":\"string\",\"enum\":[\"Reject\",\"Watchlist\",\"Advance to full research\"],\"description\":\"Reject: do not invest and remove from active consideration. Watchlist: interesting but insufficient evidence; continue monitoring. Advance to full research: worth deeper investigation; begin detailed due diligence.\"},\"Confidence\":{\"type\":\"string\"}},\"additionalProperties\":false} Return 0 when agent_latest_observation is empty, is not JSON, includes Markdown or wrapper text, or does not conform to that contract. For a conforming completed final solution, compare it against the selected task profile and return a scalar reward measuring solution quality. This scalar is the solution action's reward. Return 0 for opening profile delivery and for a missing, draft, or intermediate solution."
+        },
+        "type": "start",
+        "position": {
+          "x": 220,
+          "y": 40
+        }
+      },
+      {
+        "id": "starter-reward-default-score",
+        "data": {
+          "label": "This is the task environment agent's quality evaluator. Treat final_output_format as the authoritative JSON contract for agent_latest_observation: {\"type\":\"object\",\"required\":[\"Initial Hypothesis\",\"Questions Requiring Investigation\",\"Reasons NOT to Continue\",\"Screening Decision\",\"Confidence\"],\"properties\":{\"Initial Hypothesis\":{\"type\":\"string\"},\"Questions Requiring Investigation\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Reasons NOT to Continue\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Screening Decision\":{\"type\":\"string\",\"enum\":[\"Reject\",\"Watchlist\",\"Advance to full research\"],\"description\":\"Reject: do not invest and remove from active consideration. Watchlist: interesting but insufficient evidence; continue monitoring. Advance to full research: worth deeper investigation; begin detailed due diligence.\"},\"Confidence\":{\"type\":\"string\"}},\"additionalProperties\":false} Return 0 when agent_latest_observation is empty, is not JSON, includes Markdown or wrapper text, or does not conform to that contract. For a conforming completed final solution, compare it against the selected task profile and return a scalar reward measuring solution quality. This scalar is the solution action's reward. Return 0 for opening profile delivery and for a missing, draft, or intermediate solution.\n\nIf the latest action, recipient objective, or relevant agent states are insufficient to score the recipient's reward:\n- Return 0 when the reward cannot be determined from the available state and action.\n\nOtherwise:\n- Parse agent_latest_observation as JSON and validate it against final_output_format.\n- Read the selected task profile and conforming completed final solution.\n- Evaluate correctness, completeness, relevance, and constraint satisfaction.\n- Return only the scalar quality reward for the solution action.\n\nResponse rule: return only the final solution quality reward\n\nReturn one abstract action object shaped `{ targetAgentId, operations: [{ type, payload, ... }] }`. Use the connected other agent as targetAgentId. operations is ordered and may combine display, agent_call, and tool_call. Do not execute the operations in this decision step; the following commit and matching outbound nodes do that. Continue, stage transition, and Terminate are canvas control flow, not operations.",
+          "actionType": "prompt",
+          "starterFallback": true,
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 220,
+          "y": 200
+        }
+      },
+      {
+        "id": "starter-reward-calculate",
+        "data": {
+          "label": "Calculate the scalar reward value.",
+          "actionType": "code",
+          "codeSource": "const normalizeText = (value: unknown): string => {\n  if (typeof value === \"string\") return value.replace(/\\s+/g, \" \").trim();\n  if (value === null || value === undefined) return \"\";\n  return String(value).replace(/\\s+/g, \" \").trim();\n};\n\nconst readRewardCandidate = (value: unknown): unknown => {\n  if (typeof value === \"number\") return value;\n  if (typeof value === \"string\") {\n    const trimmed = value.trim();\n    if (!trimmed) return \"\";\n    try {\n      return readRewardCandidate(JSON.parse(trimmed) as unknown);\n    } catch {\n      const match = trimmed.match(/-?\\d+(?:\\.\\d+)?/);\n      return match?.[0] ?? trimmed;\n    }\n  }\n  if (value && typeof value === \"object\" && !Array.isArray(value)) {\n    const record = value as Record<string, unknown>;\n    return readRewardCandidate(\n      record.reward ??\n        record.scalar_reward ??\n        record.value ??\n        record.score ??\n        \"\"\n    );\n  }\n  return \"\";\n};\n\nconst rawReward = readRewardCandidate(ctx.locals.carried_output);\nconst numericReward =\n  typeof rawReward === \"number\" ? rawReward : Number(normalizeText(rawReward));\nconst reward = Number.isFinite(numericReward) ? numericReward : 0;\n\nreturn {\n  setLocals: {\n    reward,\n    scalar_reward: reward,\n    carried_output: String(reward),\n  },\n};",
+          "codeLanguage": "typescript",
+          "codeTemplateId": "reward_scalar_calculation",
+          "actionTypeSource": "auto",
+          "localInputFields": [
+            {
+              "name": "carried_output",
+              "type": "number"
+            },
+            {
+              "name": "agent_latest_observation",
+              "type": "string"
+            }
+          ],
+          "codeLocalOutputFields": [
+            {
+              "name": "reward",
+              "type": "number"
+            },
+            {
+              "name": "scalar_reward",
+              "type": "number"
+            },
+            {
+              "name": "carried_output",
+              "type": "number"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 220,
+          "y": 360
+        }
+      }
+    ]
+  },
+  "freeText": "The evaluator belongs to the task environment agent, which waits for the full workflow and scores only the final solution."
+}

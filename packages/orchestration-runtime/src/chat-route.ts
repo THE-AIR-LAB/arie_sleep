@@ -208,6 +208,13 @@ const ANALYST_SETUP_SOURCE: SetupSource = {
   setupEndpoint: "/demo/analyst/input",
   setupEndpointAliases: ["/analyst/input"],
 };
+// The Research demo (investment idea-generation screening) reuses the
+// analyst_inputs table, isolated by its own endpoint row.
+const RESEARCH_SETUP_SOURCE: SetupSource = {
+  sourceTable: "analyst_inputs",
+  setupEndpoint: "/demo/research/input",
+  setupEndpointAliases: ["/research/input"],
+};
 const DND_SETUP_SOURCE: SetupSource = {
   sourceTable: "dnd_inputs",
   setupEndpoint: "/demo/dnd/input",
@@ -976,6 +983,12 @@ function resolveSetupSourceFromRequest(request: Request): SetupSource {
 
   if (referer.includes("/demo/analyst")) {
     return ANALYST_SETUP_SOURCE;
+  }
+
+  // Checked after "/demo/research-assistant" above so that longer slug is not
+  // shadowed by the "/demo/research" substring match.
+  if (referer.includes("/demo/research")) {
+    return RESEARCH_SETUP_SOURCE;
   }
 
   const publishedDemoSource = resolvePublishedDaemonSetupSource(referer);

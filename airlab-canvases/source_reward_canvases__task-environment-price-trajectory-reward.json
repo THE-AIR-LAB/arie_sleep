@@ -1,0 +1,259 @@
+{
+  "id": "task-environment-price-trajectory-reward",
+  "name": "Thirty-day realized return",
+  "graph": {
+    "edges": [
+      {
+        "id": "task-reward-start-validation",
+        "source": "task-reward-start",
+        "target": "task-reward-validate-format"
+      },
+      {
+        "id": "task-reward-validation-gate",
+        "source": "task-reward-validate-format",
+        "target": "task-reward-format-valid"
+      },
+      {
+        "id": "task-reward-invalid-calculate",
+        "source": "task-reward-format-valid",
+        "target": "task-reward-calculate",
+        "sourceHandle": "false"
+      },
+      {
+        "id": "task-reward-valid-prepare",
+        "source": "task-reward-format-valid",
+        "target": "task-reward-prepare-price-action",
+        "sourceHandle": "true"
+      },
+      {
+        "id": "task-reward-prepare-availability",
+        "source": "task-reward-prepare-price-action",
+        "target": "task-reward-price-action-available"
+      },
+      {
+        "id": "task-reward-price-unavailable-zero",
+        "source": "task-reward-price-action-available",
+        "target": "task-reward-zero-missing-trajectory",
+        "sourceHandle": "false"
+      },
+      {
+        "id": "task-reward-zero-calculate",
+        "source": "task-reward-zero-missing-trajectory",
+        "target": "task-reward-calculate"
+      },
+      {
+        "id": "task-reward-price-available-score",
+        "source": "task-reward-price-action-available",
+        "target": "task-reward-score-decision",
+        "sourceHandle": "true"
+      },
+      {
+        "id": "task-reward-score-calculate",
+        "source": "task-reward-score-decision",
+        "target": "task-reward-calculate"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "task-reward-start",
+        "data": {
+          "label": "Validate the completed screening decision against final_output_format {\"type\":\"object\",\"required\":[\"Initial Hypothesis\",\"Questions Requiring Investigation\",\"Reasons NOT to Continue\",\"Screening Decision\",\"Confidence\"],\"properties\":{\"Initial Hypothesis\":{\"type\":\"string\"},\"Questions Requiring Investigation\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Reasons NOT to Continue\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Screening Decision\":{\"type\":\"string\",\"enum\":[\"Reject\",\"Watchlist\",\"Advance to full research\"],\"description\":\"Reject: do not invest and remove from active consideration. Watchlist: interesting but insufficient evidence; continue monitoring. Advance to full research: worth deeper investigation; begin detailed due diligence.\"},\"Confidence\":{\"type\":\"string\"}},\"additionalProperties\":false}, then return its matched 30-day realized percentage return."
+        },
+        "type": "start",
+        "position": {
+          "x": 0,
+          "y": 180
+        }
+      },
+      {
+        "id": "task-reward-validate-format",
+        "data": {
+          "label": "Return 0 for an empty observation; otherwise validate it against final_output_format.",
+          "actionType": "code",
+          "codeSource": "const parseJsonValue = (value: unknown): { ok: boolean; value: unknown } => {\n  if (value !== null && typeof value === \"object\") return { ok: true, value };\n  if (typeof value !== \"string\") return { ok: false, value: null };\n  const text = value.trim();\n  if (!text || text.startsWith(\"```\")) return { ok: false, value: null };\n  try { return { ok: true, value: JSON.parse(text) as unknown }; }\n  catch { return { ok: false, value: null }; }\n};\nconst isRecord = (value: unknown): value is Record<string, unknown> =>\n  !!value && typeof value === \"object\" && !Array.isArray(value);\nconst sameJson = (left: unknown, right: unknown): boolean =>\n  JSON.stringify(left) === JSON.stringify(right);\nconst valueType = (value: unknown): string => {\n  if (value === null) return \"null\";\n  if (Array.isArray(value)) return \"array\";\n  if (Number.isInteger(value)) return \"integer\";\n  return typeof value;\n};\nconst validateSchema = (value: unknown, schema: unknown): boolean => {\n  if (!isRecord(schema)) return true;\n  if (Array.isArray(schema.allOf) && !schema.allOf.every((item) => validateSchema(value, item))) return false;\n  if (Array.isArray(schema.anyOf) && !schema.anyOf.some((item) => validateSchema(value, item))) return false;\n  if (Array.isArray(schema.oneOf) && schema.oneOf.filter((item) => validateSchema(value, item)).length !== 1) return false;\n  if (Array.isArray(schema.enum) && !schema.enum.some((item) => sameJson(item, value))) return false;\n  if (Object.prototype.hasOwnProperty.call(schema, \"const\") && !sameJson(schema.const, value)) return false;\n  const allowedTypes = Array.isArray(schema.type) ? schema.type : typeof schema.type === \"string\" ? [schema.type] : [];\n  if (allowedTypes.length > 0) {\n    const actual = valueType(value);\n    if (!allowedTypes.some((expected) => expected === actual || (expected === \"number\" && (actual === \"number\" || actual === \"integer\")))) return false;\n  }\n  const properties = isRecord(schema.properties) ? schema.properties : null;\n  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];\n  if (properties || required.length > 0) {\n    if (!isRecord(value)) return false;\n    if (required.some((name) => !Object.prototype.hasOwnProperty.call(value, name))) return false;\n    if (properties) {\n      for (const [name, childSchema] of Object.entries(properties)) {\n        if (Object.prototype.hasOwnProperty.call(value, name) && !validateSchema(value[name], childSchema)) return false;\n      }\n      if (schema.additionalProperties === false && Object.keys(value).some((name) => !Object.prototype.hasOwnProperty.call(properties, name))) return false;\n    }\n  }\n  if (Object.prototype.hasOwnProperty.call(schema, \"items\")) {\n    if (!Array.isArray(value) || !value.every((item) => validateSchema(item, schema.items))) return false;\n  }\n  return true;\n};\nconst validateTemplate = (value: unknown, template: unknown): boolean => {\n  if (Array.isArray(template)) {\n    return Array.isArray(value) && (template.length === 0 || value.every((item) => validateTemplate(item, template[0])));\n  }\n  if (isRecord(template)) {\n    if (!isRecord(value) || Object.keys(template).length === 0) return false;\n    return Object.entries(template).every(([name, child]) =>\n      Object.prototype.hasOwnProperty.call(value, name) && validateTemplate(value[name], child)\n    );\n  }\n  if (template === null) return value === null;\n  return typeof value === typeof template;\n};\nconst zero = (reason: string) => ({\n  setLocals: {\n    reward_should_score: false,\n    validated_decision: null,\n    format_validation_error: reason,\n    reward: 0,\n    scalar_reward: 0,\n    carried_output: \"0\",\n  },\n});\nconst rawObservation = ctx.state.agent_latest_observation;\nif (rawObservation === null || rawObservation === undefined || (typeof rawObservation === \"string\" && !rawObservation.trim())) {\n  return zero(\"agent_latest_observation is empty\");\n}\nconst observation = parseJsonValue(rawObservation);\nif (!observation.ok) return zero(\"agent_latest_observation is not one unwrapped JSON value\");\nconst format = parseJsonValue(ctx.state.final_output_format);\nif (!format.ok || (isRecord(format.value) && Object.keys(format.value).length === 0)) {\n  return zero(\"final_output_format is unavailable\");\n}\nconst schemaKeys = new Set([\"$schema\", \"type\", \"properties\", \"required\", \"items\", \"allOf\", \"anyOf\", \"oneOf\", \"enum\", \"const\"]);\nconst isSchema = isRecord(format.value) && Object.keys(format.value).some((key) => schemaKeys.has(key));\nconst valid = isSchema\n  ? validateSchema(observation.value, format.value)\n  : validateTemplate(observation.value, format.value);\nif (!valid) return zero(\"agent_latest_observation does not match final_output_format\");\nreturn {\n  setLocals: {\n    reward_should_score: true,\n    validated_decision: observation.value,\n    format_validation_error: \"\",\n  },\n};",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "manual",
+          "codeLocalOutputFields": [
+            {
+              "name": "reward_should_score",
+              "type": "boolean"
+            },
+            {
+              "name": "validated_decision",
+              "type": "json"
+            },
+            {
+              "name": "format_validation_error",
+              "type": "string"
+            },
+            {
+              "name": "reward",
+              "type": "number"
+            },
+            {
+              "name": "scalar_reward",
+              "type": "number"
+            },
+            {
+              "name": "carried_output",
+              "type": "string"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 280,
+          "y": 180
+        }
+      },
+      {
+        "id": "task-reward-format-valid",
+        "data": {
+          "label": "reward_should_score is true"
+        },
+        "type": "condition",
+        "position": {
+          "x": 600,
+          "y": 180
+        }
+      },
+      {
+        "id": "task-reward-prepare-price-action",
+        "data": {
+          "label": "Prepare only the next 30 calendar days of price action.",
+          "actionType": "code",
+          "codeSource": "const asRecord = (value: unknown): Record<string, unknown> => {\n  if (value && typeof value === \"object\" && !Array.isArray(value)) return value as Record<string, unknown>;\n  if (typeof value === \"string\" && value.trim()) {\n    try {\n      const parsed = JSON.parse(value) as unknown;\n      return parsed && typeof parsed === \"object\" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};\n    } catch { return {}; }\n  }\n  return {};\n};\nconst parseCsvLine = (line: string): string[] => {\n  const cells: string[] = [];\n  let cell = \"\";\n  let quoted = false;\n  for (let index = 0; index < line.length; index += 1) {\n    const character = line[index];\n    if (character === '\"') {\n      if (quoted && line[index + 1] === '\"') { cell += '\"'; index += 1; }\n      else quoted = !quoted;\n    } else if (character === \",\" && !quoted) { cells.push(cell); cell = \"\"; }\n    else cell += character;\n  }\n  cells.push(cell);\n  return cells;\n};\nconst trajectoryRow = asRecord(ctx.state.selected_price_trajectory);\nconst trajectory = asRecord(trajectoryRow.trajectory);\nconst files = Array.isArray(trajectory.files) ? trajectory.files.map(asRecord) : [];\nconst csvText = String(files.find((file) => String(file.name ?? \"\").toLowerCase().endsWith(\".csv\"))?.content ?? files[0]?.content ?? \"\");\nconst lines = csvText.split(/\\r?\\n/).filter((line) => line.trim());\nconst headers = lines.length > 0 ? parseCsvLine(lines[0]).map((value) => value.trim().toLowerCase()) : [];\nconst rows = lines.slice(1).flatMap((line) => {\n  const cells = parseCsvLine(line);\n  const read = (names: string[]) => {\n    const index = headers.findIndex((header) => names.includes(header));\n    return index >= 0 ? cells[index] : \"\";\n  };\n  const date = read([\"date\"]);\n  const close = Number(read([\"close\", \"adj close\", \"adjusted close\"]));\n  const high = Number(read([\"high\"]));\n  const low = Number(read([\"low\"]));\n  return /^20\\d{2}-\\d{2}-\\d{2}$/.test(date) && Number.isFinite(close)\n    ? [{ date, close, high: Number.isFinite(high) ? high : close, low: Number.isFinite(low) ? low : close }]\n    : [];\n}).sort((left, right) => left.date.localeCompare(right.date));\nconst requestedStart = String(trajectoryRow.start_date ?? trajectory.start_date ?? rows[0]?.date ?? \"\").slice(0, 10);\nconst startTime = Date.parse(requestedStart + \"T00:00:00Z\");\nconst endTime = Number.isFinite(startTime) ? startTime + 30 * 24 * 60 * 60 * 1000 : Number.NaN;\nconst windowRows = Number.isFinite(endTime)\n  ? rows.filter((row) => {\n      const time = Date.parse(row.date + \"T00:00:00Z\");\n      return time >= startTime && time <= endTime;\n    })\n  : [];\nlet peak = windowRows[0]?.close ?? 0;\nlet maxDrawdown = 0;\nfor (const row of windowRows) {\n  peak = Math.max(peak, row.close);\n  if (peak > 0) maxDrawdown = Math.min(maxDrawdown, (row.close - peak) / peak);\n}\nconst startClose = windowRows[0]?.close ?? 0;\nconst endClose = windowRows.at(-1)?.close ?? 0;\nconst available = windowRows.length >= 2 && startClose > 0;\nconst priceAction = available\n  ? {\n      ticker: String(trajectoryRow.ticker ?? trajectory.ticker ?? \"\"),\n      start_date: windowRows[0].date,\n      end_date: windowRows.at(-1)?.date ?? \"\",\n      calendar_day_horizon: 30,\n      trading_days: windowRows.length,\n      start_close: startClose,\n      end_close: endClose,\n      return_pct: ((endClose - startClose) / startClose) * 100,\n      max_drawdown_pct: maxDrawdown * 100,\n      highest_price: Math.max(...windowRows.map((row) => row.high)),\n      lowest_price: Math.min(...windowRows.map((row) => row.low)),\n      daily_price_action: windowRows,\n    }\n  : {};\nreturn {\n  setLocals: {\n    future_price_action_available: available,\n    future_price_action_30d: priceAction,\n  },\n};",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "manual",
+          "codeLocalOutputFields": [
+            {
+              "name": "future_price_action_available",
+              "type": "boolean"
+            },
+            {
+              "name": "future_price_action_30d",
+              "type": "json"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 900,
+          "y": 320
+        }
+      },
+      {
+        "id": "task-reward-price-action-available",
+        "data": {
+          "label": "future_price_action_available is true"
+        },
+        "type": "condition",
+        "position": {
+          "x": 1200,
+          "y": 320
+        }
+      },
+      {
+        "id": "task-reward-zero-missing-trajectory",
+        "data": {
+          "label": "Return 0 when the matched 30-day price action is unavailable.",
+          "actionType": "code",
+          "codeSource": "return { setLocals: { reward: 0, scalar_reward: 0, carried_output: \"0\" } };",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "manual",
+          "codeLocalOutputFields": [
+            {
+              "name": "reward",
+              "type": "number"
+            },
+            {
+              "name": "scalar_reward",
+              "type": "number"
+            },
+            {
+              "name": "carried_output",
+              "type": "string"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1480,
+          "y": 80
+        }
+      },
+      {
+        "id": "task-reward-score-decision",
+        "data": {
+          "label": "Return future_price_action_30d.return_pct as the scalar reward.",
+          "actionType": "code",
+          "codeSource": "const priceAction = ctx.locals.future_price_action_30d;\nconst returnPct = priceAction && typeof priceAction === \"object\" && !Array.isArray(priceAction)\n  ? Number((priceAction as Record<string, unknown>).return_pct)\n  : Number.NaN;\nconst reward = Number.isFinite(returnPct) ? returnPct : 0;\nreturn {\n  setLocals: {\n    reward,\n    scalar_reward: reward,\n    carried_output: String(reward),\n  },\n};",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "manual",
+          "localInputFields": [
+            {
+              "name": "future_price_action_30d",
+              "type": "json"
+            }
+          ],
+          "codeLocalOutputFields": [
+            {
+              "name": "reward",
+              "type": "number"
+            },
+            {
+              "name": "scalar_reward",
+              "type": "number"
+            },
+            {
+              "name": "carried_output",
+              "type": "string"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1480,
+          "y": 420
+        }
+      },
+      {
+        "id": "task-reward-calculate",
+        "data": {
+          "label": "Output the realized 30-day percentage return without clipping.",
+          "actionType": "code",
+          "codeSource": "const raw = ctx.locals.carried_output;\nconst matched = typeof raw === \"string\"\n  ? raw.trim().match(/-?\\d+(?:\\.\\d+)?/i)?.[0]\n  : undefined;\nconst candidate = typeof raw === \"number\"\n  ? raw\n  : Number(matched ?? raw ?? 0);\nconst reward = Number.isFinite(candidate) ? candidate : 0;\nreturn {\n  setLocals: {\n    reward,\n    scalar_reward: reward,\n    carried_output: String(reward),\n  },\n};",
+          "codeLanguage": "typescript",
+          "codeTemplateId": "reward_scalar_calculation",
+          "actionTypeSource": "manual",
+          "localInputFields": [
+            {
+              "name": "carried_output",
+              "type": "string"
+            }
+          ],
+          "codeLocalOutputFields": [
+            {
+              "name": "reward",
+              "type": "number"
+            },
+            {
+              "name": "scalar_reward",
+              "type": "number"
+            },
+            {
+              "name": "carried_output",
+              "type": "string"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1800,
+          "y": 240
+        }
+      }
+    ]
+  },
+  "freeText": "Validate the completed screening JSON against {\"type\":\"object\",\"required\":[\"Initial Hypothesis\",\"Questions Requiring Investigation\",\"Reasons NOT to Continue\",\"Screening Decision\",\"Confidence\"],\"properties\":{\"Initial Hypothesis\":{\"type\":\"string\"},\"Questions Requiring Investigation\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Reasons NOT to Continue\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Screening Decision\":{\"type\":\"string\",\"enum\":[\"Reject\",\"Watchlist\",\"Advance to full research\"],\"description\":\"Reject: do not invest and remove from active consideration. Watchlist: interesting but insufficient evidence; continue monitoring. Advance to full research: worth deeper investigation; begin detailed due diligence.\"},\"Confidence\":{\"type\":\"string\"}},\"additionalProperties\":false}, then return the realized percentage price return over the matched next 30 calendar days."
+}

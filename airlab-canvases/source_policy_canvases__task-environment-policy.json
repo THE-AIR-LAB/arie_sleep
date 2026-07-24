@@ -1,0 +1,161 @@
+{
+  "id": "task-environment-policy",
+  "name": "Task lifecycle",
+  "graph": {
+    "edges": [
+      {
+        "id": "task-policy-start-condition",
+        "source": "task-policy-start",
+        "target": "task-policy-observation-empty"
+      },
+      {
+        "id": "task-policy-empty-sample",
+        "source": "task-policy-observation-empty",
+        "target": "task-policy-set-action",
+        "sourceHandle": "true"
+      },
+      {
+        "id": "task-policy-not-empty-completed",
+        "source": "task-policy-observation-empty",
+        "target": "task-policy-completed",
+        "sourceHandle": "false"
+      },
+      {
+        "id": "task-policy-commit-display",
+        "source": "task-policy-set-action",
+        "target": "task-policy-display-started"
+      },
+      {
+        "id": "task-policy-completed-terminate",
+        "source": "task-policy-completed",
+        "target": "task-policy-terminate-completed"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "task-policy-start",
+        "data": {
+          "label": "Handle one task-environment turn."
+        },
+        "type": "start",
+        "position": {
+          "x": 0,
+          "y": 160
+        }
+      },
+      {
+        "id": "task-policy-observation-empty",
+        "data": {
+          "label": "state agent_latest_observation is empty"
+        },
+        "type": "condition",
+        "position": {
+          "x": 260,
+          "y": 160
+        }
+      },
+      {
+        "id": "task-policy-set-action",
+        "data": {
+          "label": "Construct and commit the sampled-task action directly from selected_task.",
+          "actionType": "code",
+          "codeSource": "const defaultTargetAgentId = \"task_performing_agent\";\nconst actingAgentId = \"905cdf83-5970-4598-8642-dea17852cc99\";\nconst boundDispatchOperationTypes: string[] = [\"display\"];\nconst operationTypes = new Set([\n  \"display\",\n  \"agent_call\",\n  \"tool_call\",\n]);\n\nconst collapseWhitespace = (value: string): string =>\n  value.replace(/\\s+/g, \" \").trim();\nconst asRecord = (value: unknown): Record<string, unknown> | null =>\n  value && typeof value === \"object\" && !Array.isArray(value)\n    ? (value as Record<string, unknown>)\n    : null;\nconst asText = (value: unknown): string =>\n  typeof value === \"string\" ? collapseWhitespace(value) : \"\";\nconst parseJsonLike = (value: unknown): unknown => {\n  if (typeof value !== \"string\") return value;\n  const trimmed = value.trim();\n  if (!trimmed) return value;\n  try {\n    return JSON.parse(trimmed);\n  } catch {\n    return value;\n  }\n};\nconst normalizeOperationType = (value: unknown): string => {\n  const normalized = asText(value).toLowerCase().replace(/[\\s-]+/g, \"_\");\n  if (normalized === \"call_agent\" || normalized === \"agent\") return \"agent_call\";\n  if (normalized === \"call_tool\" || normalized === \"tool\") return \"tool_call\";\n  if (normalized === \"message\" || normalized === \"reply\") return \"display\";\n  return operationTypes.has(normalized) ? normalized : \"display\";\n};\nconst normalizePayload = (value: unknown): unknown => {\n  if (value === undefined) return null;\n  if (typeof value === \"string\") return collapseWhitespace(value);\n  return value;\n};\n\nconst normalizeOperation = (rawValue: unknown, forcedType = \"\") => {\n  const parsed = parseJsonLike(rawValue);\n  const record = asRecord(parsed);\n  if (!record) {\n    const payload = normalizePayload(parsed);\n    if (payload === null || payload === \"\") return null;\n    return { type: forcedType || \"display\", payload };\n  }\n  const rawPayload =\n    record.payload ??\n    record.message ??\n    record.content ??\n    record.assistantMessage ??\n    record.observation ??\n    (typeof record.action === \"string\" ? record.action : undefined);\n  const payload = normalizePayload(rawPayload);\n  const toolName = asText(record.toolName ?? record.tool_name);\n  const metadata = asRecord(record.metadata);\n  return {\n    type:\n      forcedType ||\n      normalizeOperationType(record.type ?? record.actionType ?? record.kind),\n    payload,\n    ...(toolName ? { toolName } : {}),\n    ...(record.input !== undefined ? { input: record.input } : {}),\n    ...(metadata ? { metadata } : {}),\n  };\n};\n\nconst normalizeAction = (rawValue: unknown) => {\n  const parsed = parseJsonLike(rawValue);\n  let record = asRecord(parsed);\n  if (record) {\n    const nestedLatestAction = parseJsonLike(record.agent_latest_action);\n    const nestedAction = parseJsonLike(record.action);\n    record = asRecord(nestedLatestAction) ?? asRecord(nestedAction) ?? record;\n  }\n\n  if (!record) {\n    if (!defaultTargetAgentId) return null;\n    const firstOperation = normalizeOperation(\n      parsed,\n      boundDispatchOperationTypes[0] ?? \"\"\n    );\n    if (!firstOperation) return null;\n    const operations =\n      boundDispatchOperationTypes.length > 0\n        ? boundDispatchOperationTypes.map((type, index) =>\n            index === 0 ? firstOperation : { type, payload: null }\n          )\n        : [firstOperation];\n    return {\n      targetAgentId: defaultTargetAgentId,\n      operations,\n    };\n  }\n\n  const requestedTargetAgentId = asText(\n      record.targetAgentId ??\n        record.target_agent_id ??\n        record.recipientAgentId ??\n        record.recipient_agent_id\n    );\n  const targetAgentId =\n    !requestedTargetAgentId || requestedTargetAgentId === actingAgentId\n      ? defaultTargetAgentId\n      : requestedTargetAgentId;\n  if (!targetAgentId || targetAgentId === actingAgentId) return null;\n  const rawOperations = Array.isArray(record.operations)\n    ? record.operations\n    : Array.isArray(record.actions)\n      ? record.actions\n      : Array.isArray(record.dispatches)\n        ? record.dispatches\n        : [record];\n  const operations =\n    boundDispatchOperationTypes.length > 0\n      ? boundDispatchOperationTypes.map((type, index) =>\n          normalizeOperation(rawOperations[index] ?? {}, type) ?? {\n            type,\n            payload: null,\n          }\n        )\n      : rawOperations\n          .map((operation) => normalizeOperation(operation))\n          .filter((operation): operation is Record<string, unknown> => operation !== null);\n  if (operations.length === 0) return null;\n  const rawMetadata = asRecord(record.metadata);\n  const reward = record.target_reward ?? record.reward_for_target ?? record.reward;\n  const metadata = {\n    ...(rawMetadata ?? {}),\n    ...(reward !== undefined ? { reward } : {}),\n  };\n\n  return {\n    targetAgentId,\n    operations,\n    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),\n  };\n};\n\nconst readPolicyOutput = (): unknown => {\n  const statePayload = parseJsonLike(ctx.state.selected_task);\n  const statePayloadRecord = asRecord(statePayload);\n  if (\n    statePayload === null ||\n    statePayload === undefined ||\n    statePayload === \"\" ||\n    (statePayloadRecord && Object.keys(statePayloadRecord).length === 0)\n  ) {\n    throw new Error(\"The state canvas did not persist a value in selected_task.\");\n  }\n  return {\n    targetAgentId: defaultTargetAgentId,\n    operations: [{\n      type: boundDispatchOperationTypes[0] ?? \"display\",\n      payload: statePayload,\n    }],\n    metadata: {\"reward\":0},\n  };\n};\nconst committedAction = normalizeAction(readPolicyOutput());\nif (!committedAction) return {};\n\nconst fieldNames = Object.keys(ctx.state);\nconst findField = (canonicalName: string): string | null =>\n  fieldNames.find((name) => name.trim().toLowerCase() === canonicalName) ?? null;\nconst memoryFieldName = findField(\"new_events\") ??\n  findField(\"new_conversations\");\nconst latestActionFieldName = findField(\"agent_latest_action\");\nconst latestObservationFieldName = findField(\"agent_latest_observation\");\nconst latestRewardFieldName = findField(\"agent_latest_reward\");\nconst fieldType = (fieldName: string | null): string =>\n  fieldName\n    ? ctx.stateSchema.find((field) => field.fieldName === fieldName)?.type ?? \"string\"\n    : \"string\";\nconst latestObservation = latestObservationFieldName\n  ? ctx.state[latestObservationFieldName] ?? null\n  : null;\nconst latestReward = latestRewardFieldName\n  ? ctx.state[latestRewardFieldName] ?? null\n  : null;\n\nconst parseEvents = (value: unknown): Array<Record<string, unknown>> => {\n  const parsed = parseJsonLike(value);\n  return Array.isArray(parsed)\n    ? parsed\n        .filter(\n          (entry): entry is Record<string, unknown> => asRecord(entry) !== null\n        )\n        .map((entry) => ({ ...entry }))\n    : [];\n};\nconst events = memoryFieldName ? parseEvents(ctx.state[memoryFieldName]) : [];\nconst latestEvent = events[events.length - 1];\nif (latestEvent && (latestEvent.action === null || latestEvent.action === undefined || latestEvent.action === \"\")) {\n  latestEvent.action = committedAction;\n  if (latestEvent.observation === null || latestEvent.observation === undefined || latestEvent.observation === \"\") {\n    latestEvent.observation = latestObservation;\n  }\n  if (latestEvent.reward === null || latestEvent.reward === undefined || latestEvent.reward === \"\") {\n    latestEvent.reward = latestReward;\n  }\n} else {\n  events.push({\n    action: committedAction,\n    observation: latestObservation,\n    reward: latestReward,\n  });\n}\n\nconst setState: Record<string, unknown> = {};\nif (latestActionFieldName) {\n  setState[latestActionFieldName] =\n    fieldType(latestActionFieldName) === \"json\"\n      ? committedAction\n      : JSON.stringify(committedAction);\n}\nif (memoryFieldName) {\n  setState[memoryFieldName] =\n    fieldType(memoryFieldName) === \"json\" ? events : JSON.stringify(events);\n}\n\nconst operationLocals = committedAction.operations.reduce(\n  (locals: Record<string, unknown>, operation: Record<string, unknown>, index: number) => {\n    locals[`committed_action_operation_${index}`] = operation;\n    locals[`committed_action_operation_${index}_payload`] = operation.payload;\n    locals[`committed_action_operation_${index}_input`] = operation.input ?? null;\n    locals[`committed_action_operation_${index}_dispatch_input`] =\n      operation.input ?? operation.payload ?? null;\n    return locals;\n  },\n  {}\n);\nconst firstPayload = committedAction.operations[0]?.payload ?? null;\n\nreturn {\n  setState,\n  setLocals: {\n    committed_action: committedAction,\n    committed_action_payload: firstPayload,\n    carried_output: firstPayload,\n    ...operationLocals,\n  },\n};",
+          "codeLanguage": "typescript",
+          "codeTemplateId": "policy_turn_commit",
+          "actionTypeSource": "manual",
+          "localInputFields": [
+            {
+              "name": "finalized_assistant_message",
+              "type": "string"
+            },
+            {
+              "name": "carried_output",
+              "type": "string"
+            }
+          ],
+          "codeLocalOutputFields": [
+            {
+              "name": "committed_action",
+              "type": "json"
+            },
+            {
+              "name": "committed_action_payload",
+              "type": "json"
+            },
+            {
+              "name": "carried_output",
+              "type": "json"
+            },
+            {
+              "name": "committed_action_operation_0",
+              "type": "json"
+            },
+            {
+              "name": "committed_action_operation_0_payload",
+              "type": "json"
+            },
+            {
+              "name": "committed_action_operation_0_input",
+              "type": "json"
+            },
+            {
+              "name": "committed_action_operation_0_dispatch_input",
+              "type": "json"
+            }
+          ],
+          "policyStatePayloadField": "selected_task",
+          "policyStatePayloadMetadata": {
+            "reward": 0
+          }
+        },
+        "type": "code",
+        "position": {
+          "x": 540,
+          "y": 40
+        }
+      },
+      {
+        "id": "task-policy-display-started",
+        "data": {
+          "label": "Display this committed action operation payload.",
+          "displayType": "text",
+          "inputVariable": "committed_action_operation_0_payload",
+          "committedActionOperationIndex": 0
+        },
+        "type": "display",
+        "position": {
+          "x": 800,
+          "y": 40
+        }
+      },
+      {
+        "id": "task-policy-completed",
+        "data": {
+          "label": "Return an empty action after receiving the final solution.",
+          "actionType": "code",
+          "codeSource": "return {\n  setState: {\n    agent_latest_action: \"\",\n  },\n};",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "manual"
+        },
+        "type": "code",
+        "position": {
+          "x": 540,
+          "y": 300
+        }
+      },
+      {
+        "id": "task-policy-terminate-completed",
+        "data": {
+          "label": "The final solution has been evaluated.",
+          "terminationScope": "interaction"
+        },
+        "type": "terminate",
+        "position": {
+          "x": 820,
+          "y": 300
+        }
+      }
+    ]
+  },
+  "freeText": ""
+}

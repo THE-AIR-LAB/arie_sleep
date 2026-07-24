@@ -1,0 +1,63 @@
+{
+  "id": "workflow-overview",
+  "name": "Overall Workflow",
+  "graph": {
+    "edges": [
+      {
+        "id": "56f3198e-d564-4535-a058-adc28356dc45",
+        "source": "workflow-overview-start",
+        "target": "workflow-overview-stage-idea-generation-screening",
+        "sourceHandle": null,
+        "targetHandle": null
+      }
+    ],
+    "nodes": [
+      {
+        "id": "workflow-overview-start",
+        "data": {
+          "label": "Editable overview of the main workflow stages. Each active agent receives stage-scoped policy/state canvases; direct exchanges additionally use pairwise agent-interaction canvases.",
+          "runtimeRole": "workflow_overview",
+          "workflowCanvasId": "workflow-overview",
+          "workflowOverview": true
+        },
+        "type": "start",
+        "position": {
+          "x": 80,
+          "y": 120
+        }
+      },
+      {
+        "id": "workflow-overview-stage-idea-generation-screening",
+        "data": {
+          "label": "Stage: Idea generation screening\nPurpose: Receive the selected company profile and available context, perform the full initial screening workflow, and return a structured idea note with a recommendation.\nEntry: The task environment agent has selected a company profile and any available supporting company, disclosure, peer, and consensus context.\nCompletion: A final idea-generation note is returned with all required fields populated, including Initial Hypothesis, Questions Requiring Investigation, Reasons NOT to Continue, Screening Decision, and Confidence.\nAgents:\n- An investment analyst workflow: idea generation stage (905cdf83-5970-4598-8642-dea17852cc99) - Deliver the selected company task and context, receive one final screening note JSON, validate it against the required contract, and score the result.\n- Investment analyst performing idea-generation screening (task_performing_agent) - Deliver the selected company task and context, receive one final screening note JSON, validate it against the required contract, and score the result.",
+          "runtimeRole": "workflow_overview",
+          "workflowStageId": "idea-generation-screening",
+          "workflowCanvasId": "workflow-overview",
+          "workflowOverview": true,
+          "workflowStageName": "Idea generation screening",
+          "workflowStageAgents": [
+            {
+              "role": "Deliver the selected company task and context, receive one final screening note JSON, validate it against the required contract, and score the result.",
+              "agentId": "905cdf83-5970-4598-8642-dea17852cc99",
+              "agentTitle": "An investment analyst workflow: idea generation stage"
+            },
+            {
+              "role": "Deliver the selected company task and context, receive one final screening note JSON, validate it against the required contract, and score the result.",
+              "agentId": "task_performing_agent",
+              "agentTitle": "Investment analyst performing idea-generation screening"
+            }
+          ],
+          "workflowStagePurpose": "Receive the selected company profile and available context, perform the full initial screening workflow, and return a structured idea note with a recommendation.",
+          "workflowStageEntryCondition": "The task environment agent has selected a company profile and any available supporting company, disclosure, peer, and consensus context.",
+          "workflowStageCompletionCondition": "A final idea-generation note is returned with all required fields populated, including Initial Hypothesis, Questions Requiring Investigation, Reasons NOT to Continue, Screening Decision, and Confidence."
+        },
+        "type": "stage",
+        "position": {
+          "x": 420,
+          "y": 120
+        }
+      }
+    ]
+  },
+  "freeText": "airlab:workflow-overview\nPrimary agent: An investment analyst workflow: idea generation stage\nThis overview is editable and non-runtime. Solo-stage agent policy/state canvases are separate from pairwise canvases used only for actual agent interactions."
+}

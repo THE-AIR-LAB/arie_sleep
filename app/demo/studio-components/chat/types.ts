@@ -44,6 +44,11 @@ export interface SetupBarProps {
   policyFocus?: { id: string; n: number };
   stateFocus?: { id: string; n: number };
   policyCanvasSelect?: { canvasId: string; n: number };
+  /**
+   * Initial Model Setup section when the bar mounts (sample-project bootstrap).
+   * Defaults to "policy".
+   */
+  initialSection?: "policy" | "state" | "knowledge" | null;
 }
 
 /** Props the shared StudioApp passes to the studio's Simulation panel. */

@@ -1,0 +1,220 @@
+{
+  "id": "starter-state-canvas",
+  "name": "stage1TargetState",
+  "graph": {
+    "edges": [
+      {
+        "id": "starter-state-start-to-ingress",
+        "source": "starter-state-start",
+        "target": "starter-state-ingress-append",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "starter-state-ingress-to-summary-gate",
+        "source": "starter-state-ingress-append",
+        "target": "starter-state-summary-gate-memory-size",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "starter-state-summary-gate-true",
+        "source": "starter-state-summary-gate",
+        "target": "starter-state-update-summary",
+        "sourceHandle": "true",
+        "targetHandle": null
+      },
+      {
+        "id": "starter-state-summary-to-clear",
+        "source": "starter-state-update-summary",
+        "target": "starter-state-clear-new-events",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "starter-state-summary-gate-memory-size-to-condition",
+        "source": "starter-state-summary-gate-memory-size",
+        "target": "starter-state-summary-gate",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "5815f2ee-1900-466c-b0c5-5cd45936861a",
+        "source": "starter-state-summary-gate",
+        "target": "a144e131-803f-4bcb-a229-060bb32f9c9d",
+        "sourceHandle": "false",
+        "targetHandle": null
+      },
+      {
+        "id": "9dd15181-7d7e-4404-866a-b8ae160d8f1a",
+        "source": "starter-state-clear-new-events",
+        "target": "a144e131-803f-4bcb-a229-060bb32f9c9d",
+        "sourceHandle": null,
+        "targetHandle": null
+      },
+      {
+        "id": "fb45ebf2-1775-4502-90f0-180b21da1192",
+        "source": "a144e131-803f-4bcb-a229-060bb32f9c9d",
+        "target": "b8925323-1f4f-4b72-9074-6c2763dd0801",
+        "sourceHandle": "true",
+        "targetHandle": null
+      },
+      {
+        "id": "859429bf-5a3b-49f2-9041-7ba942f690e4",
+        "source": "a144e131-803f-4bcb-a229-060bb32f9c9d",
+        "target": "80547d08-8caf-4f67-8ae8-af62c01467ce",
+        "sourceHandle": "false",
+        "targetHandle": null
+      }
+    ],
+    "nodes": [
+      {
+        "id": "starter-state-start",
+        "data": {
+          "label": "Observe target-side task input"
+        },
+        "type": "start",
+        "position": {
+          "x": 200,
+          "y": 40
+        }
+      },
+      {
+        "id": "starter-state-ingress-append",
+        "data": {
+          "label": "Add agent_latest_observation and agent_latest_reward to new_events.",
+          "actionType": "code",
+          "actionTypeSource": "auto",
+          "localInputFields": [
+            {
+              "name": "agent_latest_observation",
+              "type": "string"
+            },
+            {
+              "name": "agent_latest_reward",
+              "type": "string"
+            }
+          ],
+          "executableCodeOps": [
+            {
+              "kind": "append_list_item",
+              "field": "new_events",
+              "source": {
+                "kind": "latest_observation_and_reward_event"
+              }
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 200,
+          "y": 190
+        }
+      },
+      {
+        "id": "starter-state-summary-gate",
+        "data": {
+          "label": "memory_over_limit is true"
+        },
+        "type": "condition",
+        "position": {
+          "x": 200,
+          "y": 510
+        }
+      },
+      {
+        "id": "starter-state-update-summary",
+        "data": {
+          "label": "Update summary with a concise summary of summary plus new_events.",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 20,
+          "y": 670
+        }
+      },
+      {
+        "id": "starter-state-clear-new-events",
+        "data": {
+          "label": "Set new_events to empty list.",
+          "actionType": "code",
+          "actionTypeSource": "auto",
+          "executableCodeOps": [
+            {
+              "kind": "set_field",
+              "field": "new_events",
+              "source": {
+                "kind": "constant",
+                "value": []
+              }
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 20,
+          "y": 820
+        }
+      },
+      {
+        "id": "starter-state-summary-gate-memory-size",
+        "data": {
+          "label": "Measure whether summary plus new_events exceeds 4000 characters.",
+          "actionType": "code",
+          "codeSource": "\nconst textLength = (value: unknown): number => {\n  if (value === null || value === undefined) return 0;\n  if (typeof value === \"string\") return value.length;\n  return JSON.stringify(value).length;\n};\n\nconst memoryLength =\n  textLength(ctx.state.summary) +\n  textLength(ctx.state.new_events);\n\nreturn {\n  setLocals: {\n    memory_over_limit: memoryLength > 4000,\n  },\n};\n",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "auto",
+          "codeLocalOutputFields": [
+            {
+              "name": "memory_over_limit",
+              "type": "boolean"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 200,
+          "y": 350
+        }
+      },
+      {
+        "id": "a144e131-803f-4bcb-a229-060bb32f9c9d",
+        "data": {
+          "label": "Has source delivered company task package"
+        },
+        "type": "condition",
+        "position": {
+          "x": 420,
+          "y": 720
+        }
+      },
+      {
+        "id": "b8925323-1f4f-4b72-9074-6c2763dd0801",
+        "data": {
+          "label": "Await task package from source"
+        },
+        "type": "continue",
+        "position": {
+          "x": 740,
+          "y": 890
+        }
+      },
+      {
+        "id": "80547d08-8caf-4f67-8ae8-af62c01467ce",
+        "data": {
+          "label": "Prepare state values for initial_hypothesis questions_requiring_investigation reasons_not_to_continue screening_decision and confidence",
+          "actionType": "prompt",
+          "actionTypeSource": "auto"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 420,
+          "y": 1230
+        }
+      }
+    ]
+  },
+  "freeText": "Receives the delivered task package as observation, reads only the provided context fields, and stores the final note fields before returning them."
+}

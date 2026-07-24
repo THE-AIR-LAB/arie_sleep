@@ -236,12 +236,28 @@ function BubbleWorksheet({ text }: { text: string }) {
 /**
  * Markdown renderer for chat bubbles — GFM so tables (intake forms, comparison
  * sheets) render as real HTML tables instead of raw `|` pipes. Fill-in-the-blank
- * worksheets are detected and laid out as structured form cards.
+ * worksheets are detected and laid out as structured form cards. Raw JSON
+ * objects/arrays render as readable field cards (not a monospace wall).
  */
 export function BubbleMarkdown({ children }: { children: string }) {
   if (looksLikeWorksheet(children)) {
     return <BubbleWorksheet text={children} />;
   }
+
+  const json = parseJsonMessage(children);
+  if (json) {
+    return (
+      <>
+        {json.prose ? (
+          <div className="bubble-json-prose">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{json.prose}</ReactMarkdown>
+          </div>
+        ) : null}
+        <BubbleJson value={json.data} />
+      </>
+    );
+  }
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -251,9 +267,125 @@ export function BubbleMarkdown({ children }: { children: string }) {
             <table>{tableChildren}</table>
           </div>
         ),
+        pre: ({ children: preChildren }) => (
+          <pre className="bubble-md-pre">{preChildren}</pre>
+        ),
       }}
     >
       {children}
     </ReactMarkdown>
   );
+}
+
+function humanizeKey(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function BubbleJsonValue({ value }: { value: unknown }) {
+  if (value === null || value === undefined) {
+    return <span className="bubble-json-empty">—</span>;
+  }
+  if (typeof value === "boolean") {
+    return <span className="bubble-json-scalar">{value ? "Yes" : "No"}</span>;
+  }
+  if (typeof value === "number") {
+    return <span className="bubble-json-scalar">{value}</span>;
+  }
+  if (typeof value === "string") {
+    return <span className="bubble-json-text">{value}</span>;
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="bubble-json-empty">None</span>;
+    const allPrimitive = value.every(
+      (v) => v === null || ["string", "number", "boolean"].includes(typeof v)
+    );
+    if (allPrimitive) {
+      return (
+        <ul className="bubble-json-list">
+          {value.map((item, i) => (
+            <li key={i}>
+              {item === null || item === undefined ? "—" : String(item)}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    return (
+      <div className="bubble-json-stack">
+        {value.map((item, i) => (
+          <div key={i} className="bubble-json-card">
+            <BubbleJson value={item} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (typeof value === "object") {
+    return <BubbleJson value={value} />;
+  }
+  return <span className="bubble-json-text">{String(value)}</span>;
+}
+
+function BubbleJson({ value }: { value: unknown }) {
+  if (Array.isArray(value)) {
+    return <BubbleJsonValue value={value} />;
+  }
+  if (value === null || typeof value !== "object") {
+    return <BubbleJsonValue value={value} />;
+  }
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0) {
+    return <span className="bubble-json-empty">Empty</span>;
+  }
+  return (
+    <dl className="bubble-json">
+      {entries.map(([key, val]) => (
+        <div key={key} className="bubble-json-row">
+          <dt className="bubble-json-key">{humanizeKey(key)}</dt>
+          <dd className="bubble-json-val">
+            <BubbleJsonValue value={val} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Parse a message that is (or ends with) a JSON object/array. */
+function parseJsonMessage(
+  text: string
+): { prose: string | null; data: unknown } | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  const tryParse = (raw: string): unknown | null => {
+    const t = raw.trim();
+    if (!(t.startsWith("{") || t.startsWith("["))) return null;
+    try {
+      const parsed = JSON.parse(t) as unknown;
+      if (parsed === null || typeof parsed !== "object") return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const whole = tryParse(trimmed);
+  if (whole) return { prose: null, data: whole };
+
+  const startObj = trimmed.indexOf("\n{");
+  const startArr = trimmed.indexOf("\n[");
+  let splitAt = -1;
+  if (startObj >= 0 && (startArr < 0 || startObj < startArr)) splitAt = startObj + 1;
+  else if (startArr >= 0) splitAt = startArr + 1;
+  if (splitAt > 0) {
+    const head = trimmed.slice(0, splitAt).trimEnd();
+    const data = tryParse(trimmed.slice(splitAt));
+    if (data) return { prose: head || null, data };
+  }
+
+  return null;
 }

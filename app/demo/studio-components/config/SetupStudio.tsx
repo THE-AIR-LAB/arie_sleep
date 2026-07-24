@@ -1393,6 +1393,11 @@ export type SetupBarProps = {
    */
   policyCanvasSelect?: { canvasId: string; n: number };
   /**
+   * Initial Model Setup section when the bar mounts (sample-project bootstrap).
+   * Defaults to "policy".
+   */
+  initialSection?: "policy" | "state" | "knowledge" | null;
+  /**
    * DOM node inside the drawer's Model Setup pane to portal the docked (inline)
    * view into. SetupBar itself is mounted at the page level so the popped-out
    * floating window (portaled to <body>) survives the drawer closing; the docked
@@ -1417,7 +1422,7 @@ export type LocalAgentReturn = ReturnType<SleepSetupHooks["useLocalAgent"]>;
  * (setup endpoint + seed-prompt wording) and seed data (sleep-data.ts).
  */
 function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
-  const STATE_SEED_DOC: CanvasDoc = {
+  const DEFAULT_STATE_SEED_DOC: CanvasDoc = {
     version: 2,
     activeId: "main",
     canvases: [
@@ -1453,7 +1458,7 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
   // Intake (entry) → Assess → Guide → Follow up. The runtime enters canvases[0]
   // (Intake) and pulls each downstream stage in when its expand node fires, so
   // there is no separate "Main" router canvas — every tab is a workflow stage.
-  const POLICY_SEED_DOC: CanvasDoc = {
+  const DEFAULT_POLICY_SEED_DOC: CanvasDoc = {
     version: 2,
     activeId: "intake",
     canvases: [
@@ -1689,6 +1694,11 @@ function buildUseSleepSetup(config: StudioSetupConfig, data: StudioSetupData) {
       },
     ],
   };
+
+  // Per-studio seed overrides (e.g. the Research studio mirrors its own DB
+  // canvases). Studios that don't set these keep the sleep-style defaults.
+  const STATE_SEED_DOC: CanvasDoc = config.stateSeedDoc ?? DEFAULT_STATE_SEED_DOC;
+  const POLICY_SEED_DOC: CanvasDoc = config.policySeedDoc ?? DEFAULT_POLICY_SEED_DOC;
 
   const DEFAULT_GUIDELINE_ITEMS = data.GUIDELINES.map((guideline) =>
     buildGuidelineItemText(guideline)
@@ -2232,12 +2242,20 @@ function buildSetupBar(useSleepSetup: () => SleepSetupReturn) {
     policyFocus,
     stateFocus,
     policyCanvasSelect,
+    initialSection = "policy",
   }: SetupBarProps = {}) {
     const setup = useSleepSetup();
     // `active` is the open section. The setup always renders docked inline in the
     // drawer — the pop-out-to-floating-window feature was removed.
     // Opens on Policy by default so the Model Setup tab lands on the flow.
-    const [active, setActive] = useState<string | null>("policy");
+    const [active, setActive] = useState<string | null>(initialSection ?? "policy");
+    // Sample bootstrap may set initialSection after first paint — honor it once.
+    const appliedInitialRef = React.useRef(false);
+    React.useEffect(() => {
+      if (appliedInitialRef.current || !initialSection) return;
+      appliedInitialRef.current = true;
+      setActive(initialSection);
+    }, [initialSection]);
     // The "How each turn reaches the model" modal (full prompts + the fixed order
     // they're sent in), opened from the "i" on the left of the section nav.
     const [compileInfoOpen, setCompileInfoOpen] = useState(false);

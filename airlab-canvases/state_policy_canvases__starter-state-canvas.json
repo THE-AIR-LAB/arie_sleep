@@ -1,0 +1,336 @@
+{
+  "id": "starter-state-canvas",
+  "name": "Task selection and state update",
+  "graph": {
+    "edges": [
+      {
+        "id": "starter-state-ingress-to-summary-gate",
+        "source": "starter-state-ingress-append",
+        "target": "starter-state-summary-gate-memory-size"
+      },
+      {
+        "id": "starter-state-summary-gate-true",
+        "source": "starter-state-summary-gate",
+        "target": "starter-state-update-summary",
+        "sourceHandle": "true"
+      },
+      {
+        "id": "starter-state-summary-gate-false",
+        "source": "starter-state-summary-gate",
+        "target": "starter-state-update-remaining",
+        "sourceHandle": "false"
+      },
+      {
+        "id": "starter-state-summary-to-clear",
+        "source": "starter-state-update-summary",
+        "target": "starter-state-clear-new-events"
+      },
+      {
+        "id": "starter-state-clear-to-remaining",
+        "source": "starter-state-clear-new-events",
+        "target": "starter-state-update-remaining"
+      },
+      {
+        "id": "starter-state-summary-gate-memory-size-to-condition",
+        "source": "starter-state-summary-gate-memory-size",
+        "target": "starter-state-summary-gate"
+      },
+      {
+        "id": "task-state-start-condition",
+        "source": "starter-state-start",
+        "target": "task-state-observation-empty"
+      },
+      {
+        "id": "task-state-empty-selection-check",
+        "source": "task-state-observation-empty",
+        "target": "task-state-selection-empty",
+        "sourceHandle": "true"
+      },
+      {
+        "id": "task-state-not-empty-ingress",
+        "source": "task-state-observation-empty",
+        "target": "starter-state-ingress-append",
+        "sourceHandle": "false"
+      },
+      {
+        "id": "task-state-needs-selection",
+        "source": "task-state-selection-empty",
+        "target": "task-state-random-task",
+        "sourceHandle": "true"
+      },
+      {
+        "id": "task-state-selection-exists-ingress",
+        "source": "task-state-selection-empty",
+        "target": "starter-state-ingress-append",
+        "sourceHandle": "false"
+      },
+      {
+        "id": "task-state-random-prepare",
+        "source": "task-state-random-task",
+        "target": "task-state-prepare-selection"
+      },
+      {
+        "id": "task-state-prepare-trajectory",
+        "source": "task-state-prepare-selection",
+        "target": "task-state-read-trajectory"
+      },
+      {
+        "id": "task-state-selection-commit",
+        "source": "task-state-read-trajectory",
+        "target": "task-state-commit-selection"
+      },
+      {
+        "id": "task-state-commit-ingress",
+        "source": "task-state-commit-selection",
+        "target": "starter-state-ingress-append"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "starter-state-start",
+        "data": {
+          "label": "Adapt this Start text to the project/agent. Use the current state as the default input. summary stores condensed past context, and new_events stores recent unsummarized { action, observation, reward } events."
+        },
+        "type": "start",
+        "position": {
+          "x": 0,
+          "y": 200
+        }
+      },
+      {
+        "id": "starter-state-ingress-append",
+        "data": {
+          "label": "Add agent_latest_observation and agent_latest_reward to new_events.",
+          "actionType": "code",
+          "actionTypeSource": "auto",
+          "localInputFields": [
+            {
+              "name": "agent_latest_observation",
+              "type": "string"
+            },
+            {
+              "name": "agent_latest_reward",
+              "type": "string"
+            }
+          ],
+          "executableCodeOps": [
+            {
+              "kind": "append_list_item",
+              "field": "new_events",
+              "source": {
+                "kind": "latest_observation_and_reward_event"
+              }
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1940,
+          "y": 190
+        }
+      },
+      {
+        "id": "starter-state-summary-gate",
+        "data": {
+          "label": "memory_over_limit is true"
+        },
+        "type": "condition",
+        "position": {
+          "x": 1940,
+          "y": 510
+        }
+      },
+      {
+        "id": "starter-state-update-summary",
+        "data": {
+          "label": "Update summary with a concise summary of summary plus new_events.",
+          "actionType": "prompt"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 1760,
+          "y": 670
+        }
+      },
+      {
+        "id": "starter-state-clear-new-events",
+        "data": {
+          "label": "Set new_events to empty list.",
+          "actionType": "code",
+          "actionTypeSource": "auto",
+          "executableCodeOps": [
+            {
+              "kind": "set_field",
+              "field": "new_events",
+              "source": {
+                "kind": "constant",
+                "value": []
+              }
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1760,
+          "y": 820
+        }
+      },
+      {
+        "id": "starter-state-update-remaining",
+        "data": {
+          "label": "Use only the current state to update the remaining fields. Leave unchanged values untouched and only fill fields supported by the current state.",
+          "actionType": "prompt"
+        },
+        "type": "prompt",
+        "position": {
+          "x": 2130,
+          "y": 670
+        }
+      },
+      {
+        "id": "starter-state-summary-gate-memory-size",
+        "data": {
+          "label": "Measure whether summary plus new_events exceeds 4000 characters.",
+          "actionType": "code",
+          "codeSource": "const textLength = (value: unknown): number => {\n  if (value === null || value === undefined) return 0;\n  if (typeof value === \"string\") return value.length;\n  return JSON.stringify(value).length;\n};\n\nconst memoryLength =\n  textLength(ctx.state.summary) +\n  textLength(ctx.state.new_events);\n\nreturn {\n  setLocals: {\n    memory_over_limit: memoryLength > 4000,\n  },\n};",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "auto",
+          "codeLocalOutputFields": [
+            {
+              "name": "memory_over_limit",
+              "type": "boolean"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1940,
+          "y": 350
+        }
+      },
+      {
+        "id": "task-state-observation-empty",
+        "data": {
+          "label": "state agent_latest_observation is empty"
+        },
+        "type": "condition",
+        "position": {
+          "x": 260,
+          "y": 200
+        }
+      },
+      {
+        "id": "task-state-selection-empty",
+        "data": {
+          "label": "state selected_task_id is empty"
+        },
+        "type": "condition",
+        "position": {
+          "x": 540,
+          "y": 80
+        }
+      },
+      {
+        "id": "task-state-random-task",
+        "data": {
+          "label": "Choose one complete task when the simulation starts.",
+          "toolName": "choose_random_task",
+          "sourceType": "dataset_read",
+          "datasetName": "tasks",
+          "description": "Return exactly one randomly sampled complete task row.",
+          "paramsSchema": "",
+          "resultVariable": "state_sampled_task_result",
+          "datasetReadRandomRow": true
+        },
+        "type": "tool_call",
+        "position": {
+          "x": 820,
+          "y": 0
+        }
+      },
+      {
+        "id": "task-state-prepare-selection",
+        "data": {
+          "label": "Prepare the sampled task and task id for state storage.",
+          "actionType": "code",
+          "codeSource": "const asRecord = (value: unknown): Record<string, unknown> => {\n  if (value && typeof value === \"object\" && !Array.isArray(value)) return value as Record<string, unknown>;\n  if (typeof value === \"string\" && value.trim()) {\n    try {\n      const parsed = JSON.parse(value) as unknown;\n      return parsed && typeof parsed === \"object\" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};\n    } catch { return {}; }\n  }\n  return {};\n};\nconst result = asRecord(ctx.locals.state_sampled_task_result);\nconst records = Array.isArray(result.records) ? result.records : [];\nconst sampledTaskRow = asRecord(records[0]);\nconst sampledTask = asRecord(sampledTaskRow.profile);\nconst taskId = String(sampledTaskRow.task_id ?? sampledTask.task_id ?? \"\").trim();\nif (!taskId) throw new Error(\"The sampled task is missing task_id.\");\nreturn {\n  setLocals: {\n    sampled_task_for_run: sampledTask,\n    sampled_task_id_for_run: taskId,\n    task_id: taskId,\n  },\n};",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "manual",
+          "localInputFields": [
+            {
+              "name": "state_sampled_task_result",
+              "type": "json"
+            }
+          ],
+          "codeLocalOutputFields": [
+            {
+              "name": "sampled_task_for_run",
+              "type": "json"
+            },
+            {
+              "name": "sampled_task_id_for_run",
+              "type": "string"
+            },
+            {
+              "name": "task_id",
+              "type": "string"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1100,
+          "y": 0
+        }
+      },
+      {
+        "id": "task-state-read-trajectory",
+        "data": {
+          "label": "Load only the trajectory associated with the sampled task.",
+          "toolName": "read_associated_price_trajectory",
+          "sourceType": "dataset_read",
+          "datasetName": "price_trajectories",
+          "description": "Return the hidden price trajectory whose task_id matches the sampled task.",
+          "paramsSchema": "{\"task_id\":{\"type\":\"string\",\"description\":\"The sampled task id.\"}}",
+          "resultVariable": "state_sampled_trajectory_result",
+          "datasetReadRandomRow": true
+        },
+        "type": "tool_call",
+        "position": {
+          "x": 1380,
+          "y": 0
+        }
+      },
+      {
+        "id": "task-state-commit-selection",
+        "data": {
+          "label": "Set the selected task and associated trajectory in state.",
+          "actionType": "code",
+          "codeSource": "const asRecord = (value: unknown): Record<string, unknown> => {\n  if (value && typeof value === \"object\" && !Array.isArray(value)) return value as Record<string, unknown>;\n  if (typeof value === \"string\" && value.trim()) {\n    try {\n      const parsed = JSON.parse(value) as unknown;\n      return parsed && typeof parsed === \"object\" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};\n    } catch { return {}; }\n  }\n  return {};\n};\nconst sampledTask = asRecord(ctx.locals.sampled_task_for_run);\nconst trajectoryResult = asRecord(ctx.locals.state_sampled_trajectory_result);\nconst trajectoryRecords = Array.isArray(trajectoryResult.records) ? trajectoryResult.records : [];\nconst sampledTrajectory = asRecord(trajectoryRecords[0]);\nif (String(sampledTrajectory.task_id ?? \"\") !== String(ctx.locals.sampled_task_id_for_run ?? \"\")) {\n  throw new Error(\"No price trajectory is associated with the sampled task.\");\n}\nreturn {\n  setState: {\n    selected_task_id: String(ctx.locals.sampled_task_id_for_run ?? \"\"),\n    selected_task: sampledTask,\n    selected_price_trajectory: sampledTrajectory,\n  },\n};",
+          "codeLanguage": "typescript",
+          "actionTypeSource": "manual",
+          "localInputFields": [
+            {
+              "name": "sampled_task_for_run",
+              "type": "json"
+            },
+            {
+              "name": "sampled_task_id_for_run",
+              "type": "string"
+            },
+            {
+              "name": "state_sampled_trajectory_result",
+              "type": "json"
+            }
+          ]
+        },
+        "type": "code",
+        "position": {
+          "x": 1660,
+          "y": 0
+        }
+      }
+    ]
+  },
+  "freeText": "Editable starter state template. Adapt the Start text and downstream prompts to the project/agent while preserving the first ingress append Code node unless the project genuinely needs a different deterministic ingress append."
+}

@@ -17,6 +17,7 @@ export const KNOWN_DEMOS = [
   "sleep",
   "law",
   "analyst",
+  "research",
   "dnd",
   "research-assistant",
   "general-orchestration-daemon",
