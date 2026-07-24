@@ -1769,10 +1769,22 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   opacity:0;visibility:hidden;transition:opacity .12s ease, visibility .12s ease;}
 .ra-scope .trace-act[data-tip]:hover::after,
 .ra-scope .bubble-collapse[data-tip]:hover::after{opacity:1;visibility:visible;}
+/* Right-rail tooltips — open to the left so they stay on-screen. */
+.ra-scope .rail-btn[data-tip]{position:relative;}
+.ra-scope .rail-btn[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;right:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  z-index:40;padding:5px 8px;border-radius:0;
+  background:#948E87;color:#111;
+  font-family:inherit;font-size:11px;font-weight:400;line-height:1.2;
+  white-space:nowrap;pointer-events:none;
+  opacity:0;visibility:hidden;transition:opacity .12s ease, visibility .12s ease;}
+.ra-scope .rail-btn[data-tip]:hover::after{opacity:1;visibility:visible;}
 /* No hover tooltips on touch — they stick after tap and cover the UI. */
 @media (max-width:900px){
   .ra-scope .trace-act[data-tip]::after,
-  .ra-scope .bubble-collapse[data-tip]::after{display:none !important;}
+  .ra-scope .bubble-collapse[data-tip]::after,
+  .ra-scope .rail-btn[data-tip]::after{display:none !important;}
   .ra-scope .rf-canvas-tools .rf-tool-tip,
   .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{display:none !important;}
 }
@@ -2004,6 +2016,35 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope .bubble-fs-body .bubble-form,.bubble-fs-body .bubble-form{gap:16px;}
 .ra-scope .bubble-fs-body .bubble-form-section,.bubble-fs-body .bubble-form-section{padding:14px 16px;}
 .ra-scope .bubble-fs-body .bubble-form-row,.bubble-fs-body .bubble-form-row{font-size:15.5px;}
+.ra-scope .bubble-fs-body .bubble-json-prose,.bubble-fs-body .bubble-json-prose{margin:0 0 .85em;max-width:40rem;}
+.ra-scope .bubble-fs-body .bubble-json,.bubble-fs-body .bubble-json{
+  margin:0 auto; max-width:40rem; display:flex; flex-direction:column; gap:0;
+  overflow-wrap:anywhere; word-break:break-word;}
+.ra-scope .bubble-fs-body .bubble-json-row,.bubble-fs-body .bubble-json-row{
+  display:flex; flex-direction:column; gap:6px; min-width:0;
+  padding:0 0 18px; border-bottom:1px solid var(--line-soft);}
+.ra-scope .bubble-fs-body .bubble-json-row:last-child,.bubble-fs-body .bubble-json-row:last-child{
+  padding-bottom:0; border-bottom:none;}
+.ra-scope .bubble-fs-body .bubble-json-key,.bubble-fs-body .bubble-json-key{
+  margin:0; font-family:inherit; font-size:12px; font-weight:600; letter-spacing:.4px;
+  text-transform:uppercase; color:var(--text-3); line-height:1.35;}
+.ra-scope .bubble-fs-body .bubble-json-val,.bubble-fs-body .bubble-json-val{
+  margin:0; min-width:0; font-family:var(--serif); font-size:16.5px; line-height:1.58;
+  color:var(--text); overflow-wrap:anywhere; word-break:break-word;}
+.ra-scope .bubble-fs-body .bubble-json-text,.bubble-fs-body .bubble-json-text,
+.ra-scope .bubble-fs-body .bubble-json-scalar,.bubble-fs-body .bubble-json-scalar{
+  display:block; white-space:pre-wrap;}
+.ra-scope .bubble-fs-body .bubble-json-empty,.bubble-fs-body .bubble-json-empty{
+  color:var(--text-3); font-style:italic;}
+.ra-scope .bubble-fs-body .bubble-json-list,.bubble-fs-body .bubble-json-list{
+  margin:2px 0 0; padding:0 0 0 1.2em; list-style:disc;
+  display:flex; flex-direction:column; gap:10px;}
+.ra-scope .bubble-fs-body .bubble-json-list li,.bubble-fs-body .bubble-json-list li{
+  margin:0; padding:0; line-height:1.55; overflow-wrap:anywhere; word-break:break-word;}
+.ra-scope .bubble-fs-body .bubble-json-stack,.bubble-fs-body .bubble-json-stack{
+  display:flex; flex-direction:column; gap:12px;}
+.ra-scope .bubble-fs-body .bubble-json-card,.bubble-fs-body .bubble-json-card{
+  padding:12px 14px; border:1px solid var(--line-soft); background:var(--surface-2);}
 
 .ra-scope .typing{display:flex;align-items:center;gap:13px;align-self:stretch;}
 .ra-scope .typing .avatar{width:28px;height:28px;}
@@ -2929,7 +2970,8 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope.ra-round .bubble-form-section{border-radius:var(--radius-md);}
 /* Tooltips (State / Policy / Copy / canvas tools). */
 .ra-scope.ra-round .trace-act[data-tip]::after,
-.ra-scope.ra-round .bubble-collapse[data-tip]::after{border-radius:var(--radius-sm);}
+.ra-scope.ra-round .bubble-collapse[data-tip]::after,
+.ra-scope.ra-round .rail-btn[data-tip]::after{border-radius:var(--radius-sm);}
 .ra-scope.ra-round .rf-canvas-tools .rf-tool-tip,
 body:has(.ra-scope.ra-round) .rf-canvas-fullscreen .rf-canvas-tools .rf-tool-tip{
   border-radius:var(--radius-sm, 8px) !important;}

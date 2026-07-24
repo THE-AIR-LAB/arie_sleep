@@ -33,7 +33,7 @@ export function RightRail({
       {isAdmin && !panelOpen && (
         <button
           className="rail-btn"
-          title="Open Model Setup"
+          data-tip="Model Setup"
           aria-label="Open Model Setup"
           onClick={onTogglePanel}
         >
@@ -45,7 +45,7 @@ export function RightRail({
       {!canvasOpen && (
         <button
           className="rail-btn"
-          title="Open workflow"
+          data-tip="Workflow"
           aria-label="Open workflow"
           onClick={onToggleCanvas}
         >
