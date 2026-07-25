@@ -15,6 +15,63 @@ import {
 import { VoiceFeedbackButton } from "./VoiceFeedbackButton";
 import type { Message, StudioChatConfig } from "./types";
 
+/** Horizontal free space for bubble resize — inside .main, clear of rails/drawers. */
+function getBubbleResizeBounds(el: HTMLElement): { minLeft: number; maxRight: number } {
+  const main = el.closest(".main") as HTMLElement | null;
+  const thread = el.closest(".thread") as HTMLElement | null;
+  const boundsEl = main ?? thread;
+  const fallback = { minLeft: 12, maxRight: window.innerWidth - 12 };
+  if (!boundsEl) return fallback;
+
+  const br = boundsEl.getBoundingClientRect();
+  const padL =
+    boundsEl === thread
+      ? parseFloat(getComputedStyle(thread!).paddingLeft) || 0
+      : 12;
+  const padR =
+    boundsEl === thread
+      ? parseFloat(getComputedStyle(thread!).paddingRight) || 0
+      : 12;
+  let minLeft = br.left + padL;
+  let maxRight = br.right - padR;
+
+  // Rails / side drawers may overlay .main (e.g. floating right-rail while a
+  // drawer is open). Clamp so the bubble never paints under them.
+  const scope = el.closest(".ra-scope") ?? document;
+  const blockers = scope.querySelectorAll<HTMLElement>(
+    ".sidebar, .right-rail, .obs-panel"
+  );
+  const mid = (minLeft + maxRight) / 2;
+  for (const node of blockers) {
+    const r = node.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+    // Skip elements that don't vertically overlap the chat column.
+    if (r.bottom <= br.top || r.top >= br.bottom) continue;
+    if (r.right <= mid) {
+      minLeft = Math.max(minLeft, r.right);
+    } else if (r.left >= mid) {
+      maxRight = Math.min(maxRight, r.left);
+    }
+  }
+
+  const GAP = 8;
+  minLeft += GAP;
+  maxRight -= GAP;
+  if (maxRight - minLeft < 180) {
+    // Degenerate (narrow) layout — fall back to padded main box.
+    return {
+      minLeft: br.left + padL + GAP,
+      maxRight: br.right - padR - GAP,
+    };
+  }
+  return { minLeft, maxRight };
+}
+
+/** Bubble left edge min — AI rows keep avatar+gap clear of the left rail. */
+function bubbleMinLeft(boundsMinLeft: number, leftChrome: number): number {
+  return boundsMinLeft + Math.max(0, leftChrome);
+}
+
 export function Bubble({
   config,
   m,
@@ -77,19 +134,35 @@ export function Bubble({
   const [widthPx, setWidthPx] = useState<number | null>(null);
   // Left offset within thread-inner while custom-sized (keeps the opposite edge stable).
   const [leftPx, setLeftPx] = useState<number | null>(null);
+  // Collapsed-only body height (px); drag bottom edge.
+  const [heightPx, setHeightPx] = useState<number | null>(null);
   /** Hover/drag on either edge lights up both sides. */
   const [edgeHot, setEdgeHot] = useState(false);
+  /** Hover/drag on the collapsed bottom edge. */
+  const [bottomHot, setBottomHot] = useState(false);
   const edgeDraggingRef = useRef(false);
+  const bottomDraggingRef = useRef(false);
   /** Natural/default width to magnet-snap back to while dragging. */
   const defaultWidthRef = useRef<number | null>(null);
+  /** Natural/default collapsed body height to magnet-snap back to. */
+  const defaultHeightRef = useRef<number | null>(null);
   /** For AI rows: distance from msg-ai left → bubble left (avatar + gap). */
   const aiChromeRef = useRef(41);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const fbNavRef = useRef<HTMLDivElement>(null);
   const fbFootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setRevealControls(false);
   }, [hideControls]);
+  // Height resize is collapsed-only — clear when the bubble expands.
+  useEffect(() => {
+    if (!collapsed) {
+      setHeightPx(null);
+      setBottomHot(false);
+      defaultHeightRef.current = null;
+    }
+  }, [collapsed]);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 900px)");
@@ -98,6 +171,51 @@ export function Bubble({
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+  // Keep a custom-sized bubble inside the free space between rails / drawers.
+  useEffect(() => {
+    if (widthPx == null || leftPx == null) return;
+    const el = bubbleRef.current;
+    if (!el) return;
+
+    const clamp = () => {
+      if (edgeDraggingRef.current) return;
+      const bubble = bubbleRef.current;
+      if (!bubble) return;
+      const inner = bubble.closest(".thread-inner") as HTMLElement | null;
+      const originLeft = inner?.getBoundingClientRect().left ?? 0;
+      const { minLeft, maxRight } = getBubbleResizeBounds(bubble);
+      const leftChrome = m.role === "user" ? 0 : aiChromeRef.current;
+      const minBubbleLeft = bubbleMinLeft(minLeft, leftChrome);
+      const minW = 180;
+      const maxW = Math.max(minW, Math.floor(maxRight - minBubbleLeft));
+      let nextW = Math.min(Math.max(minW, widthPx), maxW);
+      let nextLeftAbs = originLeft + leftPx;
+      // Prefer keeping the current left edge; shrink from the right if needed.
+      if (nextLeftAbs + nextW > maxRight) {
+        nextLeftAbs = maxRight - nextW;
+      }
+      if (nextLeftAbs < minBubbleLeft) {
+        nextLeftAbs = minBubbleLeft;
+        nextW = Math.min(nextW, Math.floor(maxRight - minBubbleLeft));
+      }
+      const nextLeft = Math.round(nextLeftAbs - originLeft);
+      if (nextW !== widthPx) setWidthPx(nextW);
+      if (nextLeft !== leftPx) setLeftPx(nextLeft);
+    };
+
+    clamp();
+    const scope = el.closest(".ra-scope") ?? document.documentElement;
+    const ro =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(clamp) : null;
+    ro?.observe(scope);
+    const main = el.closest(".main");
+    if (main) ro?.observe(main);
+    window.addEventListener("resize", clamp);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", clamp);
+    };
+  }, [widthPx, leftPx, m.role]);
   useEffect(() => {
     if (!feedbackEditing || isMobile) return;
     const onDoc = (e: MouseEvent) => {
@@ -342,21 +460,54 @@ export function Bubble({
     />
   ) : null;
 
-  // Body click only expands/collapses — never reveals per-bubble controls.
+  /** Ignore the synthetic click that browsers fire after a resize pointerup. */
+  const swallowNextClick = () => {
+    const swallow = (ev: MouseEvent) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      window.removeEventListener("click", swallow, true);
+    };
+    window.addEventListener("click", swallow, true);
+    // Safety: drop the listener if no click arrives.
+    window.setTimeout(() => window.removeEventListener("click", swallow, true), 50);
+  };
+
+  const resetCollapsedSize = () => {
+    setWidthPx(null);
+    setLeftPx(null);
+    setHeightPx(null);
+  };
+  const isCollapsedResized = collapsed && (widthPx != null || heightPx != null);
+
+  // Body click: expand/collapse — or, if collapsed with a custom size, snap
+  // back to the initial one-line collapsed shell instead of expanding.
   const bodyToggleProps = onToggleCollapse
     ? {
         role: "button" as const,
         tabIndex: 0,
-        title: collapsed ? "Click to expand" : "Click to collapse",
+        title: isCollapsedResized
+          ? "Click to reset size"
+          : collapsed
+            ? "Click to expand"
+            : "Click to collapse",
         onClick: () => {
+          if (edgeDraggingRef.current || bottomDraggingRef.current) return;
           const sel = typeof window !== "undefined" ? window.getSelection() : null;
           if (sel && !sel.isCollapsed && (sel.toString() || "").length > 0) return;
           if (typeof window !== "undefined") window.getSelection()?.removeAllRanges();
+          if (isCollapsedResized) {
+            resetCollapsedSize();
+            return;
+          }
           onToggleCollapse();
         },
         onKeyDown: (e: React.KeyboardEvent) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
+            if (isCollapsedResized) {
+              resetCollapsedSize();
+              return;
+            }
             onToggleCollapse();
           }
         },
@@ -389,21 +540,7 @@ export function Bubble({
     const startX = e.clientX;
     const startRect = el.getBoundingClientRect();
     const startW = startRect.width;
-    const main = el.closest(".main") as HTMLElement | null;
-    const thread = el.closest(".thread") as HTMLElement | null;
     const inner = el.closest(".thread-inner") as HTMLElement | null;
-    const boundsEl = main ?? thread;
-    const br = boundsEl?.getBoundingClientRect();
-    const padL =
-      boundsEl === thread && thread
-        ? parseFloat(getComputedStyle(thread).paddingLeft) || 0
-        : 12;
-    const padR =
-      boundsEl === thread && thread
-        ? parseFloat(getComputedStyle(thread).paddingRight) || 0
-        : 12;
-    const minLeft = br ? br.left + padL : 0;
-    const maxRight = br ? br.right - padR : window.innerWidth - 12;
     // Anchor coords in thread-inner space (fallback: viewport).
     const originLeft = inner?.getBoundingClientRect().left ?? 0;
     const startLeft = leftPx ?? Math.round(startRect.left - originLeft);
@@ -429,7 +566,6 @@ export function Bubble({
     }
     const SNAP = 18;
     const minW = 180;
-    const maxW = Math.max(minW, Math.floor(maxRight - minLeft));
     const startCenter = startRect.left + startW / 2;
     let lastW = startW;
     edgeDraggingRef.current = true;
@@ -437,12 +573,24 @@ export function Bubble({
     document.body.classList.add("ra-resizing");
     const onMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
+      // Re-read bounds each move so opening/resizing a drawer clamps live.
+      const bounds = getBubbleResizeBounds(el);
+      // AI rows position the whole msg-ai (avatar + bubble). Reserve chrome so
+      // the avatar never slides under the left rail.
+      const minBubbleLeft = bubbleMinLeft(
+        bounds.minLeft,
+        isUser ? 0 : aiChromeRef.current
+      );
+      const liveMaxW = Math.max(minW, Math.floor(bounds.maxRight - minBubbleLeft));
       // Either edge: grow/shrink equally from the center.
       const growth = edge === "right" ? dx : -dx;
-      let nextW = Math.round(Math.max(minW, Math.min(maxW, startW + 2 * growth)));
+      let nextW = Math.round(Math.max(minW, Math.min(liveMaxW, startW + 2 * growth)));
       if (Math.abs(nextW - correctW) <= SNAP) nextW = correctW;
       let nextLeftAbs = startCenter - nextW / 2;
-      nextLeftAbs = Math.max(minLeft, Math.min(maxRight - nextW, nextLeftAbs));
+      nextLeftAbs = Math.max(
+        minBubbleLeft,
+        Math.min(bounds.maxRight - nextW, nextLeftAbs)
+      );
       const nextLeft = Math.round(nextLeftAbs - originLeft);
       lastW = nextW;
       setWidthPx(nextW);
@@ -455,6 +603,7 @@ export function Bubble({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+      swallowNextClick();
       if (Math.abs(lastW - correctW) <= SNAP) {
         setWidthPx(null);
         setLeftPx(null);
@@ -477,10 +626,68 @@ export function Bubble({
     />
   );
 
+  const onHeightDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!collapsed) return;
+    const body = bodyRef.current;
+    if (!body) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    const startY = e.clientY;
+    const startH = body.getBoundingClientRect().height;
+    if (heightPx == null || defaultHeightRef.current == null) {
+      defaultHeightRef.current = startH;
+    }
+    const correctH = defaultHeightRef.current;
+    const SNAP = 14;
+    const minH = Math.max(28, Math.round(correctH));
+    const maxH = Math.max(minH, Math.round(window.innerHeight * 0.5));
+    let lastH = startH;
+    bottomDraggingRef.current = true;
+    setBottomHot(true);
+    document.body.classList.add("ra-resizing-y");
+    const onMove = (ev: PointerEvent) => {
+      const dy = ev.clientY - startY;
+      let nextH = Math.round(Math.max(minH, Math.min(maxH, startH + dy)));
+      if (Math.abs(nextH - correctH) <= SNAP) nextH = correctH;
+      lastH = nextH;
+      setHeightPx(nextH === correctH ? null : nextH);
+    };
+    const onUp = () => {
+      bottomDraggingRef.current = false;
+      setBottomHot(false);
+      document.body.classList.remove("ra-resizing-y");
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      swallowNextClick();
+      if (Math.abs(lastH - correctH) <= SNAP) setHeightPx(null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
+
+  const bottomHit = collapsed ? (
+    <div
+      aria-hidden
+      className="bubble-edge-resize bubble-edge-resize--bottom"
+      onPointerDown={onHeightDrag}
+      onPointerEnter={() => setBottomHot(true)}
+      onPointerLeave={() => {
+        if (!bottomDraggingRef.current) setBottomHot(false);
+      }}
+    />
+  ) : null;
+
   const widthStyle =
     widthPx != null
       ? { width: widthPx, maxWidth: "none", flex: "0 0 auto" as const }
       : null;
+  const isHeightExpanded = collapsed && heightPx != null;
+  const bodyHeightStyle = isHeightExpanded
+    ? { height: heightPx, maxHeight: heightPx }
+    : undefined;
 
   const shell = (
     <div
@@ -488,7 +695,9 @@ export function Bubble({
       className={
         shellClass +
         (!controlsVisible ? " hide-controls" : "") +
-        (edgeHot ? " is-edge-hot" : "")
+        (edgeHot ? " is-edge-hot" : "") +
+        (bottomHot ? " is-bottom-hot" : "") +
+        (isHeightExpanded ? " is-height-resized" : "")
       }
       style={{
         position: "relative",
@@ -507,7 +716,9 @@ export function Bubble({
         </div>
       )}
       <div
+        ref={bodyRef}
         className={"bubble-body" + (onToggleCollapse ? " is-toggleable" : "")}
+        style={bodyHeightStyle}
         {...bodyToggleProps}
       >
             {collapsed ? (
@@ -537,6 +748,7 @@ export function Bubble({
       {controlsVisible && footActions && <div className="bubble-foot">{footActions}</div>}
       {edgeHit("left")}
       {edgeHit("right")}
+      {bottomHit}
     </div>
   );
 

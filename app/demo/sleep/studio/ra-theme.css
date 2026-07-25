@@ -225,13 +225,19 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .border-\[\#c8c4b4\]{
 .ra-scope .resize-handle:hover::before,.ra-scope .resize-handle.active::before{background:var(--accent);}
 /* during an active drag, lock the cursor and suppress selection document-wide */
 body.ra-resizing,body.ra-resizing *{cursor:col-resize !important;user-select:none !important;}
+body.ra-resizing-y,body.ra-resizing-y *{cursor:row-resize !important;user-select:none !important;}
 /* Bubble width edges: hover either side → both border edges turn 1px orange. */
 .ra-scope .bubble-edge-resize{position:absolute;top:0;bottom:0;width:10px;z-index:3;
   cursor:col-resize;touch-action:none;background:transparent;border:none;outline:none;}
 .ra-scope .bubble-edge-resize--left{left:0;}
 .ra-scope .bubble-edge-resize--right{right:0;}
+/* Collapsed-only bottom edge: grow preview height. */
+.ra-scope .bubble-edge-resize--bottom{top:auto;bottom:0;left:10px;right:10px;width:auto;height:10px;
+  cursor:row-resize;}
 .ra-scope .msg-ai .bubble.is-edge-hot,
 .ra-scope .msg-user.is-edge-hot{border-left-color:var(--accent);border-right-color:var(--accent);}
+.ra-scope .msg-ai .bubble.is-bottom-hot,
+.ra-scope .msg-user.is-bottom-hot{border-bottom-color:var(--accent);}
 
 /* ---------- sidebar ---------- */
 .ra-scope .sidebar{width:var(--side-w,300px);flex:0 0 var(--side-w,300px);background:var(--panel);border-right:none;
@@ -1642,6 +1648,16 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .msg-ai .bubble.is-collapsed .bubble-body{
   overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
   line-height:1.5; display:block; max-height:calc(1.5em + 20px);}
+/* Collapsed + bottom-resized: multi-line preview that scrolls in the shell. */
+.ra-scope .msg-user.is-collapsed.is-height-resized .bubble-body,
+.ra-scope .msg-ai .bubble.is-collapsed.is-height-resized .bubble-body{
+  overflow-x:hidden; overflow-y:auto; white-space:normal; text-overflow:clip;
+  max-height:none; box-sizing:border-box;}
+.ra-scope .msg-user.is-collapsed.is-height-resized .bubble-collapsed-preview,
+.ra-scope .msg-user.is-collapsed.is-height-resized .bubble-form-collapsed,
+.ra-scope .msg-ai .bubble.is-collapsed.is-height-resized .bubble-collapsed-preview,
+.ra-scope .msg-ai .bubble.is-collapsed.is-height-resized .bubble-form-collapsed{
+  display:inline; white-space:normal; word-break:break-word;}
 .ra-scope .bubble-collapsed-preview,
 .ra-scope .bubble-form-collapsed{display:inline; white-space:nowrap;}
 .ra-scope .bubble-collapse-turn{font-weight:600; color:var(--text-2); margin-right:2px;}
