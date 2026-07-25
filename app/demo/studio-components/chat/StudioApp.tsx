@@ -1422,6 +1422,9 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
               onOpen={openMobileDrawer}
               isAdmin={isAdmin}
               showThreadControls={threadLoading || messages.length > 0}
+              allCollapsed={
+                messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
+              }
               onToggleCollapseAll={() => {
                 if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
                   setCollapsedByIdx({});

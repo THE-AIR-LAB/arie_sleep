@@ -22,7 +22,7 @@ const studioChatConfig: StudioChatConfig = {
   productName: "Market Researcher",
   studioPath: "/demo/research/studio",
   assistantMark: "logo",
-  avatarSrc: "/analyst.png",
+  avatarSrc: "/market_researcher.png",
   emptyStateHref: "/demo/research/studio",
   emptyStateTitle: "Market Researcher",
   emptyStateBody: (
