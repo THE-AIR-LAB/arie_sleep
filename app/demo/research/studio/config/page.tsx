@@ -11,7 +11,7 @@ import {
 
 const config: StudioSetupConfig = {
   setupEndpoint: "/api/admin/setup/research",
-  productName: "Market Researcher",
+  productName: "Investment Analyst",
   studioPath: "/demo/research/studio",
   assistantNoun: "analyst",
   coachNoun: "client",

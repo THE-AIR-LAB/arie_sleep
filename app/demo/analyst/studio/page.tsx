@@ -26,20 +26,20 @@ function deriveWorkflowStage(turn: Turn | null | undefined): string | null {
 }
 
 const studioChatConfig: StudioChatConfig = {
-  productName: "Analyst",
+  productName: "Market Analyst",
   studioPath: "/demo/analyst/studio",
   assistantMark: "logo",
   avatarSrc: "/analyst.png",
   emptyStateHref: "/demo/analyst/studio",
-  emptyStateTitle: "Analyst",
+  emptyStateTitle: "Market Analyst",
   emptyStateBody: (
     <>
-      Analyst pulls a live market snapshot and gives a clear, balanced
+      Market Analyst pulls a live market snapshot and gives a clear, balanced
       read of stocks, indices, rates, and more. General market information, not
       investment advice.
     </>
   ),
-  emptyStatePrimaryAgent: "Primary agent: Analyst",
+  emptyStatePrimaryAgent: "Primary agent: Market Analyst",
   subjectNoun: "user",
   apiTopic: "analyst",
   suggestions: SUGGESTIONS,

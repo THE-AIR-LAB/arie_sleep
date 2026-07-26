@@ -758,8 +758,32 @@ export function Bubble({
       }}
     >
       {controlsVisible && (collapsed ? showCollapse : showNav) && (
-        <div className="bubble-nav">
-          {/* Collapsed: only the expand caret — hide Policy/Feedback/copy/etc. */}
+        <div
+          className={"bubble-nav" + (onToggleCollapse ? " is-toggle-nav" : "")}
+          title={
+            onToggleCollapse
+              ? collapsed
+                ? "Click to expand"
+                : "Click empty space to collapse"
+              : undefined
+          }
+          onClick={
+            onToggleCollapse
+              ? (e) => {
+                  // Only empty nav chrome toggles — ignore clicks on buttons/links.
+                  const t = e.target as HTMLElement | null;
+                  if (t?.closest("button, a, input, textarea, select, [role='button']")) return;
+                  if (edgeDraggingRef.current || bottomDraggingRef.current) return;
+                  if (isCollapsedResized) {
+                    resetCollapsedSize();
+                    return;
+                  }
+                  onToggleCollapse();
+                }
+              : undefined
+          }
+        >
+          {/* Collapsed: only the expand caret. Expanded: empty nav space collapses. */}
           {!collapsed && showTurnN ? <span className="trace-turn-n">{turnNumber}.</span> : null}
           {!collapsed ? navActions : null}
           <div className="bubble-nav-end">

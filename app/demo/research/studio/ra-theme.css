@@ -1607,6 +1607,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .bubble-nav{
   flex:0 0 auto; display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:6px;
   min-height:0; padding:4px 8px 2px; border:none;}
+.ra-scope .bubble-nav.is-toggle-nav{cursor:pointer;}
 .ra-scope .bubble-nav .trace-turn-n{
   flex:0 0 auto; font-size:12px; font-weight:500; color:var(--text-3); line-height:1.2;
   font-variant-numeric:tabular-nums; min-width:1.25em;}
@@ -2194,7 +2195,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope .empty-logo a{display:block;line-height:0;}
 .ra-scope .empty-logo-sq{width:96px;height:96px;object-fit:cover;display:block;border-radius:50%;background:#B0BEA5;}
 .ra-scope .empty-title{font-family:var(--serif);font-size:20px;color:var(--text);font-weight:500;letter-spacing:.2px;white-space:nowrap;}
-.ra-scope .empty-sub{color:var(--text-3);font-size:12px;font-weight:400;max-width:284px;text-align:center;margin:2px 0 4px;line-height:1.35;}
+.ra-scope .empty-sub{color:var(--text-3);font-size:12px;font-weight:400;max-width:450px;text-align:center;margin:2px 0 4px;line-height:1.35;}
 .ra-scope .suggests{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;justify-content:center;max-width:100%;width:100%;}
 /* `button.sug-chip` beats the global `button { border:none }` reset. */
 .ra-scope button.sug-chip{display:inline-flex;align-items:center;justify-content:center;gap:5px;
@@ -2341,7 +2342,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   /* let headings wrap instead of forcing width */
   .ra-scope .empty-title{white-space:normal;text-align:center;font-size:14px;line-height:1.4;}
   .ra-scope .side-title,.ra-scope .empty-sub{white-space:normal;}
-  .ra-scope .empty-sub{font-size:12px;max-width:261px;line-height:1.35;}
+  .ra-scope .empty-sub{font-size:12px;max-width:min(450px,92vw);line-height:1.35;}
   .ra-scope .thread{padding:18px 14px 88px;}
   /* Equal side insets — drop the desktop +41px overhang so the pill stays
      symmetrical and the mic doesn't hang off the right edge. */
