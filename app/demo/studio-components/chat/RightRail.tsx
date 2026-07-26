@@ -34,18 +34,7 @@ export function RightRail({
       className={"right-rail" + (floating ? " floating" : "")}
       style={floating && rightOffset != null ? { right: rightOffset } : undefined}
     >
-      {!canvasOpen && (
-        <button
-          className="rail-btn"
-          data-tip="Workflow"
-          aria-label="Open workflow"
-          onClick={onToggleCanvas}
-        >
-          <Ic.Workflow size={18} />
-        </button>
-      )}
-      {/* Panel icon opens the right drawer. Hidden once it's open — the drawer
-          has its own × to close, so the launcher would be redundant. */}
+      {/* Order is fixed: side drawer (if present) → Workflow → collapse caret. */}
       {isAdmin && !panelOpen && (
         <button
           className="rail-btn"
@@ -56,7 +45,16 @@ export function RightRail({
           <Ic.Panel size={18} />
         </button>
       )}
-      {/* Collapse-all sits at the bottom of the rail icon stack. */}
+      {!canvasOpen && (
+        <button
+          className="rail-btn"
+          data-tip="Workflow"
+          aria-label="Open workflow"
+          onClick={onToggleCanvas}
+        >
+          <Ic.Workflow size={18} />
+        </button>
+      )}
       {showCollapseAll && (
         <button
           className="rail-btn"
