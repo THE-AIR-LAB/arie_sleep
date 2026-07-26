@@ -15,6 +15,8 @@ import {
 export function MobileNav({
   onOpen,
   showThreadControls = false,
+  allCollapsed = false,
+  onToggleCollapseAll,
   onOpenThreadFullscreen,
   selectedModel = OPENAI_MODEL,
   onSelectModel,
@@ -24,7 +26,6 @@ export function MobileNav({
   onOpen: () => void;
   isAdmin?: boolean;
   showThreadControls?: boolean;
-  /** @deprecated Kept for call-site compat. */
   allCollapsed?: boolean;
   onToggleCollapseAll?: () => void;
   hideBubbleControls?: boolean;
@@ -62,6 +63,21 @@ export function MobileNav({
     <nav className="mobile-railnav" aria-label="Menu">
       {showThreadControls && (
         <>
+          <button
+            type="button"
+            className="mrail-btn"
+            title={allCollapsed ? "Expand all" : "Collapse all"}
+            aria-label={allCollapsed ? "Expand all messages" : "Collapse all messages"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapseAll?.();
+            }}
+          >
+            <Ic.Chevron
+              size={18}
+              style={allCollapsed ? undefined : { transform: "rotate(180deg)" }}
+            />
+          </button>
           <button
             type="button"
             className="mrail-btn"

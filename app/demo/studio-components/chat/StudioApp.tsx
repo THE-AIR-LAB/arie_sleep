@@ -167,6 +167,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   // Thread chrome — bubble nav/footer always visible by default.
   const [collapsedByIdx, setCollapsedByIdx] = useState<Record<number, boolean>>({});
   const [hideBubbleControls, setHideBubbleControls] = useState(false);
+  // Title pill starts expanded; avatar/caret click toggles avatar-only.
   const [avatarOnly, setAvatarOnly] = useState(false);
   // Tint bubbles that have feedback (green). Off by default; pill toggle only
   // appears when this conversation actually has feedback entries.
@@ -981,16 +982,11 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
       convos.some((c) => c.id === id && c.title.startsWith(SIM_TITLE_PREFIX));
     // Pin before messages arrive so the thread never lands on the latest turn.
     setThreadScrollAnchor(isSim ? "start" : "end");
-    void Promise.all([loadMessages(id), loadFeedback(id)]).then(([msgs]) => {
+    void Promise.all([loadMessages(id), loadFeedback(id)]).then(() => {
       if (seq !== threadLoadSeqRef.current) return;
       setThreadLoading(false);
-      // Simulation runs open collapsed so the long thread is scannable.
-      if (isSim && msgs.length > 0) {
-        const next: Record<number, boolean> = {};
-        for (let i = 0; i < msgs.length; i++) next[i] = true;
-        setCollapsedByIdx(next);
-        setThreadScrollAnchor("start");
-      }
+      // All studios open with bubbles expanded; sims still pin to the first turn.
+      if (isSim) setThreadScrollAnchor("start");
     });
   };
 
@@ -1425,6 +1421,18 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
               onOpen={openMobileDrawer}
               isAdmin={isAdmin}
               showThreadControls={threadLoading || messages.length > 0}
+              allCollapsed={
+                messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
+              }
+              onToggleCollapseAll={() => {
+                if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
+                  setCollapsedByIdx({});
+                  return;
+                }
+                const next: Record<number, boolean> = {};
+                for (let i = 0; i < messages.length; i++) next[i] = true;
+                setCollapsedByIdx(next);
+              }}
               onOpenThreadFullscreen={() => setThreadFullscreen(true)}
               selectedModel={selectedModel}
               onSelectModel={(model) => {

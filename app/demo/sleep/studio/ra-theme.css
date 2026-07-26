@@ -1602,7 +1602,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .msg-user{background:var(--surface-2);}
 .ra-scope .bubble-nav{
   flex:0 0 auto; display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:6px;
-  min-height:0; padding:4px 8px 2px; border:none;}
+  min-height:0; padding:4px 8px 2px; border:none; position:relative;}
+/* Inset underline — 10px gap from each bubble edge. */
+.ra-scope .bubble-nav::after{
+  content:""; position:absolute; left:10px; right:10px; bottom:0; height:1px;
+  background:var(--line); pointer-events:none;}
 .ra-scope .bubble-nav.is-toggle-nav{cursor:pointer;}
 .ra-scope .bubble-nav .trace-turn-n{
   flex:0 0 auto; font-size:12px; font-weight:500; color:var(--text-3); line-height:1.2;
