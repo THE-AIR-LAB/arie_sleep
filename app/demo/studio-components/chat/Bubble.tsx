@@ -15,6 +15,9 @@ import {
 import { VoiceFeedbackButton } from "./VoiceFeedbackButton";
 import type { Message, StudioChatConfig } from "./types";
 
+/** Always-reserved slot for the reset-width control (matches CSS --bubble-reset-gutter). */
+const RESET_GUTTER = 36;
+
 /** Horizontal free space for bubble resize — inside .main, clear of rails/drawers. */
 function getBubbleResizeBounds(el: HTMLElement): { minLeft: number; maxRight: number } {
   const main = el.closest(".main") as HTMLElement | null;
@@ -56,12 +59,13 @@ function getBubbleResizeBounds(el: HTMLElement): { minLeft: number; maxRight: nu
 
   const GAP = 8;
   minLeft += GAP;
-  maxRight -= GAP;
+  // Match the always-reserved reset gutter so drag-start width == default width.
+  maxRight -= GAP + RESET_GUTTER;
   if (maxRight - minLeft < 180) {
     // Degenerate (narrow) layout — fall back to padded main box.
     return {
       minLeft: br.left + padL + GAP,
-      maxRight: br.right - padR - GAP,
+      maxRight: br.right - padR - GAP - RESET_GUTTER,
     };
   }
   return { minLeft, maxRight };
@@ -260,6 +264,20 @@ export function Bubble({
   const showTurnN = turnNumber != null;
   const showNav = showNavActions || showCollapse || showFullscreen || showTurnN || showCopy;
   const showFootActions = showFeedback;
+  const currentRating =
+    (feedbackEntries ?? []).find((e) => e.signal === "score")?.rating ?? null;
+
+  const toggleFootRating = (value: 1 | -1) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onSubmitFeedback) return;
+    const next = currentRating === value ? null : value;
+    const rest = (feedbackEntries ?? []).filter((entry) => entry.signal !== "score");
+    onSubmitFeedback(
+      next === null
+        ? rest
+        : [{ rating: next, signal: "score", comment: "" }, ...rest]
+    );
+  };
 
   const openFeedback = (anchor: "nav" | "foot") => (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -271,9 +289,12 @@ export function Bubble({
     if (!feedbackEditing) onOpenFeedback?.();
   };
 
+  // Remount when score changes from the foot thumbs so the editor stays in sync.
+  const feedbackEditorKey = `${currentRating ?? 0}:${(feedbackEntries ?? []).length}`;
   const feedbackEditor =
     showFeedback && feedbackEditing && onSubmitFeedback ? (
       <FeedbackMenuEditor
+        key={feedbackEditorKey}
         entries={feedbackEntries ?? []}
         onSave={(entries) => onSubmitFeedback(entries)}
         onCancel={() => onOpenFeedback?.()}
@@ -384,9 +405,40 @@ export function Bubble({
     </div>
   ) : null;
 
+  const footThumbs = showFeedback && onSubmitFeedback ? (
+    <div className="bubble-foot-thumbs" role="group" aria-label="Rating">
+      <button
+        type="button"
+        className={
+          "trace-act bubble-foot-thumb" + (currentRating === 1 ? " on" : "")
+        }
+        data-tip="Thumbs up"
+        aria-label="Thumbs up"
+        aria-pressed={currentRating === 1}
+        onClick={toggleFootRating(1)}
+      >
+        <Ic.ThumbUp size={14} />
+      </button>
+      <button
+        type="button"
+        className={
+          "trace-act bubble-foot-thumb" + (currentRating === -1 ? " on" : "")
+        }
+        data-tip="Thumbs down"
+        aria-label="Thumbs down"
+        aria-pressed={currentRating === -1}
+        onClick={toggleFootRating(-1)}
+      >
+        <Ic.ThumbDown size={14} />
+      </button>
+    </div>
+  ) : (
+    <span />
+  );
+
   const footActions = showFootActions ? (
     <div className="bubble-foot-actions">
-      <span />
+      {footThumbs}
       <div className="bubble-foot-feedback">
         <VoiceFeedbackButton
           existing={feedbackEntries ?? []}
@@ -560,7 +612,8 @@ export function Bubble({
       }
       if (inner) {
         const chrome = aiChromeRef.current;
-        correctW = Math.max(180, Math.floor(inner.clientWidth - chrome));
+        // Exclude the always-reserved reset gutter so snap-back matches default width.
+        correctW = Math.max(180, Math.floor(inner.clientWidth - chrome - RESET_GUTTER));
         if (widthPx == null) defaultWidthRef.current = correctW;
       }
     }
@@ -704,13 +757,14 @@ export function Bubble({
         ...widthStyle,
       }}
     >
-      {controlsVisible && showNav && (
+      {controlsVisible && (collapsed ? showCollapse : showNav) && (
         <div className="bubble-nav">
-          {showTurnN && !collapsed ? <span className="trace-turn-n">{turnNumber}.</span> : null}
-          {navActions}
+          {/* Collapsed: only the expand caret — hide Policy/Feedback/copy/etc. */}
+          {!collapsed && showTurnN ? <span className="trace-turn-n">{turnNumber}.</span> : null}
+          {!collapsed ? navActions : null}
           <div className="bubble-nav-end">
-            {copyBtn}
-            {fullscreenBtn}
+            {!collapsed ? copyBtn : null}
+            {!collapsed ? fullscreenBtn : null}
             {collapseBtn}
           </div>
         </div>
@@ -745,7 +799,7 @@ export function Bubble({
           <BubbleMarkdown>{m.text}</BubbleMarkdown>
         )}
       </div>
-      {controlsVisible && footActions && <div className="bubble-foot">{footActions}</div>}
+      {controlsVisible && !collapsed && footActions && <div className="bubble-foot">{footActions}</div>}
       {edgeHit("left")}
       {edgeHit("right")}
       {bottomHit}
@@ -757,44 +811,28 @@ export function Bubble({
     setWidthPx(null);
     setLeftPx(null);
   };
-  // Absolutely positioned on the right so showing/hiding never shifts the bubble.
+  // Lives in the always-reserved right gutter — showing it must not change bubble width.
   const resetWidthBtn = isWidthExpanded ? (
     <button
       type="button"
+      className="bubble-width-reset"
       aria-label="Reset bubble width"
       title="Reset width"
       onClick={resetBubbleWidth}
-      style={{
-        position: "absolute",
-        top: 2,
-        left: "100%",
-        marginLeft: 8,
-        width: 28,
-        height: 28,
-        borderRadius: "50%",
-        border: "1px solid var(--line)",
-        background: "var(--surface)",
-        color: "var(--text-2)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 0,
-        cursor: "pointer",
-        lineHeight: 0,
-        zIndex: 4,
-      }}
     >
       <Ic.Minimize size={13} stroke={1.7} />
     </button>
   ) : null;
 
-  // Attach reset control to the shell (already position:relative) without layout jump.
   const shellWithReset = (
     <>
       {shell}
       {resetWidthBtn}
     </>
   );
+
+  // border-box width = bubble shell + reserved reset gutter.
+  const colWidth = isWidthExpanded && widthPx != null ? widthPx + RESET_GUTTER : undefined;
 
   if (isUser) {
     return (
@@ -803,15 +841,13 @@ export function Bubble({
         style={
           isWidthExpanded
             ? {
-                width: widthPx,
+                width: colWidth,
                 maxWidth: "none",
                 alignSelf: "flex-start",
                 marginLeft: leftPx ?? undefined,
-                boxSizing: "border-box",
-                position: "relative",
                 overflow: "visible",
               }
-            : { position: "relative", overflow: "visible" }
+            : undefined
         }
       >
         {shellWithReset}
@@ -850,12 +886,11 @@ export function Bubble({
           isWidthExpanded
             ? {
                 flex: "0 0 auto",
-                width: widthPx,
+                width: colWidth,
                 maxWidth: "none",
                 overflow: "visible",
-                position: "relative",
               }
-            : { position: "relative", overflow: "visible" }
+            : undefined
         }
       >
         {shellWithReset}

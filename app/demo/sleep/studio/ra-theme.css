@@ -1458,7 +1458,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 /* ---------- main ---------- */
 .ra-scope .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
 /* Shared header band with the right-drawer Model Setup / Observability tabs. */
-.ra-scope{--studio-head-h:60px;--chat-max-w:530px;}
+.ra-scope{--studio-head-h:60px;--chat-max-w:none;}
 /* Floating pill over the scrolling thread — same height/gaps/type as before. */
 .ra-scope .thread-head{display:flex;align-items:center;gap:13px;height:36px;padding:4px 16px 4px 4px;box-sizing:border-box;
   width:max-content;max-width:calc(100% - 44px);border:none;border-radius:0;background:var(--frame);
@@ -1518,7 +1518,8 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   .ra-scope button.thread-collapse-all.thread-feedback-toggle{display:none !important;}
 }
 
-.ra-scope .thread{flex:1;overflow-y:auto;padding:26px 26px 96px;display:flex;flex-direction:column;gap:22px;min-height:0;}
+/* Extra right pad keeps bubble reset controls clear of the 64px right rail. */
+.ra-scope .thread{flex:1;overflow-y:auto;padding:26px 56px 96px 26px;display:flex;flex-direction:column;gap:22px;min-height:0;}
 /* Clearance so the first bubbles sit below the floating header pill. */
 .ra-scope .thread-head + .thread{padding-top:68px;}
 .ra-scope .thread.thread-loading{position:relative;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;}
@@ -1634,6 +1635,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
   flex:0 0 auto; min-height:0; padding:2px 8px 4px; border:none;}
 .ra-scope .bubble-foot-actions{
   display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;}
+.ra-scope .bubble-foot-thumbs{display:inline-flex; align-items:center; gap:4px; flex:0 0 auto;}
+.ra-scope .bubble-foot-thumbs .bubble-foot-thumb{width:28px; height:28px; border-radius:50%;}
+.ra-scope .bubble-foot-thumbs .bubble-foot-thumb.on,
+.ra-scope .bubble-foot-thumbs .bubble-foot-thumb.on:hover{
+  color:var(--text); opacity:1; background:#B0BEA5; box-shadow:none; border:0.5px solid #948E87;}
 .ra-scope .bubble-foot-feedback{display:inline-flex; align-items:center; gap:8px; margin-left:auto;}
 .ra-scope .bubble-voice-fb.recording{color:var(--text); opacity:1;}
 .ra-scope .bubble-voice-fb.saved{color:var(--text);}
@@ -1741,8 +1747,16 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .msg-ai .bubble.bubble-traceable{cursor:pointer;border-radius:0;margin:-2px -6px;padding:2px 6px;transition:background .12s ease;}
 .ra-scope .msg-ai .bubble.bubble-traceable:hover{background:var(--surface-2);}
 /* Reply column: the bubble shell fills the column width. */
-.ra-scope .msg-ai .bubble-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;}
+/* Always reserve a right gutter for the reset-width control so it can appear
+   without changing the bubble's width (no jump on first edge-drag). */
+.ra-scope{--bubble-reset-gutter:36px;}
+.ra-scope .msg-ai .bubble-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;
+  position:relative;padding-right:var(--bubble-reset-gutter);box-sizing:border-box;}
 .ra-scope .msg-ai .bubble-col .bubble{flex:0 0 auto;max-width:100%;width:100%;}
+.ra-scope .bubble-width-reset{position:absolute;top:2px;right:0;width:28px;height:28px;margin:0;padding:0;
+  border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--text-2);
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:0;z-index:4;}
+.ra-scope .bubble-width-reset:hover{color:var(--text);background:var(--surface-2);}
 /* Per-reply trace buttons live in the bubble footer. */
 .ra-scope .trace-actions{display:flex;flex-wrap:wrap;gap:6px;}
 .ra-scope .trace-act-div{display:inline-flex;align-items:center;color:var(--text-4);font-size:13px;line-height:1;user-select:none;opacity:.7;}
@@ -1847,8 +1861,9 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .mini-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:var(--text-4);}
 .ra-scope .mini-btn:hover{background:var(--surface);color:var(--text-2);}
 
-/* Patient (user) column. */
-.ra-scope .msg-user-col{align-self:flex-end;max-width:85%;display:flex;flex-direction:column;align-items:stretch;gap:0;}
+/* Patient (user) column — same reset gutter as .bubble-col. */
+.ra-scope .msg-user-col{align-self:flex-end;max-width:85%;display:flex;flex-direction:column;align-items:stretch;gap:0;
+  position:relative;padding-right:var(--bubble-reset-gutter);box-sizing:border-box;}
 .ra-scope .msg-user-col .trace-actions{justify-content:flex-start;}
 /* Observability TraceView fullscreen — portal outside .ra-scope. */
 .ra-scope .trace-fs-open,.trace-fs-open{
@@ -2198,7 +2213,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope button.empty-upload .ic{color:var(--text);display:flex;}
 
 /* composer — floating pill over the scrolling thread (mirrors thread-head). */
-.ra-scope .composer-wrap{position:absolute;left:0;right:0;bottom:0;z-index:24;padding:0 26px 18px;border-top:none;
+.ra-scope .composer-wrap{position:absolute;left:0;right:0;bottom:0;z-index:24;padding:0 56px 18px 26px;border-top:none;
   display:flex;flex-direction:column;gap:8px;pointer-events:none;background:transparent;overflow:visible;}
 .ra-scope .composer-inner{position:relative;width:100%;max-width:var(--chat-max-w,530px);margin:0 auto;display:flex;flex-direction:column;gap:8px;
   border-top:none;padding-top:0;box-sizing:border-box;pointer-events:auto;overflow:visible;}
@@ -2872,16 +2887,17 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
 .ra-scope .fb-options{ display:flex; align-items:center; gap:14px; flex-wrap:nowrap; min-width:0; }
 .ra-scope .fb-thumbs{ display:flex; align-items:center; gap:6px; flex:0 0 auto; }
 .ra-scope .fb-thumbs .fb-thumb{
-  display:inline-flex; align-items:center; justify-content:center; gap:4px;
-  min-width:28px; height:28px; padding:0 8px; border-radius:0;
-  border:1px solid transparent; background:transparent; color:var(--text-2);
+  display:inline-flex; align-items:center; justify-content:center; gap:0;
+  width:28px; min-width:28px; height:28px; padding:0; border-radius:50%;
+  border:1px solid transparent; background:transparent; color:var(--text-3);
   font-size:14px; cursor:pointer; outline:none; box-shadow:none;
 }
-.ra-scope .fb-thumbs .fb-thumb:hover{ border-color:var(--line); color:var(--text); background:var(--surface); }
+.ra-scope .fb-thumbs .fb-thumb:hover{ border-color:transparent; color:var(--text); background:transparent; }
 .ra-scope .fb-thumbs .fb-thumb:focus,
 .ra-scope .fb-thumbs .fb-thumb:focus-visible{ outline:none; box-shadow:none; }
-.ra-scope .fb-thumbs .fb-thumb.active{
-  border:1px solid var(--text); background:transparent; color:var(--text);
+.ra-scope .fb-thumbs .fb-thumb.active,
+.ra-scope .fb-thumbs .fb-thumb.active:hover{
+  border:0.5px solid #948E87; background:#B0BEA5; color:var(--text); box-shadow:none;
 }
 /* Note / Text correction / Ideal output — selected = 2px underline.
    Scoped under `.fb-types` so we out-specify `.ra-scope button{border:none}`

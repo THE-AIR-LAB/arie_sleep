@@ -105,6 +105,7 @@ class QueryBuilder {
   private mode: "select" | "insert" | "update" | "delete" = "select";
   private payload: TestSupabaseRow | TestSupabaseRow[] | null = null;
   private singleMode: "single" | "maybeSingle" | null = null;
+  private upsertKeys: string[] | null = null;
 
   constructor(
     private table: string,
@@ -128,9 +129,22 @@ class QueryBuilder {
     return this;
   }
 
-  upsert(payload: TestSupabaseRow) {
+  upsert(
+    payload: TestSupabaseRow | TestSupabaseRow[],
+    _opts?: { onConflict?: string }
+  ) {
     this.mode = "insert";
     this.payload = payload;
+    // Prefer unique business keys for message_feedback so onConflict upserts
+    // match production (user_id, conversation_id, message_index, signal).
+    if (this.table === "message_feedback") {
+      this.upsertKeys = [
+        "user_id",
+        "conversation_id",
+        "message_index",
+        "signal",
+      ];
+    }
     return this;
   }
 
@@ -208,7 +222,9 @@ class QueryBuilder {
       const rows = Array.isArray(this.payload) ? this.payload : [this.payload!];
       const inserted: TestSupabaseRow[] = [];
       for (const row of rows) {
-        const keys = this.table === "user_roles" ? ["user_id"] : ["id"];
+        const keys =
+          this.upsertKeys ??
+          (this.table === "user_roles" ? ["user_id"] : ["id"]);
         const hasKeys = keys.every((key) => row[key] != null);
         const existingIdx = hasKeys
           ? table.findIndex((existing) =>

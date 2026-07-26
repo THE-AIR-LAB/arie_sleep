@@ -173,18 +173,24 @@ function FeedbackEditor({
       <div className="fb-options">
         <div className="fb-thumbs">
           <button
+            type="button"
             className={"fb-thumb up" + (rating === 1 ? " active" : "")}
             onClick={() => setRating((r) => (r === 1 ? null : 1))}
             title="Thumbs up"
+            aria-label="Thumbs up"
+            aria-pressed={rating === 1}
           >
-            👍
+            <Ic.ThumbUp size={14} />
           </button>
           <button
+            type="button"
             className={"fb-thumb down" + (rating === -1 ? " active" : "")}
             onClick={() => setRating((r) => (r === -1 ? null : -1))}
             title="Thumbs down"
+            aria-label="Thumbs down"
+            aria-pressed={rating === -1}
           >
-            👎
+            <Ic.ThumbDown size={14} />
           </button>
         </div>
         <div className="fb-types">

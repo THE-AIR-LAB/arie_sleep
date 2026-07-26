@@ -11,6 +11,9 @@ export function RightRail({
   onToggleCanvas,
   floating = false,
   rightOffset,
+  showCollapseAll = false,
+  allCollapsed = false,
+  onToggleCollapseAll,
 }: {
   panelOpen: boolean;
   onTogglePanel: () => void;
@@ -22,12 +25,25 @@ export function RightRail({
    *  column, and follows the drawer as its width is resized. */
   floating?: boolean;
   rightOffset?: number;
+  showCollapseAll?: boolean;
+  allCollapsed?: boolean;
+  onToggleCollapseAll?: () => void;
 }) {
   return (
     <aside
       className={"right-rail" + (floating ? " floating" : "")}
       style={floating && rightOffset != null ? { right: rightOffset } : undefined}
     >
+      {!canvasOpen && (
+        <button
+          className="rail-btn"
+          data-tip="Workflow"
+          aria-label="Open workflow"
+          onClick={onToggleCanvas}
+        >
+          <Ic.Workflow size={18} />
+        </button>
+      )}
       {/* Panel icon opens the right drawer. Hidden once it's open — the drawer
           has its own × to close, so the launcher would be redundant. */}
       {isAdmin && !panelOpen && (
@@ -40,16 +56,18 @@ export function RightRail({
           <Ic.Panel size={18} />
         </button>
       )}
-      {/* Workflow launcher, docked in the rail directly under the drawer icon.
-          Hidden while the workflow is open (it has its own × to close). */}
-      {!canvasOpen && (
+      {/* Collapse-all sits at the bottom of the rail icon stack. */}
+      {showCollapseAll && (
         <button
           className="rail-btn"
-          data-tip="Workflow"
-          aria-label="Open workflow"
-          onClick={onToggleCanvas}
+          data-tip={allCollapsed ? "Expand all" : "Collapse all"}
+          aria-label={allCollapsed ? "Expand all messages" : "Collapse all messages"}
+          onClick={onToggleCollapseAll}
         >
-          <Ic.Workflow size={18} />
+          <Ic.Chevron
+            size={18}
+            style={allCollapsed ? undefined : { transform: "rotate(180deg)" }}
+          />
         </button>
       )}
     </aside>

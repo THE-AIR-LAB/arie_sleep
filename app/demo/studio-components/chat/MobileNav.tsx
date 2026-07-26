@@ -11,27 +11,20 @@ import {
 /* ---------------- mobile-only top-right nav ---------------- */
 // On mobile the docked sidebar and rails are hidden, so a single hamburger
 // opens the bottom sheet (Chats / Account / admin tabs live inside it).
-// Thread actions (show controls / collapse / fullscreen) sit as icon buttons
-// to the left of the model menu + hamburger.
+// Bubble chrome is always visible; mobile rail keeps fullscreen / feedback / menu.
 export function MobileNav({
   onOpen,
   showThreadControls = false,
-  allCollapsed = false,
-  onToggleCollapseAll,
-  hideBubbleControls = true,
-  onToggleHideBubbleControls,
   onOpenThreadFullscreen,
   selectedModel = OPENAI_MODEL,
   onSelectModel,
   onOpenV2Modal,
-  showFeedbackToggle = false,
-  highlightFeedback = false,
-  onToggleHighlightFeedback,
   hidden = false,
 }: {
   onOpen: () => void;
   isAdmin?: boolean;
   showThreadControls?: boolean;
+  /** @deprecated Kept for call-site compat. */
   allCollapsed?: boolean;
   onToggleCollapseAll?: () => void;
   hideBubbleControls?: boolean;
@@ -40,7 +33,6 @@ export function MobileNav({
   selectedModel?: string;
   onSelectModel?: (model: ChatModelId) => void;
   onOpenV2Modal?: () => void;
-  /** Show when this conversation has feedback — sits before the hamburger. */
   showFeedbackToggle?: boolean;
   highlightFeedback?: boolean;
   onToggleHighlightFeedback?: () => void;
@@ -60,9 +52,6 @@ export function MobileNav({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [threadMenuOpen]);
 
-  const showControlsLabel = hideBubbleControls ? "Show controls" : "Hide controls";
-  const collapseLabel = allCollapsed ? "Expand all" : "Collapse all";
-
   useEffect(() => {
     if (hidden) setThreadMenuOpen(false);
   }, [hidden]);
@@ -75,32 +64,6 @@ export function MobileNav({
         <>
           <button
             type="button"
-            className={"mrail-btn" + (allCollapsed ? " on" : "")}
-            title={collapseLabel}
-            aria-label={collapseLabel}
-            aria-pressed={allCollapsed}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleCollapseAll?.();
-            }}
-          >
-            <Ic.Chevron size={18} style={allCollapsed ? undefined : { transform: "rotate(180deg)" }} />
-          </button>
-          <button
-            type="button"
-            className={"mrail-btn" + (!hideBubbleControls ? " on" : "")}
-            title={showControlsLabel}
-            aria-label={showControlsLabel}
-            aria-pressed={!hideBubbleControls}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleHideBubbleControls?.();
-            }}
-          >
-            <Ic.Sliders size={18} />
-          </button>
-          <button
-            type="button"
             className="mrail-btn"
             title="Fullscreen"
             aria-label="Fullscreen"
@@ -111,27 +74,6 @@ export function MobileNav({
           >
             <Ic.Expand size={18} />
           </button>
-          {showFeedbackToggle ? (
-            <button
-              type="button"
-              className={
-                "mrail-btn mrail-feedback" + (highlightFeedback ? " on" : "")
-              }
-              title={
-                highlightFeedback
-                  ? "Hide feedback highlight on bubbles"
-                  : "Highlight bubbles that have feedback"
-              }
-              aria-label="Feedback"
-              aria-pressed={highlightFeedback}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleHighlightFeedback?.();
-              }}
-            >
-              <Ic.Edit size={18} />
-            </button>
-          ) : null}
           <div className="mrail-thread-controls" ref={threadMenuRef}>
             <button
               type="button"

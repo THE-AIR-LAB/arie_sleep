@@ -164,10 +164,9 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   // "How to use the studio" help panel, anchored bottom-left of the sidebar.
   const [infoOpen, setInfoOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Thread chrome (Collapse all / Hide controls) — lifted so it can dock above
-  // the composer input; TODAY stays at the top of the message list.
+  // Thread chrome — bubble nav/footer always visible by default.
   const [collapsedByIdx, setCollapsedByIdx] = useState<Record<number, boolean>>({});
-  const [hideBubbleControls, setHideBubbleControls] = useState(true);
+  const [hideBubbleControls, setHideBubbleControls] = useState(false);
   const [avatarOnly, setAvatarOnly] = useState(false);
   // Tint bubbles that have feedback (green). Off by default; pill toggle only
   // appears when this conversation actually has feedback entries.
@@ -183,18 +182,11 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     }
   }, []);
   useEffect(() => {
-    setHideBubbleControls(true);
+    setHideBubbleControls(false);
     setCollapsedByIdx({});
     setThreadFullscreen(false);
     setHighlightFeedback(false);
   }, [activeId]);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(max-width: 900px)");
-    const sync = () => { if (mq.matches) setHideBubbleControls(true); };
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
   // Bottom canvas drawer: a full-width sheet that slides up from the bottom and
   // hosts a Canvas editor. Its doc and height are kept here so they survive
   // open/close.
@@ -399,9 +391,10 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     },
     [isAdmin, openDrawer]
   );
-  // Policy-canvas trace focus: clicking a reply's "Policy trace" button opens
+  // Policy-canvas trace focus: clicking a reply's "Policy" button opens
   // Model Setup (which lands on Policy) and re-animates that specific turn's path
   // on the canvas. `n` bumps each click so re-clicking the same reply re-fires.
+  // Does not open the bottom workflow canvas.
   const [policyFocus, setPolicyFocus] = useState<{ id: string; n: number }>({
     id: "",
     n: 0,
@@ -410,8 +403,6 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     (turnId: string) => {
       if (!isAdmin) return; // Model Setup / Policy is admin-only.
       openDrawer("modelsetup");
-      // Also open the workflow so its stage highlight (following this turn) is visible.
-      setCanvasOpen(true);
       setPolicyFocus((prev) => ({ id: turnId, n: prev.n + 1 }));
     },
     [isAdmin, openDrawer]
@@ -1123,6 +1114,8 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
 
   // Surfaces a failed feedback save/delete instead of letting it fail silently.
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  // Serialize per-message feedback POSTs so rapid thumb clicks don't race.
+  const feedbackSaveChainRef = useRef<Map<number, Promise<void>>>(new Map());
 
   const onSaveFeedback = async (index: number, entries: FeedbackEntry[]) => {
     // Empty set means the expert cleared everything → treat as remove.
@@ -1136,42 +1129,57 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
       setFeedbackError("Can't save feedback: no active conversation for this reply.");
       return;
     }
+    const conversationId = activeId;
     // Optimistic update; reconciled/reverted based on the server response.
     setFeedbackByIdx((prev) => ({ ...prev, [index]: entries }));
     setEditingIdx(null);
     setFeedbackError(null);
-    try {
-      // Persist the full signal set; the server reconciles (upserts present
-      // signals, deletes cleared ones).
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: activeId,
-          messageIndex: index,
-          messageRole: msg.role,
-          messageExcerpt: msg.text,
-          entries: entries.map((e) => ({
-            signal: e.signal,
-            rating: e.rating,
-            comment: e.comment,
-          })),
-        }),
+
+    const prev = feedbackSaveChainRef.current.get(index) ?? Promise.resolve();
+    const next = prev
+      .catch(() => {})
+      .then(async () => {
+        // Persist the full signal set; the server reconciles (upserts present
+        // signals, deletes cleared ones).
+        const res = await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId,
+            messageIndex: index,
+            messageRole: msg.role,
+            messageExcerpt: msg.text,
+            entries: entries.map((e) => ({
+              signal: e.signal,
+              rating: e.rating,
+              comment: e.comment,
+            })),
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.error ?? `Feedback save failed (HTTP ${res.status}).`);
+        }
+        // Tint this conversation in the sidebar / Runs list.
+        setConvos((prevConvos) =>
+          prevConvos.map((c) =>
+            c.id === conversationId ? { ...c, hasFeedback: true } : c
+          )
+        );
+      })
+      .catch((err) => {
+        console.error("[feedback] save failed", err);
+        setFeedbackError(
+          err instanceof Error ? err.message : "Feedback save failed. Please try again."
+        );
+      })
+      .finally(() => {
+        if (feedbackSaveChainRef.current.get(index) === next) {
+          feedbackSaveChainRef.current.delete(index);
+        }
       });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? `Feedback save failed (HTTP ${res.status}).`);
-      }
-      // Tint this conversation in the sidebar / Runs list.
-      setConvos((prev) =>
-        prev.map((c) => (c.id === activeId ? { ...c, hasFeedback: true } : c))
-      );
-    } catch (err) {
-      console.error("[feedback] save failed", err);
-      setFeedbackError(
-        err instanceof Error ? err.message : "Feedback save failed. Please try again."
-      );
-    }
+    feedbackSaveChainRef.current.set(index, next);
+    await next;
   };
 
   const onRemoveFeedback = async (index: number) => {
@@ -1298,26 +1306,8 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
             {activeId || messages.length > 0 || threadLoading ? (
               <ThreadHeader
                 config={config}
-                showThreadControls={threadLoading || messages.length > 0}
-                hideBubbleControls={hideBubbleControls}
-                onToggleHideBubbleControls={() => setHideBubbleControls((v) => !v)}
-                allCollapsed={
-                  messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
-                }
-                onToggleCollapseAll={() => {
-                  if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
-                    setCollapsedByIdx({});
-                    return;
-                  }
-                  const next: Record<number, boolean> = {};
-                  for (let i = 0; i < messages.length; i++) next[i] = true;
-                  setCollapsedByIdx(next);
-                }}
                 avatarOnly={avatarOnly}
                 onToggleAvatarOnly={() => setAvatarOnly((v) => !v)}
-                showFeedbackToggle={hasThreadFeedback}
-                highlightFeedback={highlightFeedback}
-                onToggleHighlightFeedback={() => setHighlightFeedback((v) => !v)}
               />
             ) : null}
             {threadLoading ? (
@@ -1416,26 +1406,25 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
             onToggleCanvas={() => setCanvasOpen((v) => !v)}
             floating={openDrawers.length > 0}
             rightOffset={obsWidth ?? obsBounds.def}
+            showCollapseAll={threadLoading || messages.length > 0}
+            allCollapsed={
+              messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
+            }
+            onToggleCollapseAll={() => {
+              if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
+                setCollapsedByIdx({});
+                return;
+              }
+              const next: Record<number, boolean> = {};
+              for (let i = 0; i < messages.length; i++) next[i] = true;
+              setCollapsedByIdx(next);
+            }}
           />
           {openDrawers.length === 0 && (
             <MobileNav
               onOpen={openMobileDrawer}
               isAdmin={isAdmin}
               showThreadControls={threadLoading || messages.length > 0}
-              allCollapsed={
-                messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])
-              }
-              onToggleCollapseAll={() => {
-                if (messages.length > 0 && messages.every((_, i) => !!collapsedByIdx[i])) {
-                  setCollapsedByIdx({});
-                  return;
-                }
-                const next: Record<number, boolean> = {};
-                for (let i = 0; i < messages.length; i++) next[i] = true;
-                setCollapsedByIdx(next);
-              }}
-              hideBubbleControls={hideBubbleControls}
-              onToggleHideBubbleControls={() => setHideBubbleControls((v) => !v)}
               onOpenThreadFullscreen={() => setThreadFullscreen(true)}
               selectedModel={selectedModel}
               onSelectModel={(model) => {
@@ -1447,9 +1436,6 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
                 }
               }}
               onOpenV2Modal={() => openV2Modal(v2Training)}
-              showFeedbackToggle={hasThreadFeedback}
-              highlightFeedback={highlightFeedback}
-              onToggleHighlightFeedback={() => setHighlightFeedback((v) => !v)}
             />
           )}
           {openDrawers.length > 0 && (

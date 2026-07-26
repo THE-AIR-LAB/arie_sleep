@@ -356,17 +356,19 @@ export function BubbleFullscreen({
                     type="button"
                     className={"bubble-fs-thumb" + (rating === 1 ? " active" : "")}
                     title="Thumbs up"
+                    aria-label="Thumbs up"
                     onClick={() => setRating((r) => (r === 1 ? null : 1))}
                   >
-                    👍
+                    <Ic.ThumbUp size={15} />
                   </button>
                   <button
                     type="button"
                     className={"bubble-fs-thumb" + (rating === -1 ? " active" : "")}
                     title="Thumbs down"
+                    aria-label="Thumbs down"
                     onClick={() => setRating((r) => (r === -1 ? null : -1))}
                   >
-                    👎
+                    <Ic.ThumbDown size={15} />
                   </button>
                 </div>
                 <span className="bubble-fs-hint">
@@ -402,7 +404,7 @@ export function BubbleFullscreen({
                     aria-pressed={existingRating === 1}
                     onClick={() => toggleRating(1)}
                   >
-                    👍
+                    <Ic.ThumbUp size={15} />
                   </button>
                   <button
                     type="button"
@@ -412,7 +414,7 @@ export function BubbleFullscreen({
                     aria-pressed={existingRating === -1}
                     onClick={() => toggleRating(-1)}
                   >
-                    👎
+                    <Ic.ThumbDown size={15} />
                   </button>
                   <button
                     type="button"

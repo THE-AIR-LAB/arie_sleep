@@ -128,9 +128,7 @@ export async function POST(request: NextRequest) {
   };
 
   const supabase = createSupabaseAdminClient();
-  // Reconcile this message's rows to the desired set. Keyed explicitly by
-  // (user, conversation, message_index, signal) rather than onConflict so it
-  // also works under the in-memory test shim.
+  // Reconcile this message's rows to the desired set.
   const { data: existingRows, error: selErr } = await supabase
     .from("message_feedback")
     .select("id, signal")
@@ -140,10 +138,19 @@ export async function POST(request: NextRequest) {
   if (selErr) return NextResponse.json({ error: selErr.message }, { status: 500 });
   const existing = (existingRows ?? []) as Array<{ id: string; signal: string }>;
 
-  // Upsert each desired signal.
+  // Upsert each desired signal. Prefer onConflict so concurrent thumb clicks
+  // (select→insert races) don't hit message_feedback_user_convo_msg_signal_key.
   for (const [signal, v] of desired) {
-    const match = existing.find((r) => r.signal === signal);
     const row = { ...base, signal, rating: v.rating, comment: v.comment };
+    const { error: upsertErr } = await supabase
+      .from("message_feedback")
+      .upsert(row, {
+        onConflict: "user_id,conversation_id,message_index,signal",
+      });
+    if (!upsertErr) continue;
+
+    // Fallback for clients/shims without onConflict support: update-or-insert.
+    const match = existing.find((r) => r.signal === signal);
     if (match) {
       const { error } = await supabase
         .from("message_feedback")
@@ -152,7 +159,22 @@ export async function POST(request: NextRequest) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     } else {
       const { error } = await supabase.from("message_feedback").insert(row);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        // Lost a race with another insert — update the row that won.
+        const { error: retryErr } = await supabase
+          .from("message_feedback")
+          .update(row)
+          .eq("user_id", user.userUUID)
+          .eq("conversation_id", conversationId)
+          .eq("message_index", messageIndex)
+          .eq("signal", signal);
+        if (retryErr) {
+          return NextResponse.json(
+            { error: error.message || retryErr.message },
+            { status: 500 }
+          );
+        }
+      }
     }
   }
 
