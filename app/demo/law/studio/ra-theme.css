@@ -2342,7 +2342,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   /* let headings wrap instead of forcing width */
   .ra-scope .empty-title{white-space:normal;text-align:center;font-size:14px;line-height:1.4;}
   .ra-scope .side-title,.ra-scope .empty-sub{white-space:normal;}
-  .ra-scope .empty-sub{font-size:12px;max-width:min(458px,92vw);line-height:1.35;}
+  .ra-scope .empty-sub{font-size:12px;max-width:min(450px,92vw);line-height:1.35;}
   .ra-scope .thread{padding:18px 14px 88px;}
   /* Equal side insets — drop the desktop +41px overhang so the pill stays
      symmetrical and the mic doesn't hang off the right edge. */
