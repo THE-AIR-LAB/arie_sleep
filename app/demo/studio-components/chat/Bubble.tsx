@@ -760,13 +760,6 @@ export function Bubble({
       {controlsVisible && (collapsed ? showCollapse : showNav) && (
         <div
           className={"bubble-nav" + (onToggleCollapse ? " is-toggle-nav" : "")}
-          title={
-            onToggleCollapse
-              ? collapsed
-                ? "Click to expand"
-                : "Click empty space to collapse"
-              : undefined
-          }
           onClick={
             onToggleCollapse
               ? (e) => {
