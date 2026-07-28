@@ -24,8 +24,22 @@ const SEPIA_PANEL = "#e4e2d6";
 const SEPIA_TEXT = "#1f1d18";
 const SEPIA_MUTED = "#6f6a5b";
 const SEPIA_LINE = "#a8a698";
-const ACCENT = "#8a5a2b";
-const WARN = "#9a3b2f";
+
+// Palette lifted straight from the canvas node/edge colors (packages/canvas-ui)
+// so the report shares the studio's visual language:
+//   condition/IF #FFD100 · action/tool #25C1FC (deep text #0a3a52) ·
+//   terminate #F00E26 · start/command #445A1E · TRUE edge #007E27 ·
+//   FALSE edge #D9582B · label accent #c2611f.
+const C_YELLOW = "#c9a200"; // IF / condition (darkened #FFD100 so it reads on sepia)
+const C_BLUE = "#1f9fd0"; // action / tool (from #25C1FC)
+const C_TEAL = "#0a3a52"; // action-node text / deep accent
+const C_OLIVE = "#445a1e"; // start / command
+const C_GREEN = "#007e27"; // TRUE branch
+const C_RUST = "#c2611f"; // label accent — primary highlight
+const C_RED = "#d9582b"; // FALSE branch — warnings
+
+const ACCENT = C_RUST;
+const WARN = C_RED;
 
 const REFERENCE = {
   draftId: "c2b2f46c-3c3e-451a-a4cb-1b8acaf86115",
@@ -165,7 +179,10 @@ const CANVASES: CanvasCard[] = [
   },
 ];
 
-const KIND_COLOR: Record<string, string> = { state: "#4a6b8a", policy: "#7a5a2b", reward: "#5a7a4a" };
+const KIND_COLOR: Record<string, string> = { state: C_TEAL, policy: C_OLIVE, reward: C_GREEN };
+// Task generator vs analyst accents, also from the canvas palette.
+const AGENT_SOURCE = C_RUST; // task generator
+const AGENT_TARGET = C_TEAL; // performing agent
 const KIND_ORDER: Record<string, number> = { state: 0, policy: 1, reward: 2 };
 
 // The runtime loop for the reference draft — how the six canvases compose into one
@@ -252,16 +269,24 @@ const TOC: { id: string; label: string; desc: string; accent?: boolean }[] = [
   { id: "entities", label: "2 · Entity model", desc: "The two agents and their distinctive state fields." },
   { id: "compose", label: "3 · Composition & loop", desc: "Two agents, six canvases, the run loop." },
   { id: "collisions", label: "4 · Collisions", desc: "440 canvases; 59 → 0 under the canonical key." },
-  { id: "ownership", label: "5 · Ownership", desc: "State agent-owned; policy/reward per-connection." },
-  { id: "decisions", label: "6 · Decisions", desc: "Canonical key; no id rewrite; reconciliations." },
-  { id: "process", label: "7 · Process", desc: "The read-only queries that were run." },
+  { id: "datamodel", label: "5 · Data model", desc: "How a canvas is stored & retrieved — JSON vs rows." },
+  { id: "recommend", label: "6 · Recommendation", desc: "Target store: a canvas as an addressable document.", accent: true },
+  { id: "ownership", label: "7 · Ownership", desc: "State agent-owned; policy/reward per-connection." },
+  { id: "decisions", label: "8 · Decisions", desc: "Canonical key; no id rewrite; reconciliations." },
+  { id: "process", label: "9 · Process", desc: "The read-only queries that were run." },
 ];
 
 const STATUS_STYLE: Record<TaskStatus, { label: string; bg: string; fg: string }> = {
-  done: { label: "DONE", bg: "#4a6b2a", fg: "#fff" },
-  next: { label: "NEXT", bg: "#8a5a2b", fg: "#fff" },
-  blocked: { label: "BLOCKED", bg: "#9a3b2f", fg: "#fff" },
+  done: { label: "DONE", bg: C_GREEN, fg: "#fff" },
+  next: { label: "NEXT", bg: C_RUST, fg: "#fff" },
+  blocked: { label: "BLOCKED", bg: C_RED, fg: "#fff" },
   todo: { label: "TODO", bg: "#cfccbe", fg: "#4a463c" },
+};
+
+// Node-type accent, mirroring the canvas editor's per-node colors.
+const NODE_TYPE_COLOR: Record<string, string> = {
+  start: C_OLIVE, code: SEPIA_MUTED, prompt: C_TEAL, condition: C_YELLOW,
+  tool_call: C_BLUE, display: C_RUST, terminate: C_RED, terminate_stage: C_RED, continue: SEPIA_MUTED,
 };
 
 function Chip({ children, color }: { children: React.ReactNode; color?: string }) {
@@ -295,7 +320,7 @@ function CanvasCardView({ c, showOwner = true }: { c: CanvasCard; showOwner?: bo
         <ol style={{ marginTop: 7, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
           {c.nodes.map((n, i) => (
             <li key={n.id + i} style={{ display: "flex", gap: 8, fontSize: 12, lineHeight: 1.4 }}>
-              <span style={{ minWidth: 72, fontFamily: "var(--font-mono, monospace)", fontSize: 10, color: SEPIA_MUTED, paddingTop: 1 }}>{NODE_TYPE_LABEL[n.type] ?? n.type}</span>
+              <span style={{ minWidth: 72, fontFamily: "var(--font-mono, monospace)", fontSize: 10, fontWeight: 700, color: NODE_TYPE_COLOR[n.type] ?? SEPIA_MUTED, paddingTop: 1 }}>{NODE_TYPE_LABEL[n.type] ?? n.type}</span>
               <span>{n.label}</span>
             </li>
           ))}
@@ -306,7 +331,7 @@ function CanvasCardView({ c, showOwner = true }: { c: CanvasCard; showOwner?: bo
 }
 
 function AgentColumn({ agent, canvases }: { agent: typeof AGENTS[number]; canvases: CanvasCard[] }) {
-  const accent = agent.connectionSide === "source" ? "#7a5a2b" : "#4a6b8a";
+  const accent = agent.connectionSide === "source" ? AGENT_SOURCE : AGENT_TARGET;
   return (
     <div style={{ background: SEPIA_PANEL, border: `1px solid ${accent}`, borderRadius: 0, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
       <div>
@@ -353,6 +378,14 @@ export default function SystemPage() {
             Read-only ground truth for Task&nbsp;0 (schema audit) and Task&nbsp;1 (canvas identity / collision
             analysis), rendered against the reference <strong>investment analyst</strong> draft. All figures
             come from live read-only SQL against the scoped Supabase surface — not the service-role key.
+          </p>
+          <p style={{ color: SEPIA_MUTED, marginTop: 10, fontSize: 14.5, lineHeight: 1.6 }}>
+            The daemon holds <strong style={{ color: SEPIA_TEXT }}>440 canvases</strong> across 47 multi-agent drafts, split by
+            workflow: <span style={{ color: C_RUST, fontWeight: 600 }}>Investment analysis 276</span> ·
+            {" "}<span style={{ color: C_TEAL, fontWeight: 600 }}>Sleep therapy / CBT-I 150</span> ·
+            {" "}<span style={{ color: C_GREEN, fontWeight: 600 }}>Linear algebra tutor 14</span>. Investment analysis dominates
+            because its 40 drafts are <em>iterative regenerations of one workflow</em>, not 40 distinct ones (see §4).
+            Nutrition and Law appear only as legacy single-agent demos, outside the 440.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 16px", marginTop: 18, fontSize: 13, background: SEPIA_PANEL, border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 16 }}>
             <span style={{ color: SEPIA_MUTED }}>Project</span><span style={{ fontFamily: "var(--font-mono, monospace)" }}>{REFERENCE.project}</span>
@@ -529,12 +562,12 @@ export default function SystemPage() {
                 <li key={s.step}>
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", alignSelf: "stretch" }}>
-                      <span style={{ width: 26, height: 26, borderRadius: "50%", background: isGen ? "#7a5a2b" : "#4a6b8a", color: "#fff", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{s.step}</span>
+                      <span style={{ width: 26, height: 26, borderRadius: "50%", background: isGen ? AGENT_SOURCE : AGENT_TARGET, color: "#fff", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{s.step}</span>
                       {i < RUN_STEPS.length - 1 ? <span style={{ flex: 1, width: 2, background: SEPIA_LINE, minHeight: 18 }} /> : null}
                     </div>
                     <div style={{ paddingBottom: 16, flex: 1 }}>
                       <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 600, color: isGen ? "#7a5a2b" : "#4a6b8a" }}>{isGen ? "Task generator" : "Investment analyst"}</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: isGen ? AGENT_SOURCE : AGENT_TARGET }}>{isGen ? "Task generator" : "Investment analyst"}</span>
                         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: "#fff", background: KIND_COLOR[s.kind], padding: "1px 6px", borderRadius: 0, textTransform: "uppercase" }}>{s.kind}</span>
                         <span style={{ fontSize: 12.5, color: SEPIA_MUTED }}>{s.canvas}</span>
                       </div>
@@ -552,6 +585,117 @@ export default function SystemPage() {
         <Section id="collisions" n="4" title="Task 1 — canvas identity & collisions (all 46 drafts)">
           <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
             440 canvas instances across 46 drafts. Collision = same resolution key returns a different payload.
+            First, the question that makes the collisions concrete — <strong>where do the 440 physically live?</strong>
+          </p>
+
+          {/* Where the 440 canvases live */}
+          <div style={{ background: SEPIA_PANEL, border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 16, marginTop: 12 }}>
+            <div style={{ fontWeight: 600, fontSize: 14.5, marginBottom: 6 }}>Where the 440 canvases live</div>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6, marginTop: 0 }}>
+              Not in any <code>*_canvases</code> table. Every one is embedded in the <code>agent_connections</code> JSONB
+              column on <code>general_orchestration_daemon_drafts</code>. A draft holds an array of <strong>connection objects</strong>;
+              each connection carries <strong>six canvas slots</strong>:
+            </p>
+            <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11.5, color: SEPIA_TEXT, background: "#eeecdf", border: `1px solid ${SEPIA_LINE}`, padding: "8px 10px", lineHeight: 1.7, margin: "8px 0" }}>
+              source_policy_canvases · source_state_policy_canvases · source_reward_canvases<br />
+              target_policy_canvases · target_state_policy_canvases · target_reward_canvases
+            </div>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+              Each slot is a wrapper <code>{`{ activeId, version, canvases:[…] }`}</code> holding exactly one canvas (or empty).
+              So the count is pure arithmetic:
+            </p>
+            <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 13, fontWeight: 700, color: ACCENT, margin: "6px 0 12px" }}>
+              75 connection objects × 6 slots = 450 − 10 empty = 440
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {[
+                ["46", "drafts"], ["75", "connection objects"], ["51", "distinct connection UUIDs"],
+                ["148", "policy"], ["148", "state"], ["144", "reward"],
+                ["220", "source-side"], ["220", "target-side"],
+              ].map(([n, label]) => (
+                <span key={label} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, border: `1px solid ${SEPIA_LINE}`, padding: "3px 8px", fontSize: 12 }}>
+                  <span style={{ fontWeight: 700, fontFamily: "var(--font-mono, monospace)" }}>{n}</span>
+                  <span style={{ color: SEPIA_MUTED }}>{label}</span>
+                </span>
+              ))}
+            </div>
+            {/* Which workflow each packet of canvases belongs to */}
+            <div style={{ fontWeight: 600, fontSize: 13.5, marginTop: 16, marginBottom: 6 }}>Which packet belongs to which workflow</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: SEPIA_MUTED, borderBottom: `1px solid ${SEPIA_LINE}` }}>
+                  <th style={{ padding: "6px 8px" }}>Workflow domain</th>
+                  <th style={{ padding: "6px 8px", textAlign: "right" }}>Drafts</th>
+                  <th style={{ padding: "6px 8px", textAlign: "right" }}>Connections</th>
+                  <th style={{ padding: "6px 8px", textAlign: "right" }}>Canvases</th>
+                  <th style={{ padding: "6px 8px", width: "34%" }}>Share of 440</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { domain: "Investment analysis", drafts: 40, conns: 46, canvases: 276, color: C_RUST },
+                  { domain: "Sleep therapy / CBT-I", drafts: 4, conns: 26, canvases: 150, color: C_TEAL },
+                  { domain: "Linear algebra tutor", drafts: 3, conns: 3, canvases: 14, color: C_GREEN },
+                ].map((r) => (
+                  <tr key={r.domain} style={{ borderBottom: `1px solid ${SEPIA_LINE}55` }}>
+                    <td style={{ padding: "6px 8px", fontWeight: 600 }}>
+                      <span style={{ display: "inline-block", width: 9, height: 9, background: r.color, marginRight: 7 }} />{r.domain}
+                    </td>
+                    <td style={{ padding: "6px 8px", textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>{r.drafts}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>{r.conns}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right", fontFamily: "var(--font-mono, monospace)", fontWeight: 700 }}>{r.canvases}</td>
+                    <td style={{ padding: "6px 8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ flex: 1, height: 8, background: "#eeecdf", border: `1px solid ${SEPIA_LINE}` }}>
+                          <div style={{ width: `${Math.round((r.canvases / 440) * 100)}%`, height: "100%", background: r.color }} />
+                        </div>
+                        <span style={{ fontSize: 11, color: SEPIA_MUTED, fontFamily: "var(--font-mono, monospace)", minWidth: 34, textAlign: "right" }}>{Math.round((r.canvases / 440) * 100)}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                <tr style={{ borderTop: `1px solid ${SEPIA_LINE}` }}>
+                  <td style={{ padding: "6px 8px", fontWeight: 700 }}>Total</td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", fontFamily: "var(--font-mono, monospace)", fontWeight: 700 }}>47</td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", fontFamily: "var(--font-mono, monospace)", fontWeight: 700 }}>75</td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", fontFamily: "var(--font-mono, monospace)", fontWeight: 700 }}>440</td>
+                  <td style={{ padding: "6px 8px" }} />
+                </tr>
+              </tbody>
+            </table>
+            <p style={{ fontSize: 12, color: SEPIA_MUTED, lineHeight: 1.55, marginTop: 8, marginBottom: 0 }}>
+              <strong>Nutrition</strong> and <strong>Law</strong> contribute <strong>0</strong> here — they exist only as
+              {" "}legacy single-agent demos (top-level <code>*_canvases</code> rows under <code>nutrition</code> / <code>law_inputs</code>),
+              not as multi-agent daemon drafts. The reference <em>investment analyst</em> draft is one of the 40 in the top row.
+            </p>
+
+            {/* Why 40 investment-analyst drafts */}
+            <div style={{ borderLeft: `3px solid ${C_RUST}`, paddingLeft: 12, marginTop: 14 }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5 }}>Why 40 investment-analyst drafts?</div>
+              <p style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.55, marginTop: 4, marginBottom: 6 }}>
+                They are <strong>iterative regenerations of a single workflow</strong>, not 40 distinct ones — the daemon
+                appends a <em>new draft row per generation</em> instead of updating in place. The evidence:
+              </p>
+              <ul style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.6, margin: 0, paddingLeft: 18 }}>
+                <li><strong>One author</strong> (single <code>expert_id</code>), built over <strong>7 days</strong> (Jul&nbsp;19–26, 2026), heavily bursted — 9 drafts on Jul&nbsp;20 and 19 on Jul&nbsp;21 (28 of 40 in two days).</li>
+                <li>Just <strong>8 title variants</strong> of the same workflow — mostly re-casings: <em>&ldquo;Investment analyst workflow: idea generation stage&rdquo;</em> (15), <em>&ldquo;An investment analyst workflow…&rdquo;</em> (10), <em>&ldquo;…Idea Generation Screening&rdquo;</em> (5), plus 5 smaller variants.</li>
+                <li><strong>30 of 40 are <code>no_evidence</code></strong> (unpublished scratch drafts); only <strong>3 are Published</strong>.</li>
+                <li>Only <strong>22 distinct connection UUIDs</strong> across the 46 connections, and <strong>6 are reused across multiple drafts</strong> — direct clone evidence, and exactly why <code>draft_id</code> is mandatory in the canonical key (§4 table).</li>
+              </ul>
+            </div>
+
+            <p style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.55, marginTop: 12, marginBottom: 0 }}>
+              Separately, the daemon writes <strong>44 <code>workflow-overview</code> rows</strong> to the top-level
+              {" "}<code>workflow_canvases</code> table (one per draft) — those are <strong>not</strong> part of the 440. And the
+              rows in <code>policy_canvases</code> / <code>state_policy_canvases</code> / <code>state_system_canvases</code>
+              belong to the <em>legacy single-agent demos</em> (<code>analyst_inputs</code>, <code>law_inputs</code>,
+              {" "}<code>sleep_inputs</code>, …), a different <code>setup_table</code> namespace — never the daemon.
+            </p>
+          </div>
+
+          <p style={{ fontSize: 14, lineHeight: 1.6, marginTop: 18, marginBottom: 0 }}>
+            Because all 440 sit inside JSON keyed only by <code>canvas_id</code>, the tab bar can&apos;t tell two
+            same-id canvases apart. Testing candidate resolution keys against the full set:
           </p>
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 13.5 }}>
             <thead>
@@ -583,8 +727,228 @@ export default function SystemPage() {
           </p>
         </Section>
 
+        {/* Data model */}
+        <Section id="datamodel" n="5" title="Data model — how a canvas is stored & retrieved">
+          <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
+            The §4 analysis walked all 440 canvases; here is the exact shape they live in. Two storage strategies
+            coexist in the same database, and they are <strong>opposites</strong>:
+          </p>
+
+          {/* Two strategies compared */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
+            <div style={{ background: SEPIA_PANEL, border: `1px solid ${C_RUST}`, borderRadius: 0, padding: 14 }}>
+              <div style={{ fontWeight: 700, color: C_RUST, fontSize: 14.5 }}>A · Embedded JSON — the daemon</div>
+              <div style={{ fontSize: 12, color: SEPIA_MUTED, marginTop: 2 }}>general_orchestration_daemon_drafts (the 440)</div>
+              <dl style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.5 }}>
+                {[
+                  ["Unit of storage", "a JSON leaf, nested inside one column"],
+                  ["Table for a canvas", "none — no per-canvas row, no FK"],
+                  ["A canvas is", "agent_connections[i].<slot>.canvases[0]"],
+                  ["Addressed by", "JSON path (draft row → array index → slot)"],
+                  ["Write", "rewrite the whole agent_connections JSONB"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, padding: "3px 0" }}>
+                    <dt style={{ color: SEPIA_MUTED }}>{k}</dt>
+                    <dd style={{ margin: 0, fontFamily: k === "A canvas is" ? "var(--font-mono, monospace)" : undefined, fontSize: k === "A canvas is" ? 11.5 : 13 }}>{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div style={{ background: SEPIA_PANEL, border: `1px solid ${C_TEAL}`, borderRadius: 0, padding: 14 }}>
+              <div style={{ fontWeight: 700, color: C_TEAL, fontSize: 14.5 }}>B · Relational rows — legacy demos</div>
+              <div style={{ fontSize: 12, color: SEPIA_MUTED, marginTop: 2 }}>analyst_inputs, law_inputs, sleep_inputs, …</div>
+              <dl style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.5 }}>
+                {[
+                  ["Unit of storage", "one row per canvas"],
+                  ["Table for a canvas", "policy_canvases / state_policy_canvases / …"],
+                  ["A canvas is", "row.canvas (jsonb) + metadata columns"],
+                  ["Addressed by", "(setup_table, setup_id, canvas_id)"],
+                  ["Write", "INSERT / UPDATE one row"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, padding: "3px 0" }}>
+                    <dt style={{ color: SEPIA_MUTED }}>{k}</dt>
+                    <dd style={{ margin: 0, fontFamily: k === "A canvas is" || k === "Addressed by" ? "var(--font-mono, monospace)" : undefined, fontSize: k === "A canvas is" || k === "Addressed by" ? 11.5 : 13 }}>{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+
+          {/* The daemon nesting, as a tree */}
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 24, marginBottom: 6 }}>The daemon nesting — one row, all the way down to a canvas</h3>
+          <p style={{ fontSize: 13, color: SEPIA_MUTED, lineHeight: 1.55, marginBottom: 10 }}>
+            Everything for a workflow is a <strong>single row</strong>. The agents and every agent canvas are JSON inside that row&apos;s columns — not separate tables.
+          </p>
+          <pre style={{ background: "#eeecdf", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 14, fontSize: 12, lineHeight: 1.65, overflowX: "auto", fontFamily: "var(--font-mono, monospace)", color: SEPIA_TEXT, margin: 0 }}>
+{`general_orchestration_daemon_drafts   ← one ROW per workflow draft
+├─ id, expert_id, config_name, route_slug, …        (scalar columns)
+├─ agent_bindings            jsonb[]  ← the AGENTS
+│    └─ { id, title, template_id, role_context, state_fields[], …overrides }
+├─ agent_connections         jsonb[]  ← the CONNECTIONS + all agent canvases
+│    └─ {
+│         id, source_agent_id, target_agent_id, workflow_stage_id/name,
+│         source_policy_canvases          ┐
+│         source_state_policy_canvases    │ 6 SLOTS, each a wrapper:
+│         source_reward_canvases          │ { activeId, version,
+│         target_policy_canvases          │   canvases: [ {          ← THE CANVAS
+│         target_state_policy_canvases    │     id, name, freeText,
+│         target_reward_canvases          ┘     graph:{ nodes[], edges[] } } ] }
+│       }
+├─ interaction_protocol      jsonb    ← simulation wiring
+├─ shared_datasets, shared_uploaded_files   jsonb[]
+└─ daemon_state, conversation_messages      jsonb`}
+          </pre>
+          <p style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.55, marginTop: 8 }}>
+            So a single canvas is <code>agent_connections[i].source_policy_canvases.canvases[0]</code> — a graph of
+            {" "}<code>nodes[]</code> + <code>edges[]</code> plus <code>freeText</code>. There is <strong>no join, no foreign key, no per-canvas row.</strong>
+          </p>
+
+          {/* What is stored as what */}
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 22, marginBottom: 6 }}>What is stored as what</h3>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ textAlign: "left", color: SEPIA_MUTED, borderBottom: `1px solid ${SEPIA_LINE}` }}>
+                <th style={{ padding: "6px 8px" }}>Concept</th>
+                <th style={{ padding: "6px 8px" }}>Stored as</th>
+                <th style={{ padding: "6px 8px" }}>Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["A workflow draft", "table ROW", "general_orchestration_daemon_drafts"],
+                ["The agents", "JSONB array", "agent_bindings column (same row)"],
+                ["The connections", "JSONB array", "agent_connections column (same row)"],
+                ["An agent's policy/state/reward canvas", "JSON leaf", "a slot inside a connection object"],
+                ["The workflow-overview canvas", "table ROW", "workflow_canvases (setup_table, setup_id, 'workflow-overview')"],
+                ["Legacy demo canvases", "table ROWS", "policy_canvases / state_policy_canvases / state_system_canvases"],
+              ].map(([c, s, w], i) => (
+                <tr key={c} style={{ borderBottom: `1px solid ${SEPIA_LINE}55`, background: i === 3 ? "#f3ecd9" : "transparent" }}>
+                  <td style={{ padding: "6px 8px", fontWeight: 600 }}>{c}</td>
+                  <td style={{ padding: "6px 8px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: (s as string).includes("ROW") ? C_TEAL : C_RUST, padding: "1px 7px", textTransform: "uppercase" }}>{s}</span>
+                  </td>
+                  <td style={{ padding: "6px 8px", color: SEPIA_MUTED, fontFamily: "var(--font-mono, monospace)", fontSize: 11.5 }}>{w}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Read / write / address */}
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 22, marginBottom: 6 }}>Retrieval &amp; addressing</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              ["Read", "SELECT agent_connections FROM general_orchestration_daemon_drafts WHERE id = $draft — one row, then walk the JSON. No canvas query touches policy_canvases/state_policy_canvases for the daemon."],
+              ["Today's key (broken)", "The UI keys tabs on canvas_id alone. Because the seed ids repeat, six distinct canvases resolve to the same key and flatten into one tab bar (§4)."],
+              ["Canonical key", "(draft_id, connection_id, side, kind) — resolves every one of the 440 to exactly one payload. draft_id is required because connection UUIDs are reused across clone drafts."],
+              ["Write", "Regeneration replaces the whole agent_connections JSONB and appends a new draft row (why there are 40 investment drafts). The Task 3 migration restructures this JSON in place — agents own their canvases; connections keep only interaction canvases."],
+            ].map(([k, v]) => (
+              <div key={k} style={{ borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{k}</div>
+                <div style={{ fontSize: 13, color: SEPIA_MUTED, lineHeight: 1.55, marginTop: 2 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* Recommendation */}
+        <Section id="recommend" n="6" title="Recommendation — how canvases ought to be stored">
+          <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
+            The embedded-JSON model (§5·A) is why Airie retrieval is painful: to reach one canvas you load a
+            {" "}~26&nbsp;KB blob, walk an array, and disambiguate by string prefix — with no key, no index, no integrity.
+            The fix is already half-designed in the schema: the empty <code>airie_canvas_documents</code> table
+            (<code>id</code>, <code>canvas_kind</code>, <code>name</code>, <code>canvas</code> jsonb, <code>source_path</code>)
+            says a canvas is meant to be a <strong>standalone, path-addressable document</strong>. Converge on that.
+          </p>
+
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 20, marginBottom: 8 }}>Four principles</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[
+              ["1 · One canvas = one row", "Stop embedding canvases in agent_connections. The graph stays a jsonb document; only the envelope + keys become relational. Editing or versioning one canvas no longer rewrites the whole connection blob."],
+              ["2 · Ownership is explicit, not positional", "Replace the source_/target_ prefix with typed owner columns. A canvas points at its owner (agent, connection+side, or workflow) — the identity from §4, stored not inferred."],
+              ["3 · Integrity enforced by the DB", "Partial unique indexes make the Task-1 collisions structurally impossible — you cannot write two canvases to the same (draft, owner, kind) slot."],
+              ["4 · Path-addressable (Airie-native)", "Every canvas gets a stable source_path key. Airie fetches by path; the compiler resolves by an indexed lookup, never a JSON walk."],
+            ].map(([t, d]) => (
+              <div key={t} style={{ background: SEPIA_PANEL, border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: C_RUST }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.5, marginTop: 3 }}>{d}</div>
+              </div>
+            ))}
+          </div>
+
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 22, marginBottom: 8 }}>Proposed table — <code>agent_canvases</code> (extends <code>airie_canvas_documents</code>)</h3>
+          <pre style={{ background: "#eeecdf", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 14, fontSize: 12, lineHeight: 1.6, overflowX: "auto", fontFamily: "var(--font-mono, monospace)", color: SEPIA_TEXT, margin: 0 }}>
+{`agent_canvases
+  id             uuid    pk
+  draft_id       uuid    → general_orchestration_daemon_drafts   NOT NULL
+  canvas_kind    text    'state' | 'policy' | 'reward' | 'workflow'
+  owner_type     text    'agent' | 'connection' | 'workflow'
+  owner_agent_key       text   -- when owner_type = 'agent'
+  owner_connection_key  text   -- when owner_type = 'connection'
+  side           text    'source' | 'target' | null   -- interaction only
+  source_path    text    -- addressable key (see below)   UNIQUE
+  canvas_id      text    -- retained as display label, NOT authoritative
+  name           text
+  sort_order     int
+  version        int
+  content_sha    text    -- hash of canvas for clone de-duplication
+  canvas         jsonb   -- { nodes[], edges[] }  (the graph document)
+  free_text      text
+  created_at, updated_at
+
+-- the §4 canonical identity, now enforced:
+UNIQUE (draft_id, owner_agent_key, canvas_kind)             WHERE owner_type='agent'
+UNIQUE (draft_id, owner_connection_key, side, canvas_kind)  WHERE owner_type='connection'
+UNIQUE (draft_id, canvas_kind)                              WHERE owner_type='workflow'`}
+          </pre>
+          <p style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.55, marginTop: 8 }}>
+            <code>agent_bindings</code> / <code>agent_connections</code> stay as the <em>relationship &amp; config</em> (agents,
+            who-talks-to-whom, prompts, stages) — but the six canvas payloads are <strong>stripped out</strong> of the
+            connection. Single source of truth for a canvas = its row.
+          </p>
+
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 22, marginBottom: 8 }}>Path scheme (the <code>source_path</code>)</h3>
+          <pre style={{ background: "#eeecdf", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 14, fontSize: 12, lineHeight: 1.7, overflowX: "auto", fontFamily: "var(--font-mono, monospace)", color: SEPIA_TEXT, margin: 0 }}>
+{`drafts/<draft_id>/agents/<agent_key>/state                       ← agent-owned
+drafts/<draft_id>/connections/<conn_key>/<source|target>/policy  ← interaction
+drafts/<draft_id>/connections/<conn_key>/<source|target>/reward  ← interaction
+drafts/<draft_id>/workflow                                       ← workflow`}
+          </pre>
+
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 22, marginBottom: 8 }}>Retrieval becomes one indexed query</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              ["Compiler — resolve one canvas", "WHERE draft_id=$d AND owner_connection_key=$c AND side=$s AND canvas_kind=$k  → exactly one row. No blob load, no walk."],
+              ["Setup pane — an agent's tabs", "State: WHERE owner_agent_key=$a AND canvas_kind='state'. Policy/Reward: WHERE owner_connection_key IN ($a's connections) AND side=$a's role."],
+              ["Workflow tab", "WHERE draft_id=$d AND owner_type='workflow'  — plus genuine interaction canvases; nothing agent-owned leaks in."],
+              ["Clone de-dup", "content_sha lets the 40 clone drafts share identical payloads by reference — the 440 rows collapse to far fewer distinct canvases."],
+            ].map(([t, d]) => (
+              <div key={t} style={{ borderLeft: `3px solid ${C_TEAL}`, paddingLeft: 12 }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.5, marginTop: 2, fontFamily: "var(--font-mono, monospace)" }}>{d}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: "#f3ecd9", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 14, marginTop: 18 }}>
+            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 6 }}>Why this is clean &amp; effective for Airie</div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.6 }}>
+              <li><strong>Addressable</strong> — every canvas has a stable path + explicit owner; fetch by key, never by array index.</li>
+              <li><strong>Collision-proof</strong> — the §4 collisions become impossible; the DB rejects a duplicate slot.</li>
+              <li><strong>Indexed, not scanned</strong> — btree lookups on <code>(draft_id, owner…, kind)</code> replace parsing a 26&nbsp;KB blob.</li>
+              <li><strong>Partial writes &amp; versioning</strong> — edit one canvas without cloning the whole draft; regeneration diffs instead of appending 40 copies.</li>
+              <li><strong>Already the intended shape</strong> — folds into the empty <code>airie_canvas_documents</code> rather than adding a parallel store.</li>
+            </ul>
+          </div>
+
+          <p style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.55, marginTop: 12 }}>
+            <strong>Keep the graph as JSON.</strong> Nodes/edges are a genuine document — normalizing them into rows buys
+            nothing for retrieval and hurts editing. Relational envelope, JSON body. This slots directly into the Task&nbsp;3
+            migration (which already snapshots and restructures) as the write target.
+          </p>
+        </Section>
+
         {/* Ownership model */}
-        <Section id="ownership" n="5" title="Ownership — the finding that refines the plan">
+        <Section id="ownership" n="7" title="Ownership — the finding that refines the plan">
           <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
             For agents that appear in more than one connection (13 agent-groups per kind), payload divergence by kind:
           </p>
@@ -621,7 +985,7 @@ export default function SystemPage() {
         </Section>
 
         {/* Decision */}
-        <Section id="decisions" n="6" title="Decisions">
+        <Section id="decisions" n="8" title="Decisions">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[
               ["Canonical identity", "(draft_id, connection_id, side, kind) for interaction canvases; (draft_id, agent_id, 'state') for the agent-owned state canvas. canvas_id retained only as a label."],
@@ -638,7 +1002,7 @@ export default function SystemPage() {
         </Section>
 
         {/* Process log */}
-        <Section id="process" n="7" title="Process — read-only queries run">
+        <Section id="process" n="9" title="Process — read-only queries run">
           <ol style={{ paddingLeft: 20, lineHeight: 1.7, fontSize: 13.5, color: SEPIA_MUTED }}>
             <li>Identified project from <code>NEXT_PUBLIC_AIRLAB_SUPABASE_URL</code>; confirmed the MCP surface uses a scoped token, not the service-role key.</li>
             <li>Dumped columns of <code>general_orchestration_daemon_drafts</code> and every <code>*_canvases</code> table; enumerated unique constraints.</li>
