@@ -260,7 +260,7 @@ const TASKS: { id: string; title: string; status: TaskStatus; desc: string; acce
 ];
 
 // Right-rail navigation tree: every section + a one-line description.
-const TOC: { id: string; label: string; desc: string; accent?: boolean }[] = [
+const TOC: { id: string; label: string; desc: string; accent?: boolean; sub?: boolean }[] = [
   { id: "top", label: "Overview", desc: "Project, draft, connection, stage." },
   { id: "open", label: "Questions for Yasin", desc: "Two decisions needed before Task 2 / 5.", accent: true },
   { id: "tldr", label: "TL;DR", desc: "The six audit corrections to the plan." },
@@ -271,6 +271,7 @@ const TOC: { id: string; label: string; desc: string; accent?: boolean }[] = [
   { id: "collisions", label: "4 · Collisions", desc: "440 canvases; 59 → 0 under the canonical key." },
   { id: "datamodel", label: "5 · Data model", desc: "How a canvas is stored & retrieved — JSON vs rows." },
   { id: "recommend", label: "6 · Recommendation", desc: "Target store: a canvas as an addressable document.", accent: true },
+  { id: "daemon-prompt", label: "6.1 · Daemon prompt", desc: "Generation contract for the recommended shape.", accent: true, sub: true },
   { id: "ownership", label: "7 · Ownership", desc: "State agent-owned; policy/reward per-connection." },
   { id: "decisions", label: "8 · Decisions", desc: "Canonical key; no id rewrite; reconciliations." },
   { id: "process", label: "9 · Process", desc: "The read-only queries that were run." },
@@ -945,6 +946,95 @@ drafts/<draft_id>/workflow                                       ← workflow`}
             nothing for retrieval and hurts editing. Relational envelope, JSON body. This slots directly into the Task&nbsp;3
             migration (which already snapshots and restructures) as the write target.
           </p>
+
+          {/* Daemon-side generation prompt (Task 4 contract) */}
+          <h3 id="daemon-prompt" style={{ fontSize: 15, fontWeight: 600, marginTop: 24, marginBottom: 6, scrollMarginTop: 16 }}>Daemon prompt — the generation contract</h3>
+          <p style={{ fontSize: 13, color: SEPIA_MUTED, lineHeight: 1.55, marginBottom: 10 }}>
+            Paste this into the General Orchestration Daemon&apos;s output instructions so every generation lands in the
+            recommended shape — canvases as first-class documents, never embedded in connections. This makes the Task&nbsp;3
+            migration a one-time backfill instead of a recurring fight (Task&nbsp;4).
+          </p>
+          <pre style={{ background: "#1f1d18", color: "#e8e4d6", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 16, fontSize: 11.5, lineHeight: 1.6, overflowX: "auto", fontFamily: "var(--font-mono, monospace)", margin: 0, maxHeight: 520, overflowY: "auto" }}>
+{`SYSTEM / OUTPUT CONTRACT — canvas storage
+
+You are the General Orchestration Daemon. When you generate or regenerate a
+workflow, emit canvases as FIRST-CLASS DOCUMENTS, never embedded inside a
+connection. Return one JSON object with exactly this shape:
+
+{
+  "agents": [
+    {
+      "agent_key": "<stable-slug, unique within the draft>",
+      "name": "<display name>",
+      "role": "task_generator" | "agent",
+      "sort_order": 0,
+      "state_schema": [ { "field_name": "...", "type": "...", "initial_value": ... } ]
+    }
+  ],
+  "connections": [
+    {
+      "connection_key": "<stable-slug, unique within the draft>",
+      "source_agent_key": "<agent_key>",
+      "target_agent_key": "<agent_key>",
+      "workflow_stage_id": "...",
+      "workflow_stage_name": "...",
+      "sort_order": 0
+    }
+  ],
+  "canvases": [
+    {
+      "source_path": "drafts/<draft_id>/agents/<agent_key>/state",
+      "canvas_kind": "state",
+      "owner_type": "agent",
+      "owner_agent_key": "<agent_key>",
+      "side": null,
+      "name": "...",
+      "free_text": "...",
+      "canvas": { "nodes": [ ... ], "edges": [ ... ] }
+    },
+    {
+      "source_path": "drafts/<draft_id>/connections/<connection_key>/source/policy",
+      "canvas_kind": "policy",
+      "owner_type": "connection",
+      "owner_connection_key": "<connection_key>",
+      "side": "source",
+      "name": "...",
+      "canvas": { "nodes": [ ... ], "edges": [ ... ] }
+    }
+    /* ...one policy and one reward per (connection, side); state is per agent;
+       one workflow canvas: source_path "drafts/<draft_id>/workflow",
+       canvas_kind "workflow", owner_type "workflow", side null ... */
+  ]
+}
+
+RULES
+1. Every canvas is its own object in "canvases". NEVER put a canvas (or any
+   *_canvases field) inside a connection or an agent.
+2. Ownership is fixed by kind:
+     - state  -> owner_type "agent"      (owner_agent_key set, side null)
+                 exactly ONE state canvas per agent.
+     - policy -> owner_type "connection" (owner_connection_key + side set)
+     - reward -> owner_type "connection" (owner_connection_key + side set)
+                 exactly ONE per (connection, side, kind).
+     - the overall workflow -> owner_type "workflow" (one per draft).
+3. "source_path" is the AUTHORITATIVE identity and MUST be globally unique.
+   Build it exactly from the path scheme above. Do not reuse "starter-*" seed
+   ids as identity; a human label may go in an optional "canvas_id" only.
+4. Exactly ONE agent has role "task_generator". It is a PEER in "agents",
+   not a parent of the others. Every other agent has role "agent".
+5. Connections carry only the relationship: agent keys + stage + order.
+   No canvas payloads, no source_policy_canvases / target_*_canvases fields.
+6. Keep each node/edge graph intact inside "canvas". Do not flatten or inline it.
+
+SELF-CHECK BEFORE RETURNING — reject and regenerate your own output if ANY hold:
+   - a state canvas has owner_type != "agent", or a policy/reward canvas has
+     owner_type != "connection";
+   - two canvases share a "source_path";
+   - a connection or agent object contains any *_canvas / *_canvases field;
+   - more than one agent has role "task_generator";
+   - a policy/reward canvas is missing owner_connection_key or side.
+Return ONLY the JSON object, no prose.`}
+          </pre>
         </Section>
 
         {/* Ownership model */}
@@ -1035,7 +1125,7 @@ drafts/<draft_id>/workflow                                       ← workflow`}
           {TOC.map((t, i) => {
             const isLast = i === TOC.length - 1;
             return (
-              <li key={t.id} style={{ display: "flex", alignItems: "stretch" }}>
+              <li key={t.id} style={{ display: "flex", alignItems: "stretch", marginLeft: t.sub ? 18 : 0 }}>
                 {/* tree connector: continuous trunk + branch tick */}
                 <div style={{ position: "relative", width: 18, flexShrink: 0 }}>
                   <div style={{ position: "absolute", left: 0, top: 0, width: 1, background: SEPIA_LINE, ...(isLast ? { height: 13 } : { bottom: 0 }) }} />
