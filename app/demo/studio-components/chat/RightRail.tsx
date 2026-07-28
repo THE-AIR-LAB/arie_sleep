@@ -45,7 +45,7 @@ export function RightRail({
           <Ic.Panel size={18} />
         </button>
       )}
-      {!canvasOpen && (
+      {isAdmin && !canvasOpen && (
         <button
           className="rail-btn"
           data-tip="Workflow"
