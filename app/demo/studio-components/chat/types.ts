@@ -103,6 +103,15 @@ export type StudioChatConfig = {
   subjectNoun?: string;
   /** API topic slug — drives `/api/chat/{topic}/base`, `/api/conversations?topic=`, `/api/admin/setup/{topic}`. */
   apiTopic: string;
+  /**
+   * Optional override for the bottom workflow drawer's load/save endpoint.
+   * Defaults to `/api/admin/setup/{apiTopic}` (the legacy *_canvases tables).
+   * Set this to point the workflow drawer at a different source (e.g. an
+   * agent-first store) without changing `apiTopic`, which also drives chat.
+   * The endpoint must return `{ config, workflowCanvases }` on GET and accept
+   * `{ config, workflowCanvases }` on PUT.
+   */
+  workflowEndpoint?: string;
   /** Fallback suggestion chips shown in the empty state. */
   suggestions: SuggestionChip[];
   /** Action chips shown above the composer. */

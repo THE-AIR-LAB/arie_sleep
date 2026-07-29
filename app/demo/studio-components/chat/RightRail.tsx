@@ -38,8 +38,8 @@ export function RightRail({
       {isAdmin && !panelOpen && (
         <button
           className="rail-btn"
-          data-tip="Model Setup"
-          aria-label="Open Model Setup"
+          data-tip="Setup"
+          aria-label="Open Setup"
           onClick={onTogglePanel}
         >
           <Ic.Panel size={18} />

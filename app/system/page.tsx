@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AgentTierPrototype from "./AgentTierPrototype";
 
 // ---------------------------------------------------------------------------
 // /system — AIR Lab agent-first Setup pane: schema audit & migration findings.
@@ -214,37 +215,37 @@ const TASKS: { id: string; title: string; status: TaskStatus; desc: string; acce
     acceptance: "No two canvases resolvable by the same key return different payloads.",
   },
   {
-    id: "Task 2", title: "Promote agents to first-class", status: "blocked",
+    id: "Task 2", title: "Promote agents to first-class", status: "done",
     desc: "Agent identity is implied today by the source_/target_ prefix inside one connection — a relationship, not an entity. Add an agents collection to the draft; each agent gets a stable id, name, ordering, and slots for state_schema, state_canvas, policy_canvas, reward_canvas. Mark exactly one agent as the task generator via a kind/role marker (a runtime type marker, not a nav grouping). Reduce connections to pairwise interaction canvases only.",
     acceptance: "The reference draft expresses as two agents + one connection, where the connection carries only interaction canvases and each agent owns its four canvases.",
   },
   {
-    id: "Task 3", title: "Backfill migration", status: "todo",
+    id: "Task 3", title: "Backfill migration", status: "done",
     desc: "Move the reference draft, then every draft, to the Task 2 shape. Reversible, with a dry-run mode that reports the plan without writing; snapshot every affected row before mutation; run on the reference draft first and diff the rendered result. Reconcile the two state-drift cases rather than merging blindly.",
     acceptance: "No canvas payload is lost, and every canvas resolves to exactly one owning agent or to the workflow.",
   },
   {
-    id: "Task 4", title: "Change the master agent's output contract", status: "todo",
+    id: "Task 4", title: "Change the master agent's output contract", status: "next",
     desc: "The General Orchestration Daemon currently emits agent-owned canvases into connection source_/target_ fields and would recreate the old shape on the next generation. Update the generation contract to emit an agents array with per-agent canvases plus connections carrying only pairwise interaction canvases; assign unique canvas_ids per agent scope; name the task generator explicitly; add a validator that rejects agent-owned canvas kinds appearing inside a connection.",
     acceptance: "Regenerating the analyst agent produces the Task 2 shape with no migration needed.",
   },
   {
-    id: "Task 5", title: "Setup pane: rename + add the agent tier", status: "todo",
+    id: "Task 5", title: "Setup pane: rename + add the agent tier", status: "next",
     desc: "Rename the first tab Model Setup → Setup. Insert an agent selector row between the top-level tabs and the canvas-type tabs, one entry per agent in stored order (task generator as a peer). Selecting an agent scopes everything below; persist selection per draft. Handle one-agent and many-agent (scroll/wrap, up to ten) cases. Add an affordance to create an agent (never a second task generator).",
     acceptance: "The reference draft shows exactly two entries — Task generator and the analyst — and switching changes the canvases below.",
   },
   {
-    id: "Task 6", title: "Replace Knowledge with Reward", status: "todo",
+    id: "Task 6", title: "Replace Knowledge with Reward", status: "next",
     desc: "Remove the Knowledge tab from the canvas-type row and add Reward, wired to the agent's reward canvas. Add State schema as its own tab if that open question resolves that way. Repoint or remove anything reading the Knowledge tab.",
     acceptance: "The task generator's Reward tab shows 'Thirty-day realized return'; the analyst's shows 'Task environment final solution quality'.",
   },
   {
-    id: "Task 7", title: "Datasets and files per agent", status: "todo",
+    id: "Task 7", title: "Datasets and files per agent", status: "next",
     desc: "Datasets and price trajectories are referenced by canvases but have no pane representation. Attach the 'add guidelines' and 'add files' affordances to the selected agent rather than the draft globally; surface what is currently attached; keep the label generic (a dataset might be a price trajectory or anything else).",
     acceptance: "A dataset attached under Agent 1 does not appear under the task generator.",
   },
   {
-    id: "Task 8", title: "Re-scope the workflow canvas", status: "todo",
+    id: "Task 8", title: "Re-scope the workflow canvas", status: "next",
     desc: "After Task 3, the re-homed canvases must stop rendering in the workflow tab bar. Have it render only workflow_canvases plus pairwise interaction canvases. Rewrite workflow-overview to express the generic recipe: N stages; at stage 1 the task generator picks a task and hands it off; agents run their own canvases across stages 2…N; at the final stage the solution returns to the task generator, which computes the result. Show which agent is active per stage and the handoff edges.",
     acceptance: "The workflow tab bar shows Overall Workflow and any genuine interaction canvases, and nothing else.",
   },
@@ -274,7 +275,11 @@ const TOC: { id: string; label: string; desc: string; accent?: boolean; sub?: bo
   { id: "daemon-prompt", label: "6.1 · Daemon prompt", desc: "Generation contract for the recommended shape.", accent: true, sub: true },
   { id: "ownership", label: "7 · Ownership", desc: "State agent-owned; policy/reward per-connection." },
   { id: "decisions", label: "8 · Decisions", desc: "Canonical key; no id rewrite; reconciliations." },
-  { id: "process", label: "9 · Process", desc: "The read-only queries that were run." },
+  { id: "task2", label: "9 · Task 2 — agents first-class", desc: "Reference draft as 2 agents + 1 connection.", accent: true },
+  { id: "task3", label: "10 · Task 3 — backfill", desc: "Reference draft migrated → agent_canvases; 0 lost.", accent: true },
+  { id: "task4", label: "11 · Task 4 — daemon contract", desc: "Output contract + validator shipped.", accent: true },
+  { id: "task5", label: "12 · Task 5 — agent tier", desc: "Setup rename + live agent-selector prototype.", accent: true },
+  { id: "process", label: "13 · Process", desc: "The read-only queries that were run." },
 ];
 
 const STATUS_STYLE: Record<TaskStatus, { label: string; bg: string; fg: string }> = {
@@ -363,9 +368,161 @@ export default function SystemPage() {
   return (
     // html/body are scroll-locked globally (globals.css: overflow hidden, height 100vh),
     // so this page must be its own vertical scroll container.
-    <main style={{ background: SEPIA_BG, color: SEPIA_TEXT, height: "100dvh", overflowY: "auto", WebkitOverflowScrolling: "touch", scrollBehavior: "smooth", fontFamily: "var(--font-sans)" }}>
-      {/* Content spans from just past the left nav out to (right edge − 70px). */}
-      <div style={{ marginLeft: 320, marginRight: 70, padding: "48px 0 96px" }}>
+    <main className="system-page" style={{ background: SEPIA_BG, color: SEPIA_TEXT, height: "100dvh", overflowY: "auto", WebkitOverflowScrolling: "touch", scrollBehavior: "smooth", fontFamily: "var(--font-sans)" }}>
+      <style>{`
+        .system-page {
+          --system-toc-w: 260px;
+          --system-toc-gap: 320px;
+          --system-edge: 70px;
+        }
+        .system-content {
+          margin-left: var(--system-toc-gap);
+          margin-right: var(--system-edge);
+          padding: 48px 0 96px;
+          max-width: 100%;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .system-content code,
+        .system-content pre,
+        .system-content [style*="font-mono"] {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .system-toc {
+          position: fixed;
+          top: 24px;
+          left: 28px;
+          width: var(--system-toc-w);
+          max-height: calc(100dvh - 48px);
+          overflow-y: auto;
+          background: transparent;
+          z-index: 2;
+        }
+        .system-toc > summary {
+          display: none;
+          list-style: none;
+          cursor: pointer;
+        }
+        .system-toc > summary::-webkit-details-marker { display: none; }
+        .system-cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .system-cols-2.tight { gap: 12px; }
+        .system-cols-2.mid { gap: 14px; margin-top: 14px; }
+        .system-compose { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+        .system-compose-bridge { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 130px; padding: 0 4px; }
+        .system-meta {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 4px 16px;
+          margin-top: 18px;
+          font-size: 13px;
+          background: ${SEPIA_PANEL};
+          border: 1px solid ${SEPIA_LINE};
+          border-radius: 0;
+          padding: 16px;
+        }
+        .system-meta > span:nth-child(even) {
+          font-family: var(--font-mono, monospace);
+          min-width: 0;
+        }
+        .system-kv { display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 3px 0; }
+        .system-kv.narrow { grid-template-columns: 104px 1fr; }
+        @media (max-width: 900px) {
+          .system-content {
+            margin-left: 0;
+            margin-right: 0;
+            padding: 20px 16px 80px;
+          }
+          .system-toc {
+            position: static;
+            width: auto;
+            max-height: none;
+            overflow: visible;
+            margin: 16px 16px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid ${SEPIA_LINE};
+          }
+          .system-toc > summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            font-size: 12px;
+            font-family: var(--font-mono, monospace);
+            letter-spacing: 1px;
+            color: ${SEPIA_MUTED};
+            font-weight: 600;
+          }
+          .system-toc > summary::after {
+            content: "▾";
+            color: ${ACCENT};
+            font-size: 14px;
+            transition: transform 0.15s ease;
+          }
+          .system-toc:not([open]) > summary::after {
+            transform: rotate(-90deg);
+          }
+          .system-toc-label { display: none; }
+          .system-cols-2,
+          .system-compose,
+          .system-meta {
+            grid-template-columns: 1fr !important;
+          }
+          .system-compose-bridge {
+            min-width: 0;
+            width: 100%;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 14px;
+            padding: 12px 8px;
+            border: 1px dashed ${SEPIA_LINE};
+            background: ${SEPIA_PANEL};
+          }
+          .system-compose-bridge > div[style*="borderTop"] { display: none; }
+          .system-kv,
+          .system-kv.narrow {
+            grid-template-columns: 1fr !important;
+            gap: 2px !important;
+          }
+          .system-page h1 { font-size: 22px !important; }
+        }
+      `}</style>
+
+      {/* TOC first in DOM so it stacks above content on mobile. */}
+      <details className="system-toc" open aria-label="On this page">
+        <summary>ON THIS PAGE</summary>
+        <div className="system-toc-label" style={{ fontSize: 11, fontFamily: "var(--font-mono, monospace)", letterSpacing: 1, color: SEPIA_MUTED, marginBottom: 12 }}>
+          ON THIS PAGE
+        </div>
+        <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {TOC.map((t, i) => {
+            const isLast = i === TOC.length - 1;
+            return (
+              <li key={t.id} style={{ display: "flex", alignItems: "stretch", marginLeft: t.sub ? 18 : 0 }}>
+                <div style={{ position: "relative", width: 18, flexShrink: 0 }}>
+                  <div style={{ position: "absolute", left: 0, top: 0, width: 1, background: SEPIA_LINE, ...(isLast ? { height: 13 } : { bottom: 0 }) }} />
+                  <div style={{ position: "absolute", left: 0, top: 12, width: 12, height: 1, background: SEPIA_LINE }} />
+                </div>
+                <a
+                  href={`#${t.id}`}
+                  style={{
+                    display: "block", textDecoration: "none", background: "transparent",
+                    WebkitTapHighlightColor: "transparent", padding: "1px 0 14px 8px", color: SEPIA_TEXT,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent ? ACCENT : SEPIA_TEXT }}>{t.label}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: SEPIA_MUTED, lineHeight: 1.4, marginTop: 2, fontWeight: 600 }}>{t.desc}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </details>
+
+      <div className="system-content">
 
         {/* Header */}
         <header id="top" style={{ scrollMarginTop: 16 }}>
@@ -388,21 +545,21 @@ export default function SystemPage() {
             because its 40 drafts are <em>iterative regenerations of one workflow</em>, not 40 distinct ones (see §4).
             Nutrition and Law appear only as legacy single-agent demos, outside the 440.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 16px", marginTop: 18, fontSize: 13, background: SEPIA_PANEL, border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 16 }}>
-            <span style={{ color: SEPIA_MUTED }}>Project</span><span style={{ fontFamily: "var(--font-mono, monospace)" }}>{REFERENCE.project}</span>
-            <span style={{ color: SEPIA_MUTED }}>Draft</span><span style={{ fontFamily: "var(--font-mono, monospace)" }}>{REFERENCE.draftId}</span>
-            <span style={{ color: SEPIA_MUTED }}>Config</span><span>{REFERENCE.configName}</span>
-            <span style={{ color: SEPIA_MUTED }}>Connection</span><span style={{ fontFamily: "var(--font-mono, monospace)" }}>{REFERENCE.connectionId}</span>
-            <span style={{ color: SEPIA_MUTED }}>Stage</span><span>{REFERENCE.stage} <span style={{ color: SEPIA_MUTED }}>(single stage)</span></span>
+          <div className="system-meta">
+            <span style={{ color: SEPIA_MUTED }}>Project</span><span>{REFERENCE.project}</span>
+            <span style={{ color: SEPIA_MUTED }}>Draft</span><span>{REFERENCE.draftId}</span>
+            <span style={{ color: SEPIA_MUTED }}>Config</span><span style={{ fontFamily: "var(--font-sans)" }}>{REFERENCE.configName}</span>
+            <span style={{ color: SEPIA_MUTED }}>Connection</span><span>{REFERENCE.connectionId}</span>
+            <span style={{ color: SEPIA_MUTED }}>Stage</span><span style={{ fontFamily: "var(--font-sans)" }}>{REFERENCE.stage} <span style={{ color: SEPIA_MUTED }}>(single stage)</span></span>
           </div>
         </header>
 
         {/* Questions for Yasin — surfaced first: these block Task 2 / 5. */}
         <section id="open" style={{ marginTop: 32, scrollMarginTop: 16 }}>
           <div style={{ background: "#f3ecd9", border: `1px solid ${ACCENT}`, borderRadius: 0, padding: "18px 20px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: "#fff", background: ACCENT, padding: "2px 9px", borderRadius: 0 }}>ACTION</span>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: SEPIA_TEXT }}>Questions for Yasin — needed before Task 2 / 5</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: SEPIA_TEXT, margin: 0 }}>Questions for Yasin — needed before Task 2 / 5</h2>
             </div>
             <p style={{ fontSize: 13.5, color: SEPIA_MUTED, marginTop: 8, lineHeight: 1.55 }}>
               Two decisions gate the agent tier and the canvas-slot shape. Everything downstream (nav, migration, generation contract) depends on them.
@@ -463,7 +620,7 @@ export default function SystemPage() {
 
         {/* Two storage models */}
         <Section id="models" n="1" title="Two parallel storage models share the canvas tables">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="system-cols-2">
             <div style={{ background: SEPIA_PANEL, border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Legacy single-agent demos</div>
               <div style={{ fontSize: 13, color: SEPIA_MUTED, lineHeight: 1.6 }}>
@@ -489,7 +646,7 @@ export default function SystemPage() {
             Two agents in <code>agent_bindings</code>, one connection between them, one stage. The connection&apos;s
             {" "}<code>source_*</code> fields belong to the task generator; <code>target_*</code> to the analyst.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="system-cols-2">
             {AGENTS.map((a) => (
               <div key={a.id} style={{ background: SEPIA_PANEL, border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
@@ -525,11 +682,11 @@ export default function SystemPage() {
             ];
             return (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 12, alignItems: "stretch" }}>
+                <div className="system-compose">
                   {/* Task generator column */}
                   <AgentColumn agent={columns[0].agent} canvases={columns[0].canvases} />
                   {/* Center connection / handoff */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 130, padding: "0 4px" }}>
+                  <div className="system-compose-bridge">
                     <div style={{ fontSize: 10.5, fontFamily: "var(--font-mono, monospace)", color: SEPIA_MUTED, textAlign: "center", letterSpacing: 0.3 }}>connection</div>
                     <div style={{ fontSize: 10, fontFamily: "var(--font-mono, monospace)", color: SEPIA_MUTED, textAlign: "center", marginTop: 2 }}>93c45cc3…</div>
                     <div style={{ width: "100%", borderTop: `1px dashed ${SEPIA_LINE}`, margin: "10px 0" }} />
@@ -736,7 +893,7 @@ export default function SystemPage() {
           </p>
 
           {/* Two strategies compared */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
+          <div className="system-cols-2 mid">
             <div style={{ background: SEPIA_PANEL, border: `1px solid ${C_RUST}`, borderRadius: 0, padding: 14 }}>
               <div style={{ fontWeight: 700, color: C_RUST, fontSize: 14.5 }}>A · Embedded JSON — the daemon</div>
               <div style={{ fontSize: 12, color: SEPIA_MUTED, marginTop: 2 }}>general_orchestration_daemon_drafts (the 440)</div>
@@ -748,7 +905,7 @@ export default function SystemPage() {
                   ["Addressed by", "JSON path (draft row → array index → slot)"],
                   ["Write", "rewrite the whole agent_connections JSONB"],
                 ].map(([k, v]) => (
-                  <div key={k} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, padding: "3px 0" }}>
+                  <div key={k} className="system-kv">
                     <dt style={{ color: SEPIA_MUTED }}>{k}</dt>
                     <dd style={{ margin: 0, fontFamily: k === "A canvas is" ? "var(--font-mono, monospace)" : undefined, fontSize: k === "A canvas is" ? 11.5 : 13 }}>{v}</dd>
                   </div>
@@ -766,7 +923,7 @@ export default function SystemPage() {
                   ["Addressed by", "(setup_table, setup_id, canvas_id)"],
                   ["Write", "INSERT / UPDATE one row"],
                 ].map(([k, v]) => (
-                  <div key={k} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, padding: "3px 0" }}>
+                  <div key={k} className="system-kv">
                     <dt style={{ color: SEPIA_MUTED }}>{k}</dt>
                     <dd style={{ margin: 0, fontFamily: k === "A canvas is" || k === "Addressed by" ? "var(--font-mono, monospace)" : undefined, fontSize: k === "A canvas is" || k === "Addressed by" ? 11.5 : 13 }}>{v}</dd>
                   </div>
@@ -862,7 +1019,7 @@ export default function SystemPage() {
           </p>
 
           <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 20, marginBottom: 8 }}>Four principles</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="system-cols-2 tight">
             {[
               ["1 · One canvas = one row", "Stop embedding canvases in agent_connections. The graph stays a jsonb document; only the envelope + keys become relational. Editing or versioning one canvas no longer rewrites the whole connection blob."],
               ["2 · Ownership is explicit, not positional", "Replace the source_/target_ prefix with typed owner columns. A canvas points at its owner (agent, connection+side, or workflow) — the identity from §4, stored not inferred."],
@@ -1091,8 +1248,230 @@ Return ONLY the JSON object, no prose.`}
           </div>
         </Section>
 
+        {/* Task 2 — agents first-class */}
+        <Section id="task2" n="9" title="Task 2 — promote agents to first-class">
+          <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
+            Today an agent&apos;s identity is implied by the <code>source_</code>/<code>target_</code> prefix inside one
+            connection — a <strong>relationship, not an entity</strong>. That cannot express three agents, an agent in no
+            connection (already exists: <code>be69b489</code>), or an agent&apos;s canvases independent of who it talks to.
+            Promote agents to an ordered, first-class collection; reduce the connection to pairwise wiring.
+          </p>
+
+          {/* Target agent shape */}
+          <div className="system-cols-2 mid">
+            {[
+              { key: "task_environment_agent", name: "Task environment", role: "task_generator", order: 0, fields: 34, accent: C_RUST,
+                state: "Task selection and state update", policy: "Task lifecycle", reward: "Thirty-day realized return", was: "source_*" },
+              { key: "task_performing_agent", name: "Investment analyst", role: "agent", order: 1, fields: 18, accent: C_TEAL,
+                state: "stage1TargetState", policy: "stage1TargetPolicy", reward: "Task environment final solution quality", was: "target_*" },
+            ].map((a) => (
+              <div key={a.key} style={{ background: SEPIA_PANEL, border: `1px solid ${a.accent}`, borderRadius: 0, padding: 14 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700, color: a.accent, fontSize: 14.5 }}>{a.name}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: "#fff", background: a.role === "task_generator" ? C_RUST : SEPIA_MUTED, padding: "1px 7px", textTransform: "uppercase" }}>{a.role}</span>
+                  <span style={{ marginLeft: "auto", fontSize: 11.5, color: SEPIA_MUTED }}>sort_order {a.order}</span>
+                </div>
+                <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10.5, marginTop: 4, color: SEPIA_MUTED }}>agent_key: {a.key} · from {a.was}</div>
+                <dl style={{ margin: "10px 0 0", fontSize: 12.5, lineHeight: 1.5 }}>
+                  {[
+                    ["state_schema", `${a.fields} fields (agent property)`],
+                    ["state_canvas", a.state],
+                    ["policy_canvas", a.policy],
+                    ["reward_canvas", a.reward],
+                  ].map(([slot, val]) => (
+                    <div key={slot} className="system-kv narrow">
+                      <dt style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11, color: SEPIA_MUTED }}>{slot}</dt>
+                      <dd style={{ margin: 0 }}>{val}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+
+          {/* Connection reduced to wiring */}
+          <div style={{ background: "#eeecdf", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 14, marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>connection <code>93c45cc3…</code> — now only the relationship</div>
+            <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12, color: SEPIA_MUTED }}>
+              source_agent_key: task_environment_agent → target_agent_key: task_performing_agent · stage: Idea generation screening · interaction_canvases: []
+            </span>
+            <div style={{ fontSize: 12.5, color: SEPIA_MUTED, marginTop: 6 }}>
+              All six canvases were agent-owned, so the connection carries <strong>no</strong> canvases after the move — exactly the target shape.
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            {[
+              ["Acceptance met", "Two agents (one task_generator, both peers, ordered) + one connection carrying only wiring; each agent owns its four slots. The starter-state-canvas collision dissolves — the two state canvases now resolve by owning agent_key, not shared canvas_id."],
+              ["No hardcoded roles", "role is a type marker for the Task 9 runtime bookends — not is_main_agent, not a nav group. The task generator renders as a peer in the selector."],
+              ["Open (Yasin)", "state_schema already lives once per agent (34 / 18 fields) → keep it as an agent property with its own tab, not a separate canvas. Confirm before Task 5 builds the tab."],
+            ].map(([t, d]) => (
+              <div key={t} style={{ borderLeft: `3px solid ${C_RUST}`, paddingLeft: 12 }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.5, marginTop: 2 }}>{d}</div>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: SEPIA_MUTED, marginTop: 12, marginBottom: 0 }}>
+            Full write-up: <code>docs/air-lab/task2-agents-first-class.md</code>. This representation is the input to Task&nbsp;3 (backfill) and the output contract for Task&nbsp;4 (§6.1).
+          </p>
+        </Section>
+
+        {/* Task 3 — backfill migration */}
+        <Section id="task3" n="10" title="Task 3 — backfill migration (reference draft executed)">
+          <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
+            Move each draft from the embedded-JSON shape to the Task 2 / §6 shape: promote agents, externalize every
+            canvas to an <code>agent_canvases</code> row, slim connections to wiring. Built <strong>reversible</strong>, with a
+            dry-run mode. The reference draft is now <strong>migrated for real</strong> — additively, so the draft row is
+            untouched and the live pane is unaffected.
+          </p>
+
+          {/* Executed result */}
+          <div style={{ background: SEPIA_PANEL, border: `1px solid ${C_GREEN}`, borderRadius: 0, padding: 14, marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#fff", background: C_GREEN, padding: "2px 8px" }}>EXECUTED ✓</span>
+              <span style={{ fontWeight: 600 }}>reference draft <code>c2b2f46c…</code> → <code>agent_canvases</code> — verified lossless, reversible</span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {[["7", "rows written"], ["2", "agent-owned"], ["4", "connection-owned"], ["1", "workflow"], ["0", "payloads lost"], ["1", "backup snapshot"]].map(([n, l]) => (
+                <span key={l} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, border: `1px solid ${SEPIA_LINE}`, padding: "3px 8px", fontSize: 12 }}>
+                  <span style={{ fontWeight: 700, fontFamily: "var(--font-mono, monospace)", color: l === "payloads lost" ? C_GREEN : SEPIA_TEXT }}>{n}</span>
+                  <span style={{ color: SEPIA_MUTED }}>{l}</span>
+                </span>
+              ))}
+            </div>
+            <pre style={{ background: "#eeecdf", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: 12, fontSize: 11, lineHeight: 1.6, overflowX: "auto", fontFamily: "var(--font-mono, monospace)", color: SEPIA_TEXT, margin: "10px 0 0" }}>
+{`agent      drafts/c2b2f46c/agents/905cdf83…/state              ← Task selection and state update
+agent      drafts/c2b2f46c/agents/task_performing_agent/state ← stage1TargetState
+connection drafts/c2b2f46c/connections/93c45cc3…/source/policy ← Task lifecycle
+connection drafts/c2b2f46c/connections/93c45cc3…/target/policy ← stage1TargetPolicy
+connection drafts/c2b2f46c/connections/93c45cc3…/source/reward ← Thirty-day realized return
+connection drafts/c2b2f46c/connections/93c45cc3…/target/reward ← Task environment final solution quality
+workflow   drafts/c2b2f46c/workflow                           ← Overall Workflow`}
+            </pre>
+            <div style={{ fontSize: 12, color: SEPIA_MUTED, marginTop: 8 }}>
+              state → owner_type <code>agent</code>; policy/reward → owner_type <code>connection</code> + side; overview → <code>workflow</code>. Exactly the §6 model.
+            </div>
+          </div>
+
+          {/* Safety mechanics */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            {[
+              ["Additive — draft row untouched", "Canvases were copied into the new agent_canvases table; agent_connections was NOT stripped, so the live pane still renders the old shape. The slim-connection step is a separate, reversible toggle."],
+              ["Snapshot taken", "The pre-image (agent_bindings, agent_connections, workflow rows) is stored in air_lab_migration_backup before any write."],
+              ["Reversible", "Rollback: DELETE FROM agent_canvases WHERE draft_id=… (and, once the slim step runs, restore the draft JSONB from the backup)."],
+              ["Integrity enforced", "The three partial unique indexes are live — a duplicate (draft, owner, kind) slot is now rejected by the DB. The §4 collision cannot recur."],
+              ["Fleet + 2 state drift cases — gated", "Remaining 45 drafts (75 connections · 440 canvases) and the drift reconciliations (9a0bd903, fe410505) await go-ahead. Idempotent: source_path ON CONFLICT skips re-runs."],
+            ].map(([t, d]) => (
+              <div key={t} style={{ borderLeft: `3px solid ${C_TEAL}`, paddingLeft: 12 }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.5, marginTop: 2 }}>{d}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: "#f3ecd9", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: "10px 14px", fontSize: 13, color: SEPIA_TEXT, marginTop: 16 }}>
+            <strong>Next (gated):</strong> slim the reference connection (strip the six <code>*_canvases</code> fields once the compiler reads
+            {" "}<code>agent_canvases</code> — Task 9), then run the fleet. Both stay reversible from the snapshot.
+          </div>
+          <p style={{ fontSize: 12, color: SEPIA_MUTED, marginTop: 12, marginBottom: 0 }}>
+            Full write-up: <code>docs/air-lab/task3-backfill-migration.md</code>.
+          </p>
+        </Section>
+
+        {/* Task 4 — daemon output contract */}
+        <Section id="task4" n="11" title="Task 4 — the daemon output contract">
+          <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
+            The daemon emits agent-owned canvases into connection <code>source_</code>/<code>target_</code> fields — left alone it
+            re-creates the old shape on the next generation and undoes Task 3. Task 4 installs the agent-first contract and a
+            {" "}<strong>validator</strong> that rejects the old shape. Shipped <strong>additive</strong> (nothing imports it yet, so live generation is untouched).
+          </p>
+
+          <div style={{ background: SEPIA_PANEL, border: `1px solid ${C_GREEN}`, borderRadius: 0, padding: 14, marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#fff", background: C_GREEN, padding: "2px 8px" }}>SHIPPED ✓</span>
+              <span style={{ fontWeight: 600 }}><code>packages/orchestration-core/src/agent-first-canvas-contract.ts</code></span>
+            </div>
+            <div style={{ fontSize: 12.5, color: SEPIA_MUTED, marginTop: 8, lineHeight: 1.55 }}>
+              Exports the <code>AgentFirstOutput</code> types (<code>agents[] · connections[] · canvases[]</code>),
+              {" "}<code>buildCanvasSourcePath()</code> (unique id per scope — Task 1&apos;s rule), and
+              {" "}<code>validateAgentFirstOutput()</code>. Verified: valid output → <code>ok:true</code>; a bad output flags the codes below.
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {["CANVAS_IN_CONNECTION", "STATE_NOT_AGENT_OWNED", "INTERACTION_NOT_CONNECTION_OWNED", "MULTIPLE_TASK_GENERATORS", "DUP_SOURCE_PATH", "AGENT_MISSING_STATE"].map((c) => (
+                <span key={c} style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10.5, border: `1px solid ${WARN}`, color: WARN, padding: "2px 6px" }}>{c}</span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            {[
+              ["Validator (the brief's ask)", "Rejects any embedded *_canvases field inside a connection (CANVAS_IN_CONNECTION), wrong per-kind ownership, missing/duplicate task_generator, duplicate source_path, and agents without a state canvas."],
+              ["Unique ids per scope", "buildCanvasSourcePath() derives the path identity from owner — never the reused starter-* seed id (Task 1)."],
+              ["Task generator named explicitly", "role='task_generator' is required and unique — not inferred from being the source of the first connection."],
+              ["Prompt contract", "The generation instructions are the §6.1 daemon prompt: agents[] + connections[] + canvases[], one task_generator peer, canvases as documents, self-check before returning."],
+            ].map(([t, d]) => (
+              <div key={t} style={{ borderLeft: `3px solid ${C_TEAL}`, paddingLeft: 12 }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.5, marginTop: 2 }}>{d}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: "#f3ecd9", border: `1px solid ${SEPIA_LINE}`, borderRadius: 0, padding: "10px 14px", fontSize: 13, color: SEPIA_TEXT, marginTop: 16 }}>
+            <strong>Gate:</strong> installing the prompt into the <strong>live</strong> daemon is coupled to Task 9 — the compiler must read
+            {" "}<code>agent_canvases</code> before generation stops writing the old fields, else output would render nothing. Contract + validator now; live swap with Task 9.
+          </div>
+          <p style={{ fontSize: 12, color: SEPIA_MUTED, marginTop: 12, marginBottom: 0 }}>
+            Full write-up: <code>docs/air-lab/task4-generation-contract.md</code>.
+          </p>
+        </Section>
+
+        {/* Task 5 — Setup pane agent tier */}
+        <Section id="task5" n="12" title="Task 5 — Setup pane: rename + agent tier">
+          <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
+            Rename the first tab <strong>Model Setup → Setup</strong>, and insert an <strong>agent selector row</strong> between the
+            top-level tabs and the canvas-type tabs. Selecting an agent scopes everything below it; the choice persists per draft.
+            The task generator is a <strong>peer</strong> in the row, not elevated.
+          </p>
+
+          <div style={{ background: SEPIA_PANEL, border: `1px solid ${C_GREEN}`, borderRadius: 0, padding: "10px 14px", marginTop: 12, fontSize: 13, color: SEPIA_TEXT }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#fff", background: C_GREEN, padding: "2px 8px", marginRight: 8 }}>SHIPPED ✓</span>
+            Rename done in the live app: <code>DRAWER_LABEL.modelsetup</code> and the rail tooltip/aria-label now read &ldquo;Setup&rdquo;.
+          </div>
+
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 20, marginBottom: 8 }}>Interactive prototype — the reference draft</h3>
+          <p style={{ fontSize: 13, color: SEPIA_MUTED, lineHeight: 1.55, marginBottom: 12 }}>
+            Click an agent to scope the canvases; click State / Policy / Reward. Selection persists per draft (localStorage).
+            Exactly two entries — Task generator (peer) and the analyst — as the acceptance requires.
+          </p>
+          <AgentTierPrototype />
+
+          <div style={{ background: "#f3ecd9", border: `1px solid ${C_RUST}`, borderRadius: 0, padding: "10px 14px", marginTop: 14, fontSize: 13, color: SEPIA_TEXT }}>
+            <strong style={{ color: C_RUST }}>New studio:</strong> a full clone of the Investment Analyst studio chrome lives at
+            {" "}<a href="/demo/investor-analyst/studio" style={{ color: C_RUST, fontWeight: 700 }}>/demo/investor-analyst/studio</a> —
+            same chat UI, own route. The agent-first Setup pane (Tasks 5–8) is being built into <em>its</em> Setup, so the
+            {" "}<code>/demo/research/studio</code> original keeps its working state. The prototype above is the design it follows.
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            {[
+              ["Agent selector row", "One entry per agent in stored order; the task generator carries a 'gen' marker but is a peer, not elevated."],
+              ["Scopes everything below", "Switching agent swaps the State/Policy/Reward canvases; selection persists per draft."],
+              ["Degenerate cases", "One agent still shows the row (never special-cased away); the row wraps rather than truncating — Yasin's ten-agent case scrolls/wraps."],
+              ["Create-agent affordance", "'+ Add agent' is present; it never offers a second task generator (one already exists)."],
+              ["Live port", "The prototype is the spec to port into SetupStudio.tsx (2,770 lines). That port + Knowledge→Reward (Task 6) lands in-app with QA."],
+            ].map(([t, d]) => (
+              <div key={t} style={{ borderLeft: `3px solid ${C_TEAL}`, paddingLeft: 12 }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: SEPIA_MUTED, lineHeight: 1.5, marginTop: 2 }}>{d}</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
         {/* Process log */}
-        <Section id="process" n="9" title="Process — read-only queries run">
+        <Section id="process" n="13" title="Process — read-only queries run">
           <ol style={{ paddingLeft: 20, lineHeight: 1.7, fontSize: 13.5, color: SEPIA_MUTED }}>
             <li>Identified project from <code>NEXT_PUBLIC_AIRLAB_SUPABASE_URL</code>; confirmed the MCP surface uses a scoped token, not the service-role key.</li>
             <li>Dumped columns of <code>general_orchestration_daemon_drafts</code> and every <code>*_canvases</code> table; enumerated unique constraints.</li>
@@ -1108,44 +1487,6 @@ Return ONLY the JSON object, no prose.`}
         </Section>
 
       </div>
-
-      {/* Right-rail navigation tree — fixed to the viewport's right edge, transparent, tree-styled */}
-      <nav
-        aria-label="On this page"
-        style={{
-          position: "fixed", top: 24, left: 28, width: 260,
-          maxHeight: "calc(100dvh - 48px)", overflowY: "auto",
-          background: "transparent",
-        }}
-      >
-        <div style={{ fontSize: 11, fontFamily: "var(--font-mono, monospace)", letterSpacing: 1, color: SEPIA_MUTED, marginBottom: 12 }}>
-          ON THIS PAGE
-        </div>
-        <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-          {TOC.map((t, i) => {
-            const isLast = i === TOC.length - 1;
-            return (
-              <li key={t.id} style={{ display: "flex", alignItems: "stretch", marginLeft: t.sub ? 18 : 0 }}>
-                {/* tree connector: continuous trunk + branch tick */}
-                <div style={{ position: "relative", width: 18, flexShrink: 0 }}>
-                  <div style={{ position: "absolute", left: 0, top: 0, width: 1, background: SEPIA_LINE, ...(isLast ? { height: 13 } : { bottom: 0 }) }} />
-                  <div style={{ position: "absolute", left: 0, top: 12, width: 12, height: 1, background: SEPIA_LINE }} />
-                </div>
-                <a
-                  href={`#${t.id}`}
-                  style={{
-                    display: "block", textDecoration: "none", background: "transparent",
-                    WebkitTapHighlightColor: "transparent", padding: "1px 0 14px 8px", color: SEPIA_TEXT,
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent ? ACCENT : SEPIA_TEXT }}>{t.label}</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: SEPIA_MUTED, lineHeight: 1.4, marginTop: 2, fontWeight: 600 }}>{t.desc}</span>
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
     </main>
   );
 }

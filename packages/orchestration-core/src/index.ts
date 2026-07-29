@@ -1,3 +1,4 @@
+export * from "./agent-first-canvas-contract";
 export * from "./agent-template-references";
 export * from "./agent-template-catalog";
 export * from "./external-episodes";

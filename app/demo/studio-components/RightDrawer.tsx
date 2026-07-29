@@ -49,7 +49,7 @@ export type DrawerId =
 export const DRAWER_LABEL: Record<DrawerId, string> = {
   chats: "Chats",
   observability: "Observability",
-  modelsetup: "Model Setup",
+  modelsetup: "Setup",
   simulation: "Simulation",
   expert: "Expert",
   upload: "Upload",

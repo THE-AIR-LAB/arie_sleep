@@ -198,11 +198,15 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
   // a Save that PUTs it back (the endpoint needs `config`, so we round-trip it).
   const [workflowSaving, setWorkflowSaving] = useState(false);
   const [workflowSaved, setWorkflowSaved] = useState(false);
+  // The bottom workflow drawer defaults to the legacy per-topic setup endpoint,
+  // but a studio can override it (e.g. to an agent-first store) without changing
+  // apiTopic (which also drives chat).
+  const workflowEndpoint = config.workflowEndpoint ?? `/api/admin/setup/${config.apiTopic}`;
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/admin/setup/${config.apiTopic}`);
+        const res = await fetch(workflowEndpoint);
         if (!res.ok) return;
         const { workflowCanvases } = (await res.json()) as {
           workflowCanvases?: Array<{ canvas_id?: string; name?: string; sort_order?: number; canvas: CanvasDoc["canvases"][number] }>;
@@ -217,13 +221,13 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [config.apiTopic]);
+  }, [workflowEndpoint]);
   const saveWorkflow = useCallback(async () => {
     if (!canvasDoc || workflowSaving) return;
     setWorkflowSaving(true);
     try {
       // The PUT requires `config`; fetch the current one so we don't clobber it.
-      const cur = await fetch(`/api/admin/setup/${config.apiTopic}`);
+      const cur = await fetch(workflowEndpoint);
       const setupConfig = (cur.ok ? (await cur.json())?.config : null) ?? {};
       const workflowCanvases = canvasDoc.canvases.map((canvas, index) => ({
         canvas_id: canvas.id,
@@ -231,7 +235,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
         sort_order: index,
         canvas,
       }));
-      const res = await fetch(`/api/admin/setup/${config.apiTopic}`, {
+      const res = await fetch(workflowEndpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config: setupConfig, workflowCanvases }),
@@ -245,7 +249,7 @@ export function StudioApp({ config }: { config: StudioChatConfig }) {
     } finally {
       setWorkflowSaving(false);
     }
-  }, [canvasDoc, workflowSaving, config.apiTopic]);
+  }, [canvasDoc, workflowSaving, workflowEndpoint]);
   // Bottom workflow drawer: open at ~1/3 of the viewport height.
   const [canvasHeight, setCanvasHeight] = useState(360);
   useEffect(() => {
