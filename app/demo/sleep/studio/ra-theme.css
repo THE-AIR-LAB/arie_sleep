@@ -350,14 +350,14 @@ body.ra-resizing-y,body.ra-resizing-y *{cursor:row-resize !important;user-select
 .ra-scope button.conv-check svg{width:10px;height:10px;}
 .ra-scope .conv-item.selected{background:var(--surface);}
 
-/* Titles share the same left/right inset as Recent / Select (no per-row offsets). */
+/* Conversation rows: horizontal padding keeps title + kebab off the pill edges. */
 .ra-scope .conv-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0;
   margin:0;padding:0;scrollbar-gutter:stable;}
 .ra-scope .conv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center;color:var(--text-3);padding:20px 0;}
 .ra-scope .conv-empty .ce-orb{width:38px;height:38px;border-radius:50%;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--text-4);}
 .ra-scope .conv-empty p{margin:0;font-size:14px;line-height:1.35;}
 
-.ra-scope .conv-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-radius:8px;cursor:pointer;
+.ra-scope .conv-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;
   position:relative;color:var(--text-2);}
 .ra-scope .conv-item:hover{background:var(--surface);color:var(--text);}
 .ra-scope .conv-item.active{background:var(--surface);color:var(--text);}
