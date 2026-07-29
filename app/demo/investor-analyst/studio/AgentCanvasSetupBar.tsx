@@ -17,13 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Canvas, { type CanvasDoc } from "../../../components/canvas/Canvas";
 import type { SetupBarProps } from "../../studio-components/chat/types";
 
-const PANEL = "#e4e2d6";
-const INK = "#1f1d18";
 const MUTED = "#6f6a5b";
-const LINE = "#a8a698";
-const RUST = "#c2611f";
-const TEAL = "#0a3a52";
-const KIND_COLOR: Record<Kind, string> = { state: "#0a3a52", policy: "#445a1e", reward: "#007e27" };
 
 const ENDPOINT = "/api/investor-analyst/canvases";
 
@@ -39,6 +33,57 @@ type Agent = {
 
 const KINDS: Kind[] = ["state", "policy", "reward"];
 const KIND_LABEL: Record<Kind, string> = { state: "State", policy: "Policy", reward: "Reward" };
+
+type GraphLike = CanvasEntry["graph"];
+
+/** Tidy a graph into a left-to-right layered layout: x by rank (longest path
+ *  from the roots), y stacked per column using an estimated node height so tall
+ *  long-label nodes never overlap. Deterministic; leaves the graph's nodes/edges
+ *  otherwise untouched. The daemon stores nodes stacked vertically with a fixed
+ *  gap that's smaller than a long-label node, which is what caused the overlap. */
+function layoutGraph(graph: GraphLike): GraphLike {
+  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
+  const edges = Array.isArray(graph?.edges) ? graph.edges : [];
+  if (nodes.length <= 1) return graph;
+
+  const idSet = new Set(nodes.map((n) => String(n.id)));
+  const links = edges.filter(
+    (e) => e && idSet.has(String(e.source)) && idSet.has(String(e.target)) && e.source !== e.target
+  );
+
+  // Longest-path rank via relaxation, capped at nodes.length passes so cycles
+  // (e.g. the state summary loop) terminate instead of spinning.
+  const rank = new Map<string, number>(nodes.map((n) => [String(n.id), 0]));
+  for (let pass = 0; pass < nodes.length; pass++) {
+    let changed = false;
+    for (const e of links) {
+      const next = (rank.get(String(e.source)) ?? 0) + 1;
+      if ((rank.get(String(e.target)) ?? 0) < next) {
+        rank.set(String(e.target), next);
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+
+  const COL = 460;
+  const GAP_Y = 48;
+  const estHeight = (n: { data?: { label?: unknown } }) => {
+    const label = typeof n?.data?.label === "string" ? n.data.label : "";
+    const lines = Math.min(9, Math.max(1, Math.ceil(label.length / 30)));
+    return 74 + lines * 24;
+  };
+
+  const columnCursor = new Map<number, number>();
+  const laidNodes = nodes.map((n) => {
+    const r = rank.get(String(n.id)) ?? 0;
+    const y = columnCursor.get(r) ?? 40;
+    columnCursor.set(r, y + estHeight(n) + GAP_Y);
+    return { ...n, position: { x: r * COL, y } };
+  });
+
+  return { ...graph, nodes: laidNodes };
+}
 
 function Composition({ slot }: { slot: HTMLElement }) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
@@ -70,10 +115,14 @@ function Composition({ slot }: { slot: HTMLElement }) {
   const row = agent?.canvases[kind] ?? null;
   const dirty = Object.keys(edits).length > 0;
 
-  // Single-canvas doc for the selected agent + section, honoring any local edit.
+  // Single-canvas doc for the selected agent + section. Honor a local edit
+  // as-is (the user may have arranged nodes); otherwise tidy the stored graph
+  // into a left-to-right layered layout so the nodes don't overlap on open —
+  // the daemon's stored positions stack tall long-label nodes vertically.
   const doc = useMemo<CanvasDoc | null>(() => {
     if (!row) return null;
-    const entry = edits[row.canvas.id] ?? row.canvas;
+    const edited = edits[row.canvas.id];
+    const entry = edited ?? { ...row.canvas, graph: layoutGraph(row.canvas.graph) };
     return { version: 2, activeId: entry.id, canvases: [entry] };
   }, [row, edits]);
 
@@ -134,52 +183,42 @@ function Composition({ slot }: { slot: HTMLElement }) {
     // sibling direct children of the slot rather than nesting them in a wrapper.
     return (
       <>
-        {/* Agent selector nav */}
-        <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderBottom: `1px solid ${LINE}`, background: "#eeecdf", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 10.5, fontFamily: "var(--font-mono, monospace)", color: MUTED, marginRight: 2 }}>AGENT</span>
+        {/* Agent selector nav — underline tabs, matching the drawer's
+            Setup/Observability/Simulation and the default Model Setup nav
+            (.obs-setup / .obs-setup-chip). */}
+        <div className="obs-setup" style={{ flex: "0 0 auto" }}>
           {agents.map((a, i) => {
             const on = i === agentIdx;
             return (
-              <button key={a.key} onClick={() => { setAgentIdx(i); if (!a.canvases[kind]) setKind("state"); }}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", cursor: "pointer",
-                  border: `1px solid ${on ? TEAL : LINE}`, background: on ? TEAL : "transparent", color: on ? "#fff" : INK,
-                  fontWeight: on ? 700 : 500, fontSize: 12.5 }}>
+              <button key={a.key} className={"obs-setup-chip" + (on ? " on" : "")}
+                onClick={() => { setAgentIdx(i); if (!a.canvases[kind]) setKind("state"); }}>
                 {a.name}
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.4, padding: "1px 5px",
-                  background: on ? "rgba(255,255,255,0.22)" : (a.role === "source" ? RUST : TEAL), color: "#fff", textTransform: "uppercase" }}>
-                  {a.role}
-                </span>
+                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-3)" }}>{a.role}</span>
               </button>
             );
           })}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-            {saveError ? <span style={{ fontSize: 11.5, color: "#d9582b" }}>{saveError}</span> : null}
-            <button onClick={save} disabled={!dirty || saving}
-              style={{ padding: "4px 12px", cursor: dirty && !saving ? "pointer" : "default", border: `1px solid ${dirty ? RUST : LINE}`,
-                background: dirty ? RUST : "transparent", color: dirty ? "#fff" : MUTED, fontWeight: 600, fontSize: 12.5 }}>
-              {saving ? "Saving…" : dirty ? "Save" : "Saved"}
-            </button>
+          {/* Row label moved to the right, mirroring the section row's canvas name. */}
+          <div className="obs-setup-trailing">
+            <span style={{ fontSize: 10.5, fontFamily: "var(--font-mono, monospace)", color: "var(--text-3)", letterSpacing: 0.5 }}>AGENT</span>
           </div>
         </div>
 
-        {/* Section tabs (State / Policy / Reward) */}
-        <div style={{ flex: "0 0 auto", display: "flex", gap: 6, padding: "8px 12px", borderBottom: `1px solid ${LINE}` }}>
+        {/* Section tabs (State / Policy / Reward) — same underline nav. */}
+        <div className="obs-setup" style={{ flex: "0 0 auto" }}>
           {KINDS.map((k) => {
             const has = !!agent?.canvases[k];
             const on = kind === k;
             return (
-              <button key={k} onClick={() => has && setKind(k)} disabled={!has}
-                style={{ padding: "5px 12px", fontSize: 13, cursor: has ? "pointer" : "default",
-                  border: `1px solid ${on ? KIND_COLOR[k] : LINE}`, background: on ? KIND_COLOR[k] : "transparent",
-                  color: on ? "#fff" : (has ? INK : "#b8b6a8"), fontWeight: on ? 700 : 500 }}>
+              <button key={k} className={"obs-setup-chip" + (on ? " on" : "")} disabled={!has}
+                onClick={() => has && setKind(k)} style={has ? undefined : { opacity: 0.4 }}>
                 {KIND_LABEL[k]}
               </button>
             );
           })}
           {row ? (
-            <span style={{ marginLeft: "auto", alignSelf: "center", fontSize: 11.5, color: MUTED }}>
-              {row.canvas.name}
-            </span>
+            <div className="obs-setup-trailing">
+              <span style={{ fontSize: 12, color: "var(--text-3)" }}>{row.canvas.name}</span>
+            </div>
           ) : null}
         </div>
 
@@ -191,7 +230,28 @@ function Composition({ slot }: { slot: HTMLElement }) {
           <div className="sysconf obs-docked">
             <div className="obs-docked-body">
               <div className="sc-canvas-host" style={{ display: "flex", flexDirection: "column" }}>
-                <Canvas key={row?.canvas.id} value={doc} fillHeight onChange={onChange} />
+                {/* Save is docked into the canvas bottom-right chrome (tabBarTrailing),
+                    as in the default Model Setup pane. */}
+                <Canvas
+                  key={row?.canvas.id}
+                  value={doc}
+                  fillHeight
+                  onChange={onChange}
+                  tabBarTrailing={
+                    <div className="obs-setup-actions">
+                      {saveError ? <span style={{ fontSize: 11.5, color: "#d9582b", marginRight: 4 }}>{saveError}</span> : null}
+                      <button
+                        type="button"
+                        className="obs-setup-action"
+                        onClick={() => void save()}
+                        disabled={!dirty || saving}
+                        title={dirty ? "You have unsaved changes" : "No changes to save"}
+                      >
+                        {saving ? "Saving…" : dirty ? (<><span className="unsaved-dot" aria-hidden />Save</>) : "Saved"}
+                      </button>
+                    </div>
+                  }
+                />
               </div>
             </div>
           </div>
