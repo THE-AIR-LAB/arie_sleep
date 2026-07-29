@@ -341,8 +341,6 @@ export function BubbleFullscreen({
                 autoFocus
               />
             </div>
-          ) : m?.role === "user" ? (
-            text
           ) : (
             <BubbleMarkdown>{text}</BubbleMarkdown>
           )}

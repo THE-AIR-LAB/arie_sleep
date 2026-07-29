@@ -85,6 +85,17 @@ function layoutGraph(graph: GraphLike): GraphLike {
   return { ...graph, nodes: laidNodes };
 }
 
+/** True only for a graph still in the daemon's raw form: >1 node all stacked in
+ *  a single column (one distinct x). Once the user arranges and saves, the nodes
+ *  spread across multiple x's, so we must honor those positions instead of
+ *  re-running layoutGraph — otherwise a saved/reloaded arrangement snaps back. */
+function needsLayout(graph: GraphLike): boolean {
+  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
+  if (nodes.length <= 1) return false;
+  const xs = new Set(nodes.map((n) => Math.round(n.position?.x ?? 0)));
+  return xs.size <= 1;
+}
+
 function Composition({ slot }: { slot: HTMLElement }) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -122,7 +133,11 @@ function Composition({ slot }: { slot: HTMLElement }) {
   const doc = useMemo<CanvasDoc | null>(() => {
     if (!row) return null;
     const edited = edits[row.canvas.id];
-    const entry = edited ?? { ...row.canvas, graph: layoutGraph(row.canvas.graph) };
+    const entry =
+      edited ??
+      (needsLayout(row.canvas.graph)
+        ? { ...row.canvas, graph: layoutGraph(row.canvas.graph) }
+        : row.canvas);
     return { version: 2, activeId: entry.id, canvases: [entry] };
   }, [row, edits]);
 

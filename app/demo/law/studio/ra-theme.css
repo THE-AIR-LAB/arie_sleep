@@ -1660,7 +1660,7 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .bubble-collapse:hover{color:var(--text); background:transparent;}
 /* Collapsed: hard one-line preview (plain text in JS + ellipsis shell). */
 .ra-scope .msg-user.is-collapsed .bubble-body,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body{
+.ra-scope :is(.msg-ai .bubble, .msg-user).is-collapsed .bubble-body{
   overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
   line-height:1.5; display:block; max-height:calc(1.5em + 20px);}
 /* Collapsed + bottom-resized: multi-line preview that scrolls in the shell. */
@@ -1681,45 +1681,45 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .thread.show-feedback-hl .msg-ai .bubble.has-feedback{background:#B0BEA5;border-color:#96a58a;}
 .ra-scope .thread.show-feedback-hl .msg-user.has-feedback{background:#B0BEA5;border-color:#96a58a;}
 /* Inline code stays legible on the tinted bubble. */
-.ra-scope .thread.show-feedback-hl .msg-ai .bubble.has-feedback .bubble-body code{background:rgba(255,255,255,0.5);}
-/* Markdown in assistant bubbles (**bold**, lists, links, headings). */
-.ra-scope .msg-ai .bubble .bubble-body p{margin:0 0 .35em;}
-.ra-scope .msg-ai .bubble .bubble-body p:last-child{margin-bottom:0;}
-.ra-scope .msg-ai .bubble .bubble-body h1,
-.ra-scope .msg-ai .bubble .bubble-body h2,
-.ra-scope .msg-ai .bubble .bubble-body h3,
-.ra-scope .msg-ai .bubble .bubble-body h4{
+.ra-scope .thread.show-feedback-hl :is(.msg-ai .bubble, .msg-user).has-feedback .bubble-body code{background:rgba(255,255,255,0.5);}
+/* Markdown in chat bubbles (**bold**, lists, links, headings). */
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body p{margin:0 0 .35em;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body p:last-child{margin-bottom:0;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h1,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h2,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h3,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h4{
   margin:.55em 0 .25em; font-weight:600; color:var(--text); line-height:1.3;}
-.ra-scope .msg-ai .bubble .bubble-body h1{font-size:1.15em;}
-.ra-scope .msg-ai .bubble .bubble-body h2{font-size:1.08em;}
-.ra-scope .msg-ai .bubble .bubble-body h3,
-.ra-scope .msg-ai .bubble .bubble-body h4{font-size:1em;}
-.ra-scope .msg-ai .bubble .bubble-body h1:first-child,
-.ra-scope .msg-ai .bubble .bubble-body h2:first-child,
-.ra-scope .msg-ai .bubble .bubble-body h3:first-child,
-.ra-scope .msg-ai .bubble .bubble-body h4:first-child{margin-top:0;}
-.ra-scope .msg-ai .bubble .bubble-body strong,.ra-scope .msg-ai .bubble .bubble-body b{font-weight:600;color:var(--text);}
-.ra-scope .msg-ai .bubble .bubble-body em,.ra-scope .msg-ai .bubble .bubble-body i{font-style:italic;}
-.ra-scope .msg-ai .bubble .bubble-body ul,.ra-scope .msg-ai .bubble .bubble-body ol{margin:.4em 0 .65em;padding-left:1.25em;}
-.ra-scope .msg-ai .bubble .bubble-body li{margin:.15em 0;}
-.ra-scope .msg-ai .bubble .bubble-body li > p{margin:0;}
-.ra-scope .msg-ai .bubble .bubble-body a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
-.ra-scope .msg-ai .bubble .bubble-body code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.9em;
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h1{font-size:1.15em;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h2{font-size:1.08em;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h3,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h4{font-size:1em;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h1:first-child,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h2:first-child,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h3:first-child,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body h4:first-child{margin-top:0;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body strong,.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body b{font-weight:600;color:var(--text);}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body em,.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body i{font-style:italic;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body ul,.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body ol{margin:.4em 0 .65em;padding-left:1.25em;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body li{margin:.15em 0;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body li > p{margin:0;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.9em;
   background:var(--surface-2);padding:.1em .35em;border-radius:0;}
 /* GFM tables (comparison sheets, intake forms) */
-.ra-scope .msg-ai .bubble .bubble-body .bubble-md-table-wrap{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-md-table-wrap{
   display:block; width:100%; max-width:100%; overflow-x:auto; margin:.65em 0 .85em;
   -webkit-overflow-scrolling:touch;}
-.ra-scope .msg-ai .bubble .bubble-body table{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body table{
   width:100%; min-width:420px; border-collapse:collapse; font-size:0.92em; line-height:1.4;}
-.ra-scope .msg-ai .bubble .bubble-body thead th{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body thead th{
   background:var(--surface-2); font-weight:600; color:var(--text); text-align:left;}
-.ra-scope .msg-ai .bubble .bubble-body th,
-.ra-scope .msg-ai .bubble .bubble-body td{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body th,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body td{
   border:1px solid var(--line); padding:7px 10px; vertical-align:top; text-align:left;
   white-space:normal; word-break:break-word;}
-.ra-scope .msg-ai .bubble .bubble-body tbody tr:nth-child(even) td{background:rgba(0,0,0,0.015);}
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-md-table-wrap{display:none;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body tbody tr:nth-child(even) td{background:rgba(0,0,0,0.015);}
+.ra-scope :is(.msg-ai .bubble, .msg-user).is-collapsed .bubble-body .bubble-md-table-wrap{display:none;}
 /* Fill-in-the-blank worksheets — structured form layout inside the bubble. */
 .ra-scope .bubble-form{display:flex;flex-direction:column;gap:14px;width:100%;}
 .ra-scope .bubble-form-intro{font-family:var(--serif);font-size:inherit;line-height:1.5;color:var(--text-2);}
@@ -1748,11 +1748,11 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .bubble-form-blank.is-token{font-style:italic;}
 .ra-scope .bubble-form-collapsed{font-family:inherit;font-size:13.5px;color:var(--text-2);font-weight:500;}
 /* Collapsed preview must never show form chrome (blanks, sections, rows). */
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-section,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-rows,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-row,
-.ra-scope .msg-ai .bubble.is-collapsed .bubble-body .bubble-form-blank{
+.ra-scope :is(.msg-ai .bubble, .msg-user).is-collapsed .bubble-body .bubble-form,
+.ra-scope :is(.msg-ai .bubble, .msg-user).is-collapsed .bubble-body .bubble-form-section,
+.ra-scope :is(.msg-ai .bubble, .msg-user).is-collapsed .bubble-body .bubble-form-rows,
+.ra-scope :is(.msg-ai .bubble, .msg-user).is-collapsed .bubble-body .bubble-form-row,
+.ra-scope :is(.msg-ai .bubble, .msg-user).is-collapsed .bubble-body .bubble-form-blank{
   display:none !important;}
 .ra-scope .msg-ai .bubble.bubble-traceable{cursor:pointer;border-radius:0;margin:-2px -6px;padding:2px 6px;transition:background .12s ease;}
 .ra-scope .msg-ai .bubble.bubble-traceable:hover{background:var(--surface-2);}
@@ -1831,39 +1831,39 @@ body:has(.ra-scope.ra-mono) .rf-canvas-fullscreen .rf-canvas-chrome .rf-canvas-t
 .ra-scope .bubble-body{
   overflow-wrap:anywhere;word-break:break-word;min-width:0;}
 /* Structured JSON replies — readable fields instead of a monospace wall. */
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-prose{margin:0 0 .75em;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-prose{margin:0 0 .75em;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json{
   margin:0;display:flex;flex-direction:column;gap:12px;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-row{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-row{
   display:flex;flex-direction:column;gap:4px;min-width:0;
   padding:0 0 12px;border-bottom:1px solid var(--line-soft);}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-row:last-child{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-row:last-child{
   padding-bottom:0;border-bottom:none;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-key{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-key{
   margin:0;font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.4px;
   text-transform:uppercase;color:var(--text-3);line-height:1.3;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-val{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-val{
   margin:0;min-width:0;font-family:var(--serif);font-size:inherit;line-height:1.5;
   color:var(--text);overflow-wrap:anywhere;word-break:break-word;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-text,
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-scalar{display:block;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-empty{color:var(--text-3);font-style:italic;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-list{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-text,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-scalar{display:block;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-empty{color:var(--text-3);font-style:italic;}
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-list{
   margin:0;padding:0 0 0 1.15em;display:flex;flex-direction:column;gap:6px;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-list li{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-list li{
   margin:0;padding:0;line-height:1.45;overflow-wrap:anywhere;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-stack{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-stack{
   display:flex;flex-direction:column;gap:10px;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-json-card{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-json-card{
   padding:10px 12px;border:1px solid var(--line-soft);background:var(--surface-2);}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-md-pre,
-.ra-scope .msg-ai .bubble .bubble-body pre{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-md-pre,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body pre{
   margin:.35em 0 .55em;padding:10px 12px;max-width:100%;box-sizing:border-box;
   overflow-x:hidden;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
   font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.86em;line-height:1.45;
   background:var(--surface-2);border:1px solid var(--line-soft);border-radius:0;}
-.ra-scope .msg-ai .bubble .bubble-body .bubble-md-pre code,
-.ra-scope .msg-ai .bubble .bubble-body pre code{
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body .bubble-md-pre code,
+.ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body pre code{
   background:transparent;padding:0;font-size:inherit;white-space:inherit;}
 
 .ra-scope .msg-actions{display:flex;gap:4px;margin-top:8px;opacity:0;}
@@ -2370,7 +2370,7 @@ body:has(.ra-scope.ra-mono) .bubble-fs{background:#ffffff;border-color:#dcdcdc;}
   .ra-scope .th-name{font-size:16px;}
   .ra-scope .bubble-body,
   .ra-scope .msg-user .bubble-body,
-  .ra-scope .msg-ai .bubble .bubble-body{font-size:var(--bubble-font-size, 16.5px);line-height:1.45;}
+  .ra-scope :is(.msg-ai .bubble, .msg-user) .bubble-body{font-size:var(--bubble-font-size, 16.5px);line-height:1.45;}
   .ra-scope .comp-input{font-size:16px !important;}
   .ra-scope .typing-status{font-size:12px;}
   /* Mobile: stack suggestion pills vertically so they never overflow the viewport. */

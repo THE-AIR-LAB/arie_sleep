@@ -8,7 +8,7 @@ import SiteLogo from "../components/SiteLogo";
 
 const OPTIONS = [
   { label: "Market Analyst", href: "/demo/analyst/studio" },
-  { label: "Investment Analyst", href: "/demo/research/studio" },
+  { label: "Investment Analyst", href: "/demo/investor-analyst/studio" },
   { label: "Council", href: "/demo/law/studio" },
   { label: "Therapist", href: "/demo/sleep/studio" },
 ] as const;

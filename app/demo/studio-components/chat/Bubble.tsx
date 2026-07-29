@@ -810,8 +810,6 @@ export function Bubble({
               <span className="bubble-collapsed-preview">{collapsedPlainPreview(m.text)}</span>
             )}
           </>
-        ) : isUser ? (
-          m.text
         ) : (
           <BubbleMarkdown>{m.text}</BubbleMarkdown>
         )}
