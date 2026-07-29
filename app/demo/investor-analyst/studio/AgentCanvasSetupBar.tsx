@@ -286,7 +286,14 @@ function Msg({ children }: { children: React.ReactNode }) {
   return <div style={{ padding: 20, fontSize: 13, color: MUTED }}>{children}</div>;
 }
 
-export default function AgentCanvasSetupBar({ slot, onTopDockChange }: SetupBarProps) {
+// `slot` is optional here (unlike SetupBarProps, which requires it) so this
+// override is a drop-in for the generated SetupBar — ModelSetupContent renders
+// `<SetupBar turns={turns} />` with no slot, and we simply render nothing until
+// the drawer provides one.
+export default function AgentCanvasSetupBar({
+  slot,
+  onTopDockChange,
+}: Omit<SetupBarProps, "slot"> & { slot?: HTMLElement | null }) {
   useEffect(() => { onTopDockChange?.(0); }, [onTopDockChange]);
   if (!slot) return null;
   return <Composition slot={slot} />;
